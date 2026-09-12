@@ -1,7 +1,10 @@
 {
-  "/login/page": "app/login/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/research/page": "app/research/page.js",
+  "/research/[query_id]/page": "app/research/[query_id]/page.js",
   "/surveillance/page": "app/surveillance/page.js",
-  "/bff/[...path]/route": "app/bff/[...path]/route.js",
-  "/research/page": "app/research/page.js"
+  "/bff/[...path]/route": "app/bff/[...path]/route.js"
 }

@@ -6,7 +6,7 @@ import { Button, Field, Notice, areaClass, inputClass } from './ui';
 
 const SPECIALTIES = [
   'general_practice', 'paediatrics', 'obstetrics_gynaecology', 'internal_medicine',
-  'cardiology', 'dermatology', 'psychiatry', 'oncology', 'surgery',
+  'dermatology', 'psychiatry', 'oncology', 'surgery', 'other',
 ];
 
 /**

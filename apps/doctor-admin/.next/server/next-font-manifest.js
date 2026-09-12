@@ -1,1 +1,1 @@
-self.__NEXT_FONT_MANIFEST="{\"pages\":{},\"app\":{\"/home/egovirdc/SOSPRO/A-health platform/Web/apps/doctor-admin/app/layout\":[\"static/media/98e207f02528a563-s.p.woff2\",\"static/media/26d4368bf94c0ec4-s.p.woff2\"]},\"appUsingSizeAdjust\":true,\"pagesUsingSizeAdjust\":false}"
+self.__NEXT_FONT_MANIFEST='{"pages":{},"app":{"/home/egovirdc/SOSPRO/A-health platform/Web/apps/doctor-admin/app/layout":["static/media/98e207f02528a563-s.p.woff2","static/media/26d4368bf94c0ec4-s.p.woff2"]},"appUsingSizeAdjust":true,"pagesUsingSizeAdjust":false}';

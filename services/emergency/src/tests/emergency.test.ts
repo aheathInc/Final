@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import type { AppError } from '@a-health/http';
+import { bus } from '../events.js';
 import * as emergencies from '../services/emergencyRequest.service.js';
 import * as units from '../services/transportUnit.service.js';
 import { isLegalStatusTransition, canDispatch } from '../services/transition.js';
@@ -35,6 +36,7 @@ after(async () => {
     await prisma.user.delete({ where: { id } }).catch(() => undefined);
   }
   await prisma.$disconnect();
+  await bus.close();
 });
 
 async function makePatient() {

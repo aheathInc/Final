@@ -154,7 +154,7 @@ describe('second opinions', () => {
     const thread = await makeThread();
 
     const opinion = await opinions.requestSecondOpinion(
-      requester, { care_thread_id: thread.id, specialty: 'cardiology', question: 'q' }, meta,
+      requester, { care_thread_id: thread.id, specialty: 'internal_medicine', question: 'q' }, meta,
     );
     opinionIds.push(opinion.id);
     await opinions.claimSecondOpinion(opinion.id, first, meta);

@@ -204,6 +204,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinicians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List clinicians, filtered
+         * @description The queue an administrator works from. Approving a licence was already
+         *     described, but there was no way to find the licences waiting for a
+         *     decision, which made that endpoint unusable in practice.
+         *
+         *     Admin only. Cursor paginated, because the pending list changes while
+         *     it is being worked through.
+         */
+        get: operations["listClinicians"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clinicians/{clinician_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one clinician profile
+         * @description Readable by an admin, or by the clinician themselves. Anyone else gets
+         *     403 rather than 404, because the id is not a secret — what is protected
+         *     is the record, not its existence.
+         */
+        get: operations["getClinician"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinicians/{clinician_id}/verification": {
         parameters: {
             query?: never;
@@ -620,6 +667,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/triage-rulesets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List triage rulesets
+         * @description Every version ever published, newest first. Platform admin only.
+         *
+         *     Rulesets are immutable once created, including drafts: editing means
+         *     creating a new version. `ConsultationRequest.triage_rule_version` points
+         *     at one of these, so a decision made months ago must still resolve to the
+         *     rules that actually made it.
+         */
+        get: operations["listTriageRulesets"];
+        put?: never;
+        /**
+         * Create a draft ruleset
+         * @description Optionally cloned from an existing version. Structural validation runs
+         *     here; the safety checks run at activation.
+         */
+        post: operations["createTriageRuleset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/triage-rulesets/{label}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one ruleset */
+        get: operations["getTriageRuleset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/triage-rulesets/{label}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dry-run a ruleset
+         * @description Runs the safety checks and, optionally, one sample presentation, without
+         *     changing anything. Intended to be used before activation rather than
+         *     after a patient has been triaged by a rule nobody tested.
+         */
+        post: operations["previewTriageRuleset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/triage-rulesets/{label}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Activate a ruleset
+         * @description Retires whatever was active and makes this one live. Refused if any
+         *     safety check fails.
+         *
+         *     A hardcoded floor guarantees a small set of presentations — stroke
+         *     signs, chest pain, severe bleeding, unconsciousness, suicidal ideation
+         *     and a few others — are always emergencies whatever a ruleset says. That
+         *     floor is not configurable, and activation is refused rather than quietly
+         *     relying on it, so the administrator finds out now rather than from a
+         *     patient outcome.
+         *
+         *     Propagation to other service instances takes up to 30 seconds.
+         */
+        post: operations["activateTriageRuleset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/queue": {
         parameters: {
             query?: never;
@@ -723,6 +869,29 @@ export interface paths {
          *     patient app can show what is coming and cache it for offline use.
          */
         get: operations["listCheckIns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/check-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's own check-ins
+         * @description Answering a check-in was already described, but there was no way to
+         *     find the ones waiting — a patient could only respond if something else
+         *     handed them an id. Scoped like `/adherence-logs`: a patient or guardian
+         *     sees their own, a clinician sees the cycles they own.
+         */
+        get: operations["listMyCheckIns"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1654,6 +1823,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/investigation-orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get one investigation order with its results
+         * @description The read half of an order. The service has always implemented this —
+         *     the contract simply never described it, which is the same gap-class
+         *     as a status field with no endpoint to drive it.
+         */
+        get: operations["getInvestigationOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/investigation-orders/{order_id}/results": {
         parameters: {
             query?: never;
@@ -1738,6 +1929,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/network/discussions/{discussion_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a discussion with its replies
+         * @description Never joins patient identity, even for a case discussion — what is
+         *     shared is the clinical question, de-identified on the way in; this
+         *     endpoint has no path back to who the patient is.
+         */
+        get: operations["getDiscussion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/network/discussions/{discussion_id}/replies": {
         parameters: {
             query?: never;
@@ -1762,7 +1975,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List second-opinion requests
+         * @description How a specialist finds open requests to claim. Store-and-forward by
+         *     design — no requirement that requester and specialist are online at
+         *     once, which is what makes specialist access work outside cities.
+         */
+        get: operations["listSecondOpinions"];
         put?: never;
         /**
          * Request a specialist second opinion
@@ -1772,6 +1991,46 @@ export interface paths {
          *     specialist access fail outside cities.
          */
         post: operations["requestSecondOpinion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/second-opinions/{second_opinion_id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim an open second-opinion request
+         * @description The specialist taking it on. Only legal while status is `open`.
+         */
+        post: operations["claimSecondOpinion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/second-opinions/{second_opinion_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer a claimed second-opinion request
+         * @description Only the clinician who claimed it may answer. Only legal while status is `claimed`.
+         */
+        post: operations["answerSecondOpinion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2662,6 +2921,33 @@ export interface components {
             version: number;
             /** Format: date-time */
             updated_at: string;
+        };
+        TriageRuleset: {
+            /** Format: uuid */
+            id: string;
+            /** @description Written onto every consultation this ruleset judges. */
+            label: string;
+            /** @enum {string} */
+            status: "draft" | "active" | "retired";
+            /** @description Red flags, urgent codes, specialty hints, age thresholds, chronic modifiers. */
+            rules: {
+                [key: string]: unknown;
+            };
+            /** @description How long each urgency level may wait, versioned with the rules so a stamp explains both. */
+            sla_seconds: {
+                emergency?: number;
+                urgent?: number;
+                routine?: number;
+            };
+            notes?: string | null;
+            /** Format: uuid */
+            created_by_id?: string;
+            /** Format: date-time */
+            activated_at?: string | null;
+            /** Format: date-time */
+            retired_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
         };
         QueueEntry: {
             consultation: components["schemas"]["ConsultationRequest"];
@@ -4260,6 +4546,61 @@ export interface operations {
             422: components["responses"]["UnprocessableEntity"];
         };
     };
+    listClinicians: {
+        parameters: {
+            query?: {
+                verification_status?: components["schemas"]["VerificationStatus"];
+                specialty?: components["schemas"]["Specialty"];
+                is_available?: boolean;
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Clinicians */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ClinicianProfile"][];
+                        meta: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getClinician: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinician_id: components["parameters"]["ClinicianId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Clinician profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicianProfile"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     decideClinicianVerification: {
         parameters: {
             query?: never;
@@ -4997,6 +5338,184 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    listTriageRulesets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rulesets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["TriageRuleset"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createTriageRuleset: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Stamped onto every consultation this ruleset judges. */
+                    label: string;
+                    /** @description Label of an existing version to copy as a starting point. */
+                    clone_from?: string;
+                    rules?: {
+                        [key: string]: unknown;
+                    };
+                    sla_seconds?: {
+                        [key: string]: unknown;
+                    };
+                    notes?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Draft created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriageRuleset"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getTriageRuleset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                label: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ruleset */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriageRuleset"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    previewTriageRuleset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                label: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description A triage input to run through this ruleset. */
+                    sample?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        label: string;
+                        all_passed: boolean;
+                        safety_checks: {
+                            name?: string;
+                            expected?: string;
+                            got?: string;
+                            passed?: boolean;
+                        }[];
+                        sample_result?: {
+                            [key: string]: unknown;
+                        } | null;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    activateTriageRuleset: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                label: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Why this change is being made. Required — a rule change nobody explained is one nobody can review. */
+                    notes: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Activated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriageRuleset"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
     getQueue: {
         parameters: {
             query?: {
@@ -5131,6 +5650,35 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    listMyCheckIns: {
+        parameters: {
+            query?: {
+                status?: "scheduled" | "responded" | "missed";
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Check-ins */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CheckIn"][];
+                        meta: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
         };
     };
     respondToCheckIn: {
@@ -6617,6 +7165,30 @@ export interface operations {
             };
         };
     };
+    getInvestigationOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Investigation order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationOrder"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     fileInvestigationResult: {
         parameters: {
             query?: never;
@@ -6772,6 +7344,32 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    getDiscussion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                discussion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discussion with replies */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Discussion"] & {
+                        replies?: components["schemas"]["DiscussionReply"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     replyToDiscussion: {
         parameters: {
             query?: never;
@@ -6803,6 +7401,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiscussionReply"];
+                };
+            };
+        };
+    };
+    listSecondOpinions: {
+        parameters: {
+            query?: {
+                status?: "open" | "claimed" | "answered" | "withdrawn";
+                specialty?: components["schemas"]["Specialty"];
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Second opinions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SecondOpinion"][];
+                        meta: components["schemas"]["CursorMeta"];
+                    };
                 };
             };
         };
@@ -6843,6 +7470,73 @@ export interface operations {
                 };
             };
             403: components["responses"]["Forbidden"];
+        };
+    };
+    claimSecondOpinion: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                second_opinion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Claimed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecondOpinion"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    answerSecondOpinion: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                second_opinion_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    answer: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Answered */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecondOpinion"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
     listEducationTopics: {

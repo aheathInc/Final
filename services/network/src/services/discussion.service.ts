@@ -1,5 +1,5 @@
 import { prisma } from '@a-health/database';
-import { appendAudit, conflict, cursorArgs, forbidden, notFound, toCursorPage } from '@a-health/http';
+import { appendAudit, conflict, cursorArgs, forbidden, notFound, toCursorPage, unprocessable } from '@a-health/http';
 
 export interface Caller { sub: string; role: string; cpid?: string }
 export interface Meta { ip?: string | null; requestId?: string | null }
@@ -80,6 +80,9 @@ export async function createDiscussion(
   meta: Meta,
 ) {
   const cpid = assertClinician(caller);
+  if (input.is_case_discussion && !input.care_thread_id) {
+    throw unprocessable('care_thread_id is required for a case discussion', 'care_thread_id');
+  }
 
   const community = await prisma.community.findUnique({ where: { id: input.community_id } });
   if (!community) throw notFound('Community not found');
