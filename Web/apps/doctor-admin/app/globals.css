@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #eef3ef;
+  color: #10241F;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(214, 231, 222, 0.7), transparent 32rem),
+    linear-gradient(135deg, #f6f8f5 0%, #eef3ef 52%, #e8efeb 100%);
+}
+
+::selection {
+  background: #b8d6c9;
+  color: #10241F;
+}
+
+/* Keyboard focus stays visible. Removing it locks out anyone working without
+   a mouse, which on a triage console is a real person on a real shift. */
+:focus-visible {
+  outline: 3px solid #0F4C43;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

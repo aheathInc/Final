@@ -1,0 +1,115 @@
+# Frontend deployment layer for the backend services in docker-compose.dev.yml.
+# Run both compose files together from the repository root.
+name: a-health-dev
+
+x-frontend-env: &frontend-env
+  NODE_ENV: production
+  NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-local-nextauth-secret-change-me-32-characters}
+  AUTH_SERVICE_URL: http://auth:4001
+  PATIENT_SERVICE_URL: http://patient:4002
+  DOCTOR_SERVICE_URL: http://doctor:4003
+  APPOINTMENT_SERVICE_URL: http://appointment:4004
+  CONSULTATION_SERVICE_URL: http://consultation:4005
+  MESSAGING_SERVICE_URL: http://messaging:4006
+  FOLLOWUP_SERVICE_URL: http://followup:4007
+  AI_SERVICE_URL: http://ai:4009
+  EMERGENCY_SERVICE_URL: http://emergency:4010
+  PHARMACY_SERVICE_URL: http://pharmacy:4011
+  PAYMENT_SERVICE_URL: http://payment:4012
+  DIAGNOSTICS_SERVICE_URL: http://diagnostics:4013
+  QUALITY_SERVICE_URL: http://quality:4014
+  FAMILIES_SERVICE_URL: http://families:4015
+  EDUCATION_SERVICE_URL: http://education:4016
+  NETWORK_SERVICE_URL: http://network:4017
+  INSURANCE_SERVICE_URL: http://insurance:4018
+  RESEARCH_SERVICE_URL: http://research:4019
+  SURVEILLANCE_SERVICE_URL: http://surveillance:4020
+  SYNC_SERVICE_URL: http://sync:4022
+  DEVICES_SERVICE_URL: http://devices:4023
+  PREVENTION_SERVICE_URL: http://prevention:4024
+  FACILITIES_SERVICE_URL: http://facilities:4025
+
+services:
+  postgres:
+    ports: !override
+      - "127.0.0.1:15432:5432"
+
+  auth: { ports: !override [] }
+  patient: { ports: !override [] }
+  doctor: { ports: !override [] }
+  appointment: { ports: !override [] }
+  consultation: { ports: !override [] }
+  messaging: { ports: !override [] }
+  followup: { ports: !override [] }
+  notification: { ports: !override [] }
+  ai: { ports: !override [] }
+  emergency: { ports: !override [] }
+  pharmacy: { ports: !override [] }
+  payment: { ports: !override [] }
+  diagnostics: { ports: !override [] }
+  quality: { ports: !override [] }
+  families: { ports: !override [] }
+  education: { ports: !override [] }
+  network: { ports: !override [] }
+  insurance: { ports: !override [] }
+  research: { ports: !override [] }
+  surveillance: { ports: !override [] }
+  gateway: { ports: !override [] }
+  sync: { ports: !override [] }
+  devices: { ports: !override [] }
+  prevention: { ports: !override [] }
+  facilities: { ports: !override [] }
+
+  api-edge:
+    image: nginx:1.27-alpine
+    depends_on:
+      auth:
+        condition: service_started
+      patient:
+        condition: service_started
+    volumes:
+      - ./nginx.mobile.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "0.0.0.0:8080:8080"
+
+  doctor-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        APP_NAME: doctor-dashboard
+        APP_DIR: doctor-admin
+    environment:
+      <<: *frontend-env
+      PORT: 3100
+      NEXTAUTH_URL: ${DOCTOR_NEXTAUTH_URL:-http://10.111.165.88:3100}
+    ports:
+      - "0.0.0.0:3100:3100"
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        APP_NAME: admin-console
+        APP_DIR: admin
+    environment:
+      <<: *frontend-env
+      PORT: 3200
+      NEXTAUTH_URL: ${ADMIN_NEXTAUTH_URL:-http://10.111.165.88:3200}
+    ports:
+      - "0.0.0.0:3200:3200"
+
+  analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        APP_NAME: analytics-portal
+        APP_DIR: analytics
+    environment:
+      <<: *frontend-env
+      PORT: 3300
+      NEXTAUTH_URL: ${ANALYTICS_NEXTAUTH_URL:-http://10.111.165.88:3300}
+    ports:
+      - "0.0.0.0:3300:3300"

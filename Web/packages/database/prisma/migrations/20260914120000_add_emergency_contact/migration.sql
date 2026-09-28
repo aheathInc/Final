@@ -1,0 +1,1 @@
+ALTER TABLE "patient_profiles" ADD COLUMN "emergency_contact" VARCHAR(100);

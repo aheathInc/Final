@@ -1,0 +1,10 @@
+node_modules/
+.dev-logs/
+.env
+.env.*
+!.env.example
+dist/
+build/
+.next/
+.turbo/
+coverage/
