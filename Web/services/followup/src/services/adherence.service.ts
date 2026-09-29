@@ -29,6 +29,22 @@ function serialise(a: {
 
 async function visibleProfileIds(caller: Caller): Promise<string[] | 'all'> {
   if (caller.role === 'platform_admin') return 'all';
+  if (caller.role === 'clinician' && caller.cpid) {
+    const rows = await prisma.patientProfile.findMany({
+      where: {
+        careThreads: {
+          some: {
+            OR: [
+              { primaryClinicianId: caller.cpid },
+              { consultations: { some: { assignedClinicianId: caller.cpid } } },
+            ],
+          },
+        },
+      },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
   const rows = await prisma.patientProfile.findMany({
     where: { OR: [{ userId: caller.sub }, { guardianUserId: caller.sub }] },
     select: { id: true },

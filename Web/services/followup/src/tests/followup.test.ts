@@ -277,7 +277,7 @@ describe('adherence', () => {
         },
       }));
     }
-    return { profile, prescription, logs };
+    return { profile, clinician, prescription, logs };
   }
 
   it('confirms a dose as taken', async () => {
@@ -295,6 +295,28 @@ describe('adherence', () => {
       () => adherence.confirmDose(logs[0]!.id, { sub: randomUUID(), role: 'patient' }, { reported_status: 'taken' }, 3, meta),
       (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
     );
+  });
+
+  it('lets the assigned clinician read adherence for their care thread', async () => {
+    const { profile, clinician, logs } = await makePrescriptionWithDoses(1);
+    const result = await adherence.listAdherence(
+      { sub: clinician.userId, role: 'clinician', cpid: clinician.id },
+      { patient_profile_id: profile.id, limit: 20 },
+    );
+    assert.deepEqual((result.data as { id: string }[]).map((entry) => entry.id), [logs[0]!.id]);
+  });
+
+  it('does not let an unrelated clinician read adherence', async () => {
+    const { profile, logs } = await makePrescriptionWithDoses(1);
+    const unrelated = await makeClinician();
+    await assert.rejects(
+      () => adherence.listAdherence(
+        { sub: unrelated.userId, role: 'clinician', cpid: unrelated.id },
+        { patient_profile_id: profile.id, limit: 20 },
+      ),
+      (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
+    );
+    assert.equal(logs.length, 1);
   });
 
   it('raises an audit entry after consecutive missed doses', async () => {

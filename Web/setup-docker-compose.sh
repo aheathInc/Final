@@ -65,7 +65,7 @@ SERVICES = {
 # Services with extra env vars beyond the common set, keyed by service name.
 EXTRA_ENV = {
     "gateway": [
-        "GATEWAY_SHARED_SECRET=dev-gateway-secret-change-me",
+        "GATEWAY_SHARED_SECRET=${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in Web/.env}",
         "CONSULTATION_SERVICE_URL=http://consultation:4005",
         "MESSAGING_SERVICE_URL=http://messaging:4006",
         "FOLLOWUP_SERVICE_URL=http://followup:4007",
@@ -90,10 +90,10 @@ lines.append("    image: postgres:16")
 lines.append("    restart: unless-stopped")
 lines.append("    environment:")
 lines.append("      POSTGRES_USER: ahealth")
-lines.append("      POSTGRES_PASSWORD: ahealth")
+lines.append("      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Web/.env}")
 lines.append("      POSTGRES_DB: ahealth_dev")
 lines.append("    ports:")
-lines.append('      - "5432:5432"')
+lines.append('      - "127.0.0.1:${POSTGRES_HOST_PORT:-55432}:5432"')
 lines.append("    volumes:")
 lines.append("      - ahealth_pg_data:/var/lib/postgresql/data")
 lines.append("    healthcheck:")
@@ -116,8 +116,8 @@ for name, port in SERVICES.items():
     lines.append("    environment:")
     lines.append("      NODE_ENV: development")
     lines.append(f"      PORT: {port}")
-    lines.append("      DATABASE_URL: postgresql://ahealth:ahealth@postgres:5432/ahealth_dev?schema=public")
-    lines.append("      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-32-characters-minimum}")
+    lines.append('      DATABASE_URL: "postgresql://ahealth:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Web/.env}@postgres:5432/ahealth_dev?schema=public"')
+    lines.append("      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in Web/.env}")
     lines.append("      JWT_ISSUER: a-health")
     lines.append("      JWT_AUDIENCE: a-health-api")
     for extra in EXTRA_ENV.get(name, []):

@@ -7,7 +7,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "test": "turbo test"
+    "test": "turbo test",
+    "seed:staff-demo": "tsx scripts/seed-staff-demo.ts",
+    "undo:staff-demo": "tsx scripts/seed-staff-demo.ts --undo",
+    "type-check:staff-demo": "tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --esModuleInterop --skipLibCheck scripts/seed-staff-demo.ts"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
