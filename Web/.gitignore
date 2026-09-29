@@ -8,3 +8,9 @@ build/
 .next/
 .turbo/
 coverage/
+.local/
+test-results/
+playwright-report/
+.playwright/
+playwright/.auth/
+*.auth-state.json

@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-plex-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-plex-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(7, 26, 47, 0.04), rgba(32, 184, 159, 0.03)),
+    #F4F6F2;
+  color: #10241F;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.staff-page {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+
+.clinical-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(32, 184, 159, 0.24), transparent 16rem),
+    linear-gradient(135deg, #071A2F 0%, #0F4C43 100%);
+  color: white;
+}
+
+.clinical-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(115deg, transparent 0 18%, rgba(255,255,255,0.12) 18.1% 18.35%, transparent 18.45% 100%),
+    radial-gradient(circle, rgba(255,255,255,0.22) 1px, transparent 1.8px);
+  background-size: 100% 100%, 28px 28px;
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.clinical-hero > * {
+  position: relative;
+}
+
+.surface-grid {
+  background-image:
+    linear-gradient(rgba(210, 217, 209, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(210, 217, 209, 0.35) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+main table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+main th {
+  color: #4A5F59;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+main th,
+main td {
+  border-bottom: 1px solid #D2D9D1;
+  padding: 0.75rem;
+  vertical-align: top;
+}
+
+main a {
+  text-underline-offset: 4px;
+}
+
+main select,
+main input,
+main textarea {
+  color: #10241F;
+}
+
+@media (max-width: 767px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  main table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+/* Keyboard focus stays visible. Removing it locks out anyone working without
+   a mouse, which on a triage console is a real person on a real shift. */
+:focus-visible {
+  outline: 3px solid #0F4C43;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
