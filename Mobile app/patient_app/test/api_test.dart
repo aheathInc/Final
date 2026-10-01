@@ -28,6 +28,17 @@ void main() {
       expect(url, contains(':4005'));
     });
 
+    test('routes investigation orders to diagnostics service (4013)', () {
+      expect(Config.baseUrlFor('/investigation-orders'), contains(':4013'));
+    });
+
+    test('routes pharmacy medication search to pharmacy service (4011)', () {
+      expect(
+        Config.baseUrlFor('/pharmacies/medication-search'),
+        contains(':4011'),
+      );
+    });
+
     test('routes risk-scores to prevention service (4024)', () {
       final url = Config.baseUrlFor('/patient-profiles/me/risk-scores');
       expect(url, contains(':4024'));

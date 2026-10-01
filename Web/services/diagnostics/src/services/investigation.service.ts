@@ -15,7 +15,7 @@ function serialiseOrder(o: {
   attachmentKey: string | null; isCritical: boolean; acknowledgedById: string | null;
   acknowledgedAt: Date | null; orderedAt: Date; resultedAt: Date | null; version: number;
   values?: { analyte: string; value: string; unit: string | null; referenceLow: unknown; referenceHigh: unknown; flag: string }[];
-}) {
+}, caller: Caller) {
   return {
     id: o.id,
     care_thread_id: o.careThreadId,
@@ -27,7 +27,9 @@ function serialiseOrder(o: {
     investigation_type: o.investigationType,
     urgency: o.urgency,
     status: o.status,
-    clinical_notes: o.clinicalNotes,
+    ...(caller.role === 'patient' || caller.role === 'guardian'
+      ? {}
+      : { clinical_notes: o.clinicalNotes }),
     values: (o.values ?? []).map((v) => ({
       analyte: v.analyte,
       value: v.value,
@@ -86,7 +88,7 @@ export async function createOrder(caller: Caller, input: CreateOrderInput, meta:
     ipAddress: meta.ip, requestId: meta.requestId,
   });
 
-  return serialiseOrder(order);
+  return serialiseOrder(order, caller);
 }
 
 export async function getOrder(orderId: string, caller: Caller) {
@@ -96,7 +98,7 @@ export async function getOrder(orderId: string, caller: Caller) {
   });
   if (!order) throw notFound('Investigation order not found');
   await assertVisible(order, caller);
-  return serialiseOrder(order);
+  return serialiseOrder(order, caller);
 }
 
 export async function listOrders(
@@ -119,7 +121,7 @@ export async function listOrders(
     orderBy: [{ isCritical: 'desc' }, { orderedAt: 'desc' }],
     ...cursorArgs(query.cursor, query.limit),
   });
-  return toCursorPage(rows, query.limit, serialiseOrder);
+  return toCursorPage(rows, query.limit, (row) => serialiseOrder(row, caller));
 }
 
 /**
@@ -132,6 +134,11 @@ export async function listOrders(
 export async function fileResult(orderId: string, caller: Caller, input: FileResultInput, meta: Meta) {
   const order = await prisma.investigationOrder.findUnique({ where: { id: orderId } });
   if (!order) throw notFound('Investigation order not found');
+  if (caller.role !== 'platform_admin' && (
+    caller.role !== 'clinician' || !caller.cpid || order.orderedById !== caller.cpid
+  )) {
+    throw forbidden('ROLE_NOT_PERMITTED', 'Only the ordering clinician may file this result');
+  }
   if (order.status === 'resulted' || order.status === 'acknowledged') {
     throw conflict('STATE_TRANSITION_INVALID', 'A result has already been filed for this order');
   }
@@ -191,7 +198,7 @@ export async function fileResult(orderId: string, caller: Caller, input: FileRes
     ipAddress: meta.ip, requestId: meta.requestId,
   });
 
-  return serialiseOrder(updated);
+  return serialiseOrder(updated, caller);
 }
 
 /**
@@ -227,5 +234,5 @@ export async function acknowledgeResult(orderId: string, caller: Caller, meta: M
     ipAddress: meta.ip, requestId: meta.requestId,
   });
 
-  return serialiseOrder(updated);
+  return serialiseOrder(updated, caller);
 }
