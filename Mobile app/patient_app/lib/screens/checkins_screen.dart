@@ -100,6 +100,8 @@ class _CheckInFormState extends State<_CheckInForm> {
   final _note = TextEditingController();
   bool _busy = false;
   String? _message;
+  bool _submitted = false;
+  bool _queued = false;
 
   @override
   void dispose() {
@@ -111,7 +113,7 @@ class _CheckInFormState extends State<_CheckInForm> {
     setState(() { _busy = true; _message = null; });
     final id = widget.checkIn['id'] as String;
     try {
-      await Api.postDurable(
+      final result = await Api.postDurable(
         opId: newOpId(),
         path: '/check-ins/$id/respond',
         syncPath: '/check-ins/{check_in_id}/respond',
@@ -123,9 +125,17 @@ class _CheckInFormState extends State<_CheckInForm> {
         },
       );
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      final status = result is Map ? result['status'] as String? : null;
+      setState(() {
+        _submitted = true;
+        _message = status == null
+            ? 'Jibu limehifadhiwa na seva.'
+            : 'Jibu limehifadhiwa na seva. Hali: $status';
+        _busy = false;
+      });
     } on Queued {
       setState(() {
+        _queued = true;
         _message = 'Jibu lako limehifadhiwa na litatumwa mtandao ukirudi.';
         _busy = false;
       });
@@ -142,6 +152,14 @@ class _CheckInFormState extends State<_CheckInForm> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          if (_submitted || _queued) ...[
+            Notice(_message ?? 'Jibu limehifadhiwa na seva.', tone: NoticeTone.attention),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(_submitted),
+              child: const Text('Funga'),
+            ),
+          ] else ...[
           const Text('Unajisikiaje leo?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 16),
@@ -181,6 +199,7 @@ class _CheckInFormState extends State<_CheckInForm> {
             onPressed: _busy ? null : _submit,
             child: Text(_busy ? 'Inatuma...' : S.send),
           ),
+          ],
         ],
       ),
     );

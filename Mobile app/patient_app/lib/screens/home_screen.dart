@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/db.dart';
 import '../core/outbox.dart';
+import '../core/patient_care.dart';
 import '../core/session.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'login_screen.dart';
 import 'new_consultation_screen.dart';
-import 'thread_screen.dart';
+import 'consultation_detail_screen.dart';
 import 'medications_screen.dart';
 import 'checkins_screen.dart';
 import 'screening_screen.dart';
@@ -25,7 +26,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> _open = [];
+  List<Map<String, dynamic>> _active = [];
+  List<Map<String, dynamic>> _recent = [];
   int _pending = 0;
   bool _online = true;
   bool _loading = true;
@@ -43,14 +45,11 @@ class _HomeScreenState extends State<HomeScreen> {
     await Api.flushOutbox();
     final pending = await Outbox.pendingCount();
 
-    List<Map<String, dynamic>> open = [];
+    List<Map<String, dynamic>> consultations = [];
     if (online) {
       try {
         final data = await Api.get('/consultations', query: {'limit': 20});
-        open = ((data['data'] as List?) ?? [])
-            .cast<Map<String, dynamic>>()
-            .where((c) => c['status'] != 'completed' && c['status'] != 'cancelled')
-            .toList();
+        consultations = ((data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
         // Cached so the last advice is readable with no signal — one of the
         // three things the design says must survive losing the network.
         await _cacheNotes();
@@ -62,7 +61,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     setState(() {
       _name = user?['full_name'] as String?;
-      _open = open;
+      final groups = partitionConsultations(consultations);
+      _active = groups.active;
+      _recent = groups.recent;
       _pending = pending;
       _online = online;
       _loading = false;
@@ -72,17 +73,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _cacheNotes() async {
     try {
       final data = await Api.get('/consultations', query: {'limit': 5, 'status': 'completed'});
-      final rows = ((data['data'] as List?) ?? []).map((raw) {
+      final rows = <Map<String, Object?>>[];
+      for (final raw in ((data['data'] as List?) ?? [])) {
         final c = raw as Map<String, dynamic>;
-        final note = c['note'] as Map<String, dynamic>?;
-        return <String, Object?>{
-          'id': c['id'] as String,
-          'diagnosis_text': note?['diagnosis_text'],
-          'advice_text': note?['advice_text'],
-          'red_flags': (note?['red_flags_discussed'] as List?)?.join('\n'),
-          'created_at': (c['created_at'] as String?) ?? DateTime.now().toIso8601String(),
-        };
-      }).toList();
+        try {
+          final note = await Api.get('/consultations/${c['id']}/note');
+          rows.add({
+            'id': c['id'] as String,
+            'diagnosis_text': note['diagnosis_text'],
+            'advice_text': note['advice_text'],
+            'red_flags': (note['red_flags_discussed'] as List?)?.join('\n'),
+            'created_at': note['signed_at'] as String? ?? c['created_at'],
+          });
+        } on ApiException {
+          // A completed consultation without a signed note is not a note to cache.
+        }
+      }
       if (rows.isNotEmpty) await Db.cacheNotes(rows);
     } catch (_) {
       // Caching is best effort; failing to refresh it must never break the
@@ -91,7 +97,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _signOut() async {
-    await Session.clear();
+    try {
+      await Api.post('/auth/logout', {});
+    } catch (_) {
+      // Clear local credentials even when the network is unavailable.
+    } finally {
+      await Session.clear();
+    }
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
@@ -172,28 +184,16 @@ class _HomeScreenState extends State<HomeScreen> {
             if (_loading)
               const Padding(padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(child: CircularProgressIndicator()))
-            else if (_open.isEmpty)
+            else if (_active.isEmpty)
               const Empty(S.homeNothing)
             else
-              ..._open.map((c) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Panel(
-                      onTap: () => _go(ThreadScreen(
-                        careThreadId: c['care_thread_id'] as String,
-                        title: (c['symptom_text'] as String?) ?? 'Matibabu',
-                      )),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text((c['symptom_text'] as String?) ?? 'Ombi la matibabu',
-                              style: const TextStyle(fontSize: 16)),
-                          const SizedBox(height: 4),
-                          Text(_statusLabel(c['status'] as String?),
-                              style: const TextStyle(color: AppColors.inkSoft, fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                  )),
+              ..._active.map(_consultationCard),
+
+            if (_recent.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const SectionTitle('Matibabu ya hivi karibuni'),
+              ..._recent.take(10).map(_consultationCard),
+            ],
 
             const SizedBox(height: 28),
             const SectionTitle('Afya yangu'),
@@ -216,13 +216,21 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => _go(screen),
       );
 
-  static String _statusLabel(String? status) {
-    switch (status) {
-      case 'pending': return 'Inasubiri daktari';
-      case 'offered': return 'Inatafutiwa daktari';
-      case 'matched': return 'Daktari amepatikana';
-      case 'in_progress': return 'Inaendelea';
-      default: return status ?? '';
-    }
-  }
+  Widget _consultationCard(Map<String, dynamic> consultation) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Panel(
+          onTap: () => _go(ConsultationDetailScreen(consultation: consultation)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text((consultation['symptom_text'] as String?) ?? 'Ombi la matibabu',
+                  style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 4),
+              Text(consultationStatusLabel(consultation['status'] as String? ?? 'pending'),
+                  style: const TextStyle(color: AppColors.inkSoft, fontSize: 14)),
+            ],
+          ),
+        ),
+      );
+
 }
