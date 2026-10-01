@@ -92,7 +92,10 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                                   const SizedBox(height: 16),
                                   FilledButton(
                                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                                      builder: (_) => NewConsultationScreen(clinicianId: d['id'] as String),
+                                      builder: (_) => NewConsultationScreen(
+                                        clinicianId: d['id'] as String,
+                                        clinicianName: d['full_name'] as String?,
+                                      ),
                                     )),
                                     child: const Text('Jiunge kwenye Foleni'),
                                   ),
@@ -125,9 +128,9 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
     );

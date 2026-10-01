@@ -16,10 +16,31 @@ const logger = createLogger('consultation.sla');
  * is eligible.
  */
 export async function tick(now = new Date()): Promise<{ lapsed: number; escalated: number }> {
-  const lapsed = await prisma.consultationOffer.updateMany({
+  const expiring = await prisma.consultationOffer.findMany({
     where: { status: 'offered', expiresAt: { lt: now } },
-    data: { status: 'expired', respondedAt: now },
+    distinct: ['consultationId'],
+    select: { consultationId: true },
   });
+  let lapsed = 0;
+  for (const { consultationId } of expiring) {
+    lapsed += await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${consultationId}, 0))::text AS locked`;
+      const result = await tx.consultationOffer.updateMany({
+        where: { consultationId, status: 'offered', expiresAt: { lt: now } },
+        data: { status: 'expired', respondedAt: now, version: { increment: 1 } },
+      });
+      const actionable = await tx.consultationOffer.count({
+        where: { consultationId, status: 'offered', expiresAt: { gt: now } },
+      });
+      if (actionable === 0) {
+        await tx.consultationRequest.updateMany({
+          where: { id: consultationId, assignedClinicianId: null, status: 'offered' },
+          data: { status: 'pending', version: { increment: 1 } },
+        });
+      }
+      return result.count;
+    }, { maxWait: 10_000, timeout: 15_000 });
+  }
 
   const breached = await prisma.consultationRequest.findMany({
     where: {
@@ -37,8 +58,14 @@ export async function tick(now = new Date()): Promise<{ lapsed: number; escalate
     // The deadline moves so the case is not re-escalated every tick, but the
     // count keeps climbing — a case on its fifth escalation is visible as
     // exactly that on the dispatcher board.
-    await prisma.consultationRequest.update({
-      where: { id: consultation.id },
+    const escalated = await prisma.consultationRequest.updateMany({
+      where: {
+        id: consultation.id,
+        version: consultation.version,
+        assignedClinicianId: null,
+        status: { in: ['pending', 'offered'] },
+        slaDeadlineAt: { lt: now },
+      },
       data: {
         status: 'escalated',
         escalationCount,
@@ -46,6 +73,7 @@ export async function tick(now = new Date()): Promise<{ lapsed: number; escalate
         version: { increment: 1 },
       },
     });
+    if (escalated.count !== 1) continue;
 
     await appendAudit({
       action: 'consultation.sla_breached',
@@ -74,7 +102,7 @@ export async function tick(now = new Date()): Promise<{ lapsed: number; escalate
     );
   }
 
-  return { lapsed: lapsed.count, escalated: breached.length };
+  return { lapsed, escalated: breached.length };
 }
 
 export function startSlaWorker(): NodeJS.Timeout {

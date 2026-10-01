@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/phone.dart';
+import '../core/patient_care.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import 'consultation_detail_screen.dart';
 
 class NewConsultationScreen extends StatefulWidget {
-  const NewConsultationScreen({super.key, this.clinicianId});
+  const NewConsultationScreen({super.key, this.clinicianId, this.clinicianName});
   final String? clinicianId;
+  final String? clinicianName;
 
   @override
   State<NewConsultationScreen> createState() => _NewConsultationScreenState();
@@ -20,6 +23,7 @@ class _NewConsultationScreenState extends State<NewConsultationScreen> {
   bool _busy = false;
   String? _error;
   bool _queued = false;
+  String? _submissionOpId;
 
   @override
   void dispose() {
@@ -29,12 +33,10 @@ class _NewConsultationScreenState extends State<NewConsultationScreen> {
 
   Future<void> _submit() async {
     setState(() { _busy = true; _error = null; });
-    final opId = newOpId();
+    final opId = _submissionOpId ??= newOpId();
     try {
-      await Api.postDurable(
+      final consultation = await PatientCareRepository().createConsultation(
         opId: opId,
-        path: '/consultations',
-        syncPath: '/consultations',
         body: {
           'channel': 'app',
           if (widget.clinicianId != null) 'clinician_id': widget.clinicianId,
@@ -49,7 +51,13 @@ class _NewConsultationScreenState extends State<NewConsultationScreen> {
         },
       );
       if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      _submissionOpId = null;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
+        builder: (_) => ConsultationDetailScreen(
+          consultation: consultation.data,
+          requestedClinicianName: widget.clinicianName,
+        ),
+      ));
     } on Queued {
       setState(() { _queued = true; _busy = false; });
     } on ApiException catch (e) {
@@ -69,8 +77,9 @@ class _NewConsultationScreenState extends State<NewConsultationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Notice(
-                'Ombi lako limehifadhiwa. Litatumwa mtandao ukirudi, na hutahitaji kuandika tena.',
+            const Notice(
+                'Ombi limehifadhiwa kwenye simu, lakini bado halijathibitishwa na seva. '
+                'Litatumwa mtandao ukirudi; usidhani daktari amelipokea hadi hali ionekane kwenye programu.',
                 tone: NoticeTone.attention,
               ),
               const SizedBox(height: 24),
@@ -100,7 +109,7 @@ class _NewConsultationScreenState extends State<NewConsultationScreen> {
               decoration: const InputDecoration(
                 hintText: 'Mfano: Nina homa na kichwa kinauma tangu jana.',
               ),
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) { _submissionOpId = null; setState(() {}); },
             ),
 
             const SizedBox(height: 28),
@@ -113,7 +122,7 @@ class _NewConsultationScreenState extends State<NewConsultationScreen> {
               min: 1, max: 10, divisions: 9,
               label: '$_severity',
               activeColor: AppColors.petrol,
-              onChanged: (v) => setState(() => _severity = v.round()),
+              onChanged: (v) { _submissionOpId = null; setState(() => _severity = v.round()); },
             ),
             Text('$_severity kati ya 10',
                 style: const TextStyle(color: AppColors.inkSoft)),
@@ -130,7 +139,7 @@ class _NewConsultationScreenState extends State<NewConsultationScreen> {
                   child: ChoiceChip(
                     label: Text(d == 1 ? 'Leo' : '$d'),
                     selected: selected,
-                    onSelected: (_) => setState(() => _days = d),
+                    onSelected: (_) { _submissionOpId = null; setState(() => _days = d); },
                     selectedColor: AppColors.petrol,
                     labelStyle: TextStyle(color: selected ? Colors.white : AppColors.ink),
                     shape: const RoundedRectangleBorder(),

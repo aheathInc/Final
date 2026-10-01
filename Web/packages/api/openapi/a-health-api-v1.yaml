@@ -1089,6 +1089,10 @@ paths:
                   type: string
                   format: uuid
                   description: Required when raising on behalf of a dependant.
+                clinician_id:
+                  type: string
+                  format: uuid
+                  description: Optional verified clinician to target using the existing consultation matching rules.
                 channel:
                   $ref: '#/components/schemas/Channel'
                 symptom_text:

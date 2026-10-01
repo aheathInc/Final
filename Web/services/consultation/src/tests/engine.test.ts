@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { triageWith } from '../engine/triage.js';
 import { DEFAULT_LABEL, DEFAULT_RULES, DEFAULT_SLA } from '../engine/ruleset.js';
 import { fanoutFor, rank } from '../engine/matching.js';
+import { createConsultationSchema } from '../types/consultation.types.js';
 
 // The rules the platform ships with. Testing against these keeps the engine
 // tests pure — they exercise the logic, not whatever is currently active in
@@ -120,5 +121,17 @@ describe('matching', () => {
   it('widens the pool on each escalation', () => {
     assert.ok(fanoutFor('routine', 2, 3) > fanoutFor('routine', 0, 3));
     assert.ok(fanoutFor('emergency', 0, 3) > fanoutFor('routine', 0, 3));
+  });
+});
+
+describe('consultation request contract', () => {
+  it('preserves the optional clinician selected from provider discovery', () => {
+    const clinicianId = '7d291f10-731e-4a94-8f28-fb98f41b4f50';
+    const parsed = createConsultationSchema.parse({
+      channel: 'app',
+      clinician_id: clinicianId,
+      symptom_text: 'Synthetic integration fixture',
+    });
+    assert.equal(parsed.clinician_id, clinicianId);
   });
 });

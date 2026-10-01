@@ -1,4 +1,4 @@
-import { prisma } from '@a-health/database';
+import { prisma, type Prisma } from '@a-health/database';
 import { appendAudit, conflict, cursorArgs, forbidden, notFound, recordChange, toCursorPage } from '@a-health/http';
 import { env } from '../config/env.js';
 import { slaSecondsFor, triageWith, type Urgency } from '../engine/triage.js';
@@ -9,7 +9,11 @@ import { publishConsultationEvent } from '../events.js';
 
 
 
-const OPEN_STATES = ['pending', 'offered', 'matched', 'in_progress', 'escalated'];
+const OPEN_STATES = ['pending', 'offered', 'matched', 'in_progress', 'escalated'] as const;
+
+async function lockConsultation(tx: Prisma.TransactionClient, consultationId: string) {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${consultationId}, 0))::text AS locked`;
+}
 
 export function serialiseConsultation(c: {
   id: string;
@@ -63,62 +67,107 @@ export function serialiseConsultation(c: {
 
 /** Loads eligible clinicians and offers the case to the top of the ranking. */
 export async function offerConsultation(consultationId: string, requestedClinicianId?: string): Promise<number> {
-  const consultation = await prisma.consultationRequest.findUnique({
-    where: { id: consultationId },
-  });
-  if (!consultation || !OPEN_STATES.includes(consultation.status)) return 0;
-  if (consultation.assignedClinicianId) return 0;
+  return prisma.$transaction(async (tx) => {
+    // Serializes retries and concurrent SLA ticks for this request. The pair
+    // unique constraint remains the final safeguard for legacy writers.
+    await lockConsultation(tx, consultationId);
+    const consultation = await tx.consultationRequest.findUnique({ where: { id: consultationId } });
+    if (!consultation || !OPEN_STATES.includes(consultation.status as typeof OPEN_STATES[number]) || consultation.assignedClinicianId) return 0;
 
-  const clinicians = await prisma.clinicianProfile.findMany({
-    where: {
-      verificationStatus: 'verified',
-      ...(requestedClinicianId ? { id: requestedClinicianId } : { isAvailable: true }),
-    },
-    include: { facility: true },
-    take: 200,
-  });
+    const clinicians = await tx.clinicianProfile.findMany({
+      where: {
+        verificationStatus: 'verified',
+        user: { status: 'active' },
+        ...(requestedClinicianId ? { id: requestedClinicianId } : { isAvailable: true }),
+      },
+      include: { facility: true },
+      take: 200,
+    });
 
-  const candidates: Candidate[] = clinicians.map((c) => ({
-    clinicianId: c.id,
-    specialty: c.specialty,
-    languages: Array.isArray(c.languagesSpoken) ? (c.languagesSpoken as string[]) : [],
-    currentLoad: c.currentLoad,
-    maxLoad: env.MAX_CLINICIAN_LOAD,
-    ratingAvg: c.ratingAvg === null ? null : Number(c.ratingAvg),
-    lat: c.facility?.lat ?? null,
-    lng: c.facility?.lng ?? null,
-  }));
+    const candidates: Candidate[] = clinicians.map((c) => ({
+      clinicianId: c.id,
+      specialty: c.specialty,
+      languages: Array.isArray(c.languagesSpoken) ? (c.languagesSpoken as string[]) : [],
+      currentLoad: c.currentLoad,
+      maxLoad: env.MAX_CLINICIAN_LOAD,
+      ratingAvg: c.ratingAvg === null ? null : Number(c.ratingAvg),
+      lat: c.facility?.lat ?? null,
+      lng: c.facility?.lng ?? null,
+    }));
 
-  const ranked = rank(candidates, {
-    requiredSpecialty: 'general_practice',
-    patientLanguage: 'sw',
-    patientLat: consultation.requestLat,
-    patientLng: consultation.requestLng,
-    urgency: consultation.urgencyLevel as Urgency,
-  });
+    const ranked = rank(candidates, {
+      requiredSpecialty: 'general_practice',
+      patientLanguage: 'sw',
+      patientLat: consultation.requestLat,
+      patientLng: consultation.requestLng,
+      urgency: consultation.urgencyLevel as Urgency,
+    });
+    const chosen = ranked.slice(0, fanoutFor(consultation.urgencyLevel, consultation.escalationCount, env.OFFER_FANOUT));
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + env.OFFER_TTL_SECONDS * 1000);
 
-  const fanout = fanoutFor(consultation.urgencyLevel, consultation.escalationCount, env.OFFER_FANOUT);
-  const chosen = ranked.slice(0, fanout);
-  if (chosen.length === 0) return 0;
+    for (const candidate of chosen) {
+      const key = { consultationId_clinicianId: { consultationId, clinicianId: candidate.clinicianId } };
+      let existing = await tx.consultationOffer.findUnique({ where: key });
 
-  const expiresAt = new Date(Date.now() + env.OFFER_TTL_SECONDS * 1000);
-  await prisma.consultationOffer.createMany({
-    data: chosen.map((c) => ({
-      consultationId,
-      clinicianId: c.clinicianId,
-      rankScore: c.score,
-      rankWeights: c.weights,
-      expiresAt,
-    })),
-    skipDuplicates: true,
-  });
+      if (!existing) {
+        // The consultation lock serializes our writers; skipDuplicates also
+        // tolerates an older process racing this rollout on the unique pair.
+        await tx.consultationOffer.createMany({
+          data: [{
+            consultationId, clinicianId: candidate.clinicianId,
+            rankScore: candidate.score, rankWeights: candidate.weights, expiresAt,
+          }],
+          skipDuplicates: true,
+        });
+        existing = await tx.consultationOffer.findUnique({ where: key });
+      }
 
-  await prisma.consultationRequest.update({
-    where: { id: consultationId },
-    data: { status: 'offered', version: { increment: 1 } },
-  });
+      if (!existing) continue;
+      if (existing.status === 'offered' && existing.expiresAt <= now) {
+        await tx.consultationOffer.updateMany({
+          where: { id: existing.id, status: 'offered', expiresAt: { lte: now } },
+          data: { status: 'expired', respondedAt: now, version: { increment: 1 } },
+        });
+        existing = await tx.consultationOffer.findUnique({ where: key });
+      }
 
-  return chosen.length;
+      if (existing?.status === 'expired') {
+        // Reuse the model's one auditable clinician/request pair. Preserve the
+        // last expiry timestamp in respondedAt; the version records the
+        // lifecycle transition. Declined/accepted rows are never reactivated.
+        await tx.consultationOffer.updateMany({
+          where: { id: existing.id, status: 'expired' },
+          data: {
+            status: 'offered', offeredAt: now, expiresAt,
+            rankScore: candidate.score, rankWeights: candidate.weights,
+            declineReason: null, version: { increment: 1 },
+          },
+        });
+      }
+    }
+
+    const actionable = await tx.consultationOffer.count({
+      where: { consultationId, status: 'offered', expiresAt: { gt: now } },
+    });
+    const current = await tx.consultationRequest.findUnique({ where: { id: consultationId } });
+    if (!current || current.assignedClinicianId) return 0;
+
+    if (actionable > 0 && current.status !== 'offered') {
+      await tx.consultationRequest.updateMany({
+        where: { id: consultationId, assignedClinicianId: null, version: current.version, status: { in: [...OPEN_STATES] } },
+        data: { status: 'offered', version: { increment: 1 } },
+      });
+    } else if (actionable === 0 && current.status === 'offered') {
+      // No eligible recipient: return to waiting, so offered never describes an
+      // empty actionable queue. The unchanged SLA deadline drives later retry.
+      await tx.consultationRequest.updateMany({
+        where: { id: consultationId, assignedClinicianId: null, version: current.version, status: 'offered' },
+        data: { status: 'pending', version: { increment: 1 } },
+      });
+    }
+    return actionable;
+  }, { maxWait: 10_000, timeout: 15_000 });
 }
 
 export async function createConsultation(
@@ -266,51 +315,43 @@ export async function createConsultation(
 export async function acceptConsultation(consultationId: string, caller: Caller, meta: Meta) {
   const cpid = caller.cpid;
   if (!cpid) throw forbidden('ROLE_NOT_PERMITTED', 'Clinician profile required');
-
-  const offer = await prisma.consultationOffer.findUnique({
-    where: { consultationId_clinicianId: { consultationId, clinicianId: cpid } },
-  });
-  if (!offer) throw forbidden('FORBIDDEN', 'This case was not offered to you');
-
-  const claimed = await prisma.consultationRequest.updateMany({
-    where: {
-      id: consultationId,
-      assignedClinicianId: null,
-      status: { in: ['pending', 'offered', 'escalated'] },
-    },
-    data: {
-      assignedClinicianId: cpid,
-      status: 'matched',
-      acceptedAt: new Date(),
-      version: { increment: 1 },
-    },
-  });
-  if (claimed.count !== 1) {
-    throw conflict('CONSULTATION_ALREADY_ASSIGNED', 'Another clinician has taken this case');
-  }
-
-  await prisma.$transaction([
-    prisma.consultationOffer.update({
+  const updated = await prisma.$transaction(async (tx) => {
+    await lockConsultation(tx, consultationId);
+    const acceptedAt = new Date();
+    const offer = await tx.consultationOffer.findUnique({
       where: { consultationId_clinicianId: { consultationId, clinicianId: cpid } },
-      data: { status: 'accepted', respondedAt: new Date(), version: { increment: 1 } },
-    }),
-    prisma.consultationOffer.updateMany({
+    });
+    if (!offer) throw forbidden('FORBIDDEN', 'This case was not offered to you');
+    if (offer.status !== 'offered' || offer.expiresAt <= acceptedAt) {
+      throw conflict('STATE_TRANSITION_INVALID', 'This offer is no longer actionable. Refresh the queue.');
+    }
+
+    const claimed = await tx.consultationRequest.updateMany({
+      where: { id: consultationId, assignedClinicianId: null, status: { in: ['pending', 'offered', 'escalated'] } },
+      data: { assignedClinicianId: cpid, status: 'matched', acceptedAt, version: { increment: 1 } },
+    });
+    if (claimed.count !== 1) throw conflict('CONSULTATION_ALREADY_ASSIGNED', 'Another clinician has taken this case');
+
+    await tx.consultationOffer.update({
+      where: { id: offer.id },
+      data: { status: 'accepted', respondedAt: acceptedAt, version: { increment: 1 } },
+    });
+    await tx.consultationOffer.updateMany({
       where: { consultationId, clinicianId: { not: cpid }, status: 'offered' },
-      data: { status: 'expired', respondedAt: new Date() },
-    }),
-    prisma.clinicianProfile.update({
+      data: { status: 'expired', respondedAt: acceptedAt, version: { increment: 1 } },
+    });
+    await tx.clinicianProfile.update({
       where: { id: cpid },
       data: { currentLoad: { increment: 1 }, version: { increment: 1 } },
-    }),
-  ]);
+    });
+    return tx.consultationRequest.findUniqueOrThrow({ where: { id: consultationId } });
+  }, { maxWait: 10_000, timeout: 15_000 });
 
   await appendAudit({
     actorUserId: caller.sub, action: 'consultation.accepted',
     entityType: 'consultation_requests', entityId: consultationId,
     ipAddress: meta.ip, requestId: meta.requestId,
   });
-
-  const updated = await prisma.consultationRequest.findUniqueOrThrow({ where: { id: consultationId } });
 
   await publishConsultationEvent(
     'consultation.assigned', consultationId, updated.careThreadId, updated.version,
@@ -327,10 +368,30 @@ export async function declineConsultation(
   const cpid = caller.cpid;
   if (!cpid) throw forbidden('ROLE_NOT_PERMITTED', 'Clinician profile required');
 
-  await prisma.consultationOffer.updateMany({
-    where: { consultationId, clinicianId: cpid, status: 'offered' },
-    data: { status: 'declined', declineReason: reason ?? null, respondedAt: new Date() },
-  });
+  await prisma.$transaction(async (tx) => {
+    await lockConsultation(tx, consultationId);
+    const declinedAt = new Date();
+    const offer = await tx.consultationOffer.findUnique({
+      where: { consultationId_clinicianId: { consultationId, clinicianId: cpid } },
+    });
+    if (!offer || offer.status !== 'offered' || offer.expiresAt <= declinedAt) {
+      throw conflict('STATE_TRANSITION_INVALID', 'This offer is no longer actionable. Refresh the queue.');
+    }
+    const declined = await tx.consultationOffer.update({
+      where: { id: offer.id },
+      data: { status: 'declined', declineReason: reason ?? null, respondedAt: declinedAt, version: { increment: 1 } },
+    });
+    const actionable = await tx.consultationOffer.count({
+      where: { consultationId, status: 'offered', expiresAt: { gt: declinedAt } },
+    });
+    if (actionable === 0) {
+      await tx.consultationRequest.updateMany({
+        where: { id: consultationId, assignedClinicianId: null, status: 'offered' },
+        data: { status: 'pending', version: { increment: 1 } },
+      });
+    }
+    return declined;
+  }, { maxWait: 10_000, timeout: 15_000 });
 
   await appendAudit({
     actorUserId: caller.sub, action: 'consultation.declined',
@@ -338,7 +399,7 @@ export async function declineConsultation(
     metadata: { reason: reason ?? null }, ipAddress: meta.ip, requestId: meta.requestId,
   });
 
-  void offerConsultation(consultationId).catch(() => undefined);
+  await offerConsultation(consultationId);
 
   const updated = await prisma.consultationRequest.findUniqueOrThrow({ where: { id: consultationId } });
   return serialiseConsultation(updated);

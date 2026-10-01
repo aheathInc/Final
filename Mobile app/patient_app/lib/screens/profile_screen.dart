@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/api.dart';
 import '../core/db.dart';
+import '../core/patient_care.dart';
 import '../core/session.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
@@ -22,11 +23,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _conditions = TextEditingController();
   final _emergencyContact = TextEditingController();
   String _language = 'sw';
-  int _version = 0;
+  int _userVersion = 0;
+  int _profileVersion = 0;
   List<Map<String, dynamic>> _dependents = [];
   List<Map<String, Object?>> _notes = [];
   bool _loading = true;
   bool _saving = false;
+  bool _versionConflict = false;
   String? _message;
 
   @override
@@ -55,7 +58,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _name.text = (me['full_name'] as String?) ?? '';
         _language = (me['preferred_language'] as String?) ?? 'sw';
-        _version = (me['version'] as num?)?.toInt() ?? 0;
+        _userVersion = (me['version'] as num?)?.toInt() ?? 0;
+        _profileVersion = (profile['version'] as num?)?.toInt() ?? 0;
         
         _allergies.text = (profile['allergies'] as List?)?.join(', ') ?? '';
         _conditions.text = (profile['chronic_conditions'] as List?)?.join(', ') ?? '';
@@ -63,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         _dependents = ((deps['data'] as List?) ?? []).cast<Map<String, dynamic>>();
         _notes = notes;
+        _versionConflict = false;
         _loading = false;
       });
     } catch (_) {
@@ -80,24 +85,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() { _saving = true; _message = null; });
     try {
       // Update User identity
-      await Api.patch('/users/me', {
-        'base_version': _version,
+      final me = await Api.patch('/users/me', {
+        'base_version': _userVersion,
         'full_name': _name.text,
         'preferred_language': _language,
       });
+      if (me is Map && me['version'] is num) {
+        _userVersion = (me['version'] as num).toInt();
+      }
 
       // Update Patient profile clinical details
-      await Api.patch('/patient-profiles/me', {
-        'allergies': _allergies.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(),
-        'chronic_conditions': _conditions.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(),
-        'emergency_contact': _emergencyContact.text,
-      });
+      final profile = await Api.patch('/patient-profiles/me', profileClinicalUpdateBody(
+        profileVersion: _profileVersion,
+        allergies: _allergies.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(),
+        chronicConditions: _conditions.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(),
+        emergencyContact: _emergencyContact.text.trim().isEmpty ? null : _emergencyContact.text.trim(),
+      ));
 
-      setState(() { _message = 'Imehifadhiwa.'; _version += 1; });
+      setState(() {
+        _message = 'Imehifadhiwa.';
+        _profileVersion = (profile['version'] as num?)?.toInt() ?? _profileVersion + 1;
+      });
     } on ApiException catch (e) {
-      setState(() => _message = e.status == 409
-          ? 'Wasifu ulibadilishwa mahali pengine. Fungua upya kisha jaribu tena.'
-          : e.message);
+      setState(() {
+        _versionConflict = e.status == 409 || e.code == 'VERSION_CONFLICT';
+        _message = _versionConflict
+            ? 'Wasifu umebadilishwa kwenye kifaa kingine. Pakia taarifa za sasa kabla ya kuhifadhi tena.'
+            : e.message;
+      });
     } catch (_) {
       setState(() => _message = S.errorOffline);
     } finally {
@@ -141,9 +156,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
-                  onPressed: _saving ? null : _save,
+                  onPressed: _saving || _versionConflict ? null : _save,
                   child: Text(_saving ? 'Inahifadhi...' : S.save),
                 ),
+                if (_versionConflict) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    onPressed: _saving ? null : _load,
+                    child: const Text('Pakia wasifu wa sasa'),
+                  ),
+                ],
 
                 const SizedBox(height: 32),
                 const SectionTitle(S.dependents),
