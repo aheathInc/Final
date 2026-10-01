@@ -19,11 +19,12 @@ class Db {
     final path = p.join(await getDatabasesPath(), 'a_health.db');
     _db = await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE medication_schedule (
             id TEXT PRIMARY KEY,
+            prescription_id TEXT,
             medication_name TEXT NOT NULL,
             dosage TEXT NOT NULL,
             scheduled_at TEXT NOT NULL,
@@ -60,11 +61,26 @@ class Db {
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await upgradeSchema(db, oldVersion);
+      },
     );
     return _db!;
   }
 
-  static Future<void> replaceMedicationSchedule(List<Map<String, Object?>> rows) async {
+  /// Applies additive local-cache upgrades. Kept separate so the migration
+  /// statement and version guard can be covered without a device database.
+  static Future<void> upgradeSchema(DatabaseExecutor db, int oldVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE medication_schedule ADD COLUMN prescription_id TEXT',
+      );
+    }
+  }
+
+  static Future<void> replaceMedicationSchedule(
+    List<Map<String, Object?>> rows,
+  ) async {
     final db = await instance;
     await db.transaction((txn) async {
       // Only rows already confirmed to the server are replaced. A local
@@ -72,8 +88,11 @@ class Db {
       // dose offline would watch their answer disappear.
       await txn.delete('medication_schedule', where: 'synced = 1');
       for (final r in rows) {
-        await txn.insert('medication_schedule', r,
-            conflictAlgorithm: ConflictAlgorithm.ignore);
+        await txn.insert(
+          'medication_schedule',
+          r,
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
       }
     });
   }
@@ -85,15 +104,22 @@ class Db {
 
   static Future<void> markReported(String id, String status) async {
     final db = await instance;
-    await db.update('medication_schedule',
-        {'reported_status': status, 'synced': 0},
-        where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'medication_schedule',
+      {'reported_status': status, 'synced': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   static Future<void> markSynced(String id) async {
     final db = await instance;
-    await db.update('medication_schedule', {'synced': 1},
-        where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'medication_schedule',
+      {'synced': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   static Future<void> cacheNotes(List<Map<String, Object?>> rows) async {
@@ -101,8 +127,11 @@ class Db {
     await db.transaction((txn) async {
       await txn.delete('consultation_notes');
       for (final r in rows) {
-        await txn.insert('consultation_notes', r,
-            conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          'consultation_notes',
+          r,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
     });
   }

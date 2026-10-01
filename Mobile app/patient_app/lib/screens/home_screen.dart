@@ -10,13 +10,15 @@ import '../widgets/common.dart';
 import 'login_screen.dart';
 import 'new_consultation_screen.dart';
 import 'consultation_detail_screen.dart';
-import 'medications_screen.dart';
 import 'checkins_screen.dart';
 import 'screening_screen.dart';
 import 'vaccinations_screen.dart';
 import 'emergency_screen.dart';
 import 'profile_screen.dart';
 import 'facility_browser_screen.dart';
+import 'appointments_screen.dart';
+import 'diagnostics_screen.dart';
+import 'patient_care_medicines_screen.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -197,7 +199,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 28),
             const SectionTitle('Afya yangu'),
-            _tile(Icons.medication_outlined, S.medications, const MedicationsScreen()),
+            _tile(Icons.calendar_month_outlined, 'Miadi', const AppointmentsScreen()),
+            _tile(Icons.biotech_outlined, 'Vipimo na majibu', const DiagnosticsScreen()),
+            _tile(Icons.medication_outlined, S.medications, const PatientCareMedicinesScreen()),
             _tile(Icons.checklist_rtl_outlined, S.checkIns, const CheckInsScreen()),
             _tile(Icons.favorite_outline, S.screening, const ScreeningScreen()),
             _tile(Icons.vaccines_outlined, S.vaccinations, const VaccinationsScreen()),

@@ -107,6 +107,30 @@ describe('ordering', () => {
       (e: AppError) => e.code === 'ROLE_NOT_PERMITTED',
     );
   });
+
+  it('does not expose clinician-only clinical notes to the owning patient', async () => {
+    const { user, thread } = await makePatient();
+    const clinician = await makeClinician();
+    const order = await investigations.createOrder(
+      { sub: randomUUID(), role: 'clinician', cpid: clinician.id },
+      {
+        care_thread_id: thread.id,
+        investigation_code: 'SYNTHETIC-TEST',
+        investigation_type: 'laboratory',
+        clinical_notes: 'Synthetic clinician-only test note',
+      },
+      meta,
+    );
+    orderIds.push(order.id);
+
+    const patientView = await investigations.getOrder(order.id, { sub: user.id, role: 'patient' });
+    assert.equal(Object.hasOwn(patientView, 'clinical_notes'), false);
+
+    const clinicianView = await investigations.getOrder(order.id, {
+      sub: randomUUID(), role: 'clinician', cpid: clinician.id,
+    });
+    assert.equal(clinicianView.clinical_notes, 'Synthetic clinician-only test note');
+  });
 });
 
 describe('filing results', () => {
@@ -149,6 +173,55 @@ describe('filing results', () => {
       meta,
     );
     assert.equal(result.is_critical, false);
+  });
+
+  it('refuses a patient from filing a result', async () => {
+    const { thread } = await makePatient();
+    const clinician = await makeClinician();
+    const order = await investigations.createOrder(
+      { sub: randomUUID(), role: 'clinician', cpid: clinician.id },
+      { care_thread_id: thread.id, investigation_code: 'FBC', investigation_type: 'laboratory' },
+      meta,
+    );
+    orderIds.push(order.id);
+    await assert.rejects(
+      () => investigations.fileResult(
+        order.id, { sub: randomUUID(), role: 'patient' },
+        { values: [{ analyte: 'Haemoglobin', value: '13.5' }] }, meta,
+      ),
+      (e: AppError) => e.code === 'ROLE_NOT_PERMITTED',
+    );
+    await assert.rejects(
+      () => investigations.fileResult(
+        order.id, { sub: randomUUID(), role: 'patient', cpid: clinician.id },
+        { values: [{ analyte: 'Haemoglobin', value: '13.5' }] }, meta,
+      ),
+      (e: AppError) => e.code === 'ROLE_NOT_PERMITTED',
+    );
+    const adminResult = await investigations.fileResult(
+      order.id, { sub: randomUUID(), role: 'platform_admin' },
+      { values: [{ analyte: 'Haemoglobin', value: '13.5' }] }, meta,
+    );
+    assert.equal(adminResult.status, 'resulted');
+  });
+
+  it('refuses a different clinician from filing another clinician\u2019s result', async () => {
+    const { thread } = await makePatient();
+    const clinician = await makeClinician();
+    const otherClinician = await makeClinician();
+    const order = await investigations.createOrder(
+      { sub: randomUUID(), role: 'clinician', cpid: clinician.id },
+      { care_thread_id: thread.id, investigation_code: 'FBC', investigation_type: 'laboratory' },
+      meta,
+    );
+    orderIds.push(order.id);
+    await assert.rejects(
+      () => investigations.fileResult(
+        order.id, { sub: randomUUID(), role: 'clinician', cpid: otherClinician.id },
+        { values: [{ analyte: 'Haemoglobin', value: '13.5' }] }, meta,
+      ),
+      (e: AppError) => e.code === 'ROLE_NOT_PERMITTED',
+    );
   });
 
   it('refuses to file a result twice', async () => {

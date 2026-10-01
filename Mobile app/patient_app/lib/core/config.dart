@@ -30,6 +30,7 @@ class Config {
     '/patient-profiles': 4002,
     '/clinicians': 4003,
     '/appointments': 4004,
+    '/investigation-orders': 4013,
     '/consultations': 4005,
     '/care-threads': 4005,
     '/queue': 4005,
