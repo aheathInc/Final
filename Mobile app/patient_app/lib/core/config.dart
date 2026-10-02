@@ -21,8 +21,11 @@ class Config {
 
   /// An Android emulator reaches the host machine on 10.0.2.2, not localhost.
   /// A real phone uses the host machine's LAN IP instead.
-  static String get _devHost =>
-      hostOverride.isNotEmpty ? hostOverride : Platform.isAndroid ? '10.0.2.2' : 'localhost';
+  static String get _devHost => hostOverride.isNotEmpty
+      ? hostOverride
+      : Platform.isAndroid
+          ? '10.0.2.2'
+          : 'localhost';
 
   static const _serviceMap = <String, int>{
     '/auth': 4001,
@@ -42,6 +45,7 @@ class Config {
     '/adherence-logs': 4007,
     '/ai': 4009,
     '/emergency-requests': 4010,
+    '/families': 4015,
     '/pharmacies': 4011,
     '/payments': 4012,
     '/education': 4016,
@@ -58,6 +62,13 @@ class Config {
   static String baseUrlFor(String path) {
     if (gatewayUrl.isNotEmpty) return gatewayUrl;
 
+    // Identity reads live in auth, while guardian-managed dependent profiles
+    // are owned by the patient service.
+    if (path == '/users/me/dependents' ||
+        path.startsWith('/users/me/dependents/')) {
+      return 'http://$_devHost:4002';
+    }
+
     if (path.startsWith('/care-threads/') && path.endsWith('/messages')) {
       return 'http://$_devHost:4006';
     }
@@ -71,7 +82,8 @@ class Config {
 
     final match = _serviceMap.keys
         .where((prefix) => path == prefix || path.startsWith('$prefix/'))
-        .fold<String?>(null, (best, p) => best == null || p.length > best.length ? p : best);
+        .fold<String?>(null,
+            (best, p) => best == null || p.length > best.length ? p : best);
 
     return 'http://$_devHost:${_serviceMap[match] ?? 4001}';
   }

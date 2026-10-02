@@ -43,5 +43,25 @@ void main() {
       final url = Config.baseUrlFor('/patient-profiles/me/risk-scores');
       expect(url, contains(':4024'));
     });
+
+    test('routes families to the families service (4015)', () {
+      expect(Config.baseUrlFor('/families/me'), contains(':4015'));
+    });
+
+    test('keeps auth-owned /users/me on the auth service (4001)', () {
+      expect(Config.baseUrlFor('/users/me'), contains(':4001'));
+    });
+
+    test('routes guardian dependants to patient service (4002)', () {
+      expect(Config.baseUrlFor('/users/me/dependents'), contains(':4002'));
+    });
+
+    test('routes education to the education service (4016)', () {
+      expect(Config.baseUrlFor('/education/articles'), contains(':4016'));
+    });
+
+    test('routes emergency requests to the emergency service (4010)', () {
+      expect(Config.baseUrlFor('/emergency-requests'), contains(':4010'));
+    });
   });
 }

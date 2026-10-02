@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/api.dart';
 import '../core/db.dart';
 import '../core/outbox.dart';
@@ -19,7 +20,8 @@ import 'facility_browser_screen.dart';
 import 'appointments_screen.dart';
 import 'diagnostics_screen.dart';
 import 'patient_care_medicines_screen.dart';
-
+import 'family_screen.dart';
+import 'education_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,7 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (online) {
       try {
         final data = await Api.get('/consultations', query: {'limit': 20});
-        consultations = ((data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
+        consultations = ((data['data'] as List?) ?? [])
+            .cast<Map<String, dynamic>>();
         // Cached so the last advice is readable with no signal — one of the
         // three things the design says must survive losing the network.
         await _cacheNotes();
@@ -74,7 +77,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _cacheNotes() async {
     try {
-      final data = await Api.get('/consultations', query: {'limit': 5, 'status': 'completed'});
+      final data = await Api.get(
+        '/consultations',
+        query: {'limit': 5, 'status': 'completed'},
+      );
       final rows = <Map<String, Object?>>[];
       for (final raw in ((data['data'] as List?) ?? [])) {
         final c = raw as Map<String, dynamic>;
@@ -108,7 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
   }
 
   void _go(Widget screen) {
@@ -135,7 +143,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const Notice(S.offlineBanner, tone: NoticeTone.attention),
               const SizedBox(height: 16),
             ] else if (_pending > 0) ...[
-              Notice('Majibu $_pending ${S.pendingSuffix}.', tone: NoticeTone.attention),
+              Notice(
+                'Majibu $_pending ${S.pendingSuffix}.',
+                tone: NoticeTone.attention,
+              ),
               const SizedBox(height: 16),
             ],
 
@@ -144,14 +155,26 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(
                 width: double.infinity,
                 color: AppColors.petrol,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 26,
+                ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Tafuta Daktari au Kituo',
-                        style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w600)),
+                    Text(
+                      'Tafuta Daktari au Kituo',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text('Angalia foleni na daktari aliyepo kabla ya kwenda.', style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 15)),
+                    Text(
+                      'Angalia foleni na daktari aliyepo kabla ya kwenda.',
+                      style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 15),
+                    ),
                   ],
                 ),
               ),
@@ -160,8 +183,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
             OutlinedButton.icon(
               onPressed: () => _go(const NewConsultationScreen()),
-              icon: const Icon(Icons.medical_services_outlined, color: AppColors.petrol),
-              label: const Text(S.homeGetHelp, style: TextStyle(color: AppColors.petrol, fontSize: 17)),
+              icon: const Icon(
+                Icons.medical_services_outlined,
+                color: AppColors.petrol,
+              ),
+              label: const Text(
+                S.homeGetHelp,
+                style: TextStyle(color: AppColors.petrol, fontSize: 17),
+              ),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
                 side: const BorderSide(color: AppColors.petrol, width: 2),
@@ -172,8 +201,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
             OutlinedButton.icon(
               onPressed: () => _go(const EmergencyScreen()),
-              icon: const Icon(Icons.warning_amber_rounded, color: AppColors.clay),
-              label: const Text(S.emergency, style: TextStyle(color: AppColors.clay, fontSize: 17)),
+              icon: const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.clay,
+              ),
+              label: const Text(
+                S.emergency,
+                style: TextStyle(color: AppColors.clay, fontSize: 17),
+              ),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
                 side: const BorderSide(color: AppColors.clay, width: 2),
@@ -184,8 +219,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 28),
             const SectionTitle('Matibabu yanayoendelea'),
             if (_loading)
-              const Padding(padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()))
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              )
             else if (_active.isEmpty)
               const Empty(S.homeNothing)
             else
@@ -199,12 +236,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 28),
             const SectionTitle('Afya yangu'),
-            _tile(Icons.calendar_month_outlined, 'Miadi', const AppointmentsScreen()),
-            _tile(Icons.biotech_outlined, 'Vipimo na majibu', const DiagnosticsScreen()),
-            _tile(Icons.medication_outlined, S.medications, const PatientCareMedicinesScreen()),
-            _tile(Icons.checklist_rtl_outlined, S.checkIns, const CheckInsScreen()),
+            _tile(
+              Icons.calendar_month_outlined,
+              'Miadi',
+              const AppointmentsScreen(),
+            ),
+            _tile(
+              Icons.biotech_outlined,
+              'Vipimo na majibu',
+              const DiagnosticsScreen(),
+            ),
+            _tile(
+              Icons.medication_outlined,
+              S.medications,
+              const PatientCareMedicinesScreen(),
+            ),
+            _tile(
+              Icons.checklist_rtl_outlined,
+              S.checkIns,
+              const CheckInsScreen(),
+            ),
             _tile(Icons.favorite_outline, S.screening, const ScreeningScreen()),
-            _tile(Icons.vaccines_outlined, S.vaccinations, const VaccinationsScreen()),
+            _tile(
+              Icons.vaccines_outlined,
+              S.vaccinations,
+              const VaccinationsScreen(),
+            ),
+            _tile(
+              Icons.family_restroom,
+              'Familia na wategemezi',
+              const FamilyScreen(),
+            ),
+            _tile(
+              Icons.menu_book_outlined,
+              'Elimu ya afya',
+              const EducationScreen(),
+            ),
             _tile(Icons.person_outline, S.profile, const ProfileScreen()),
           ],
         ),
@@ -213,28 +280,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _tile(IconData icon, String label, Widget screen) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: AppColors.petrol),
-        title: Text(label, style: const TextStyle(fontSize: 17)),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.inkSoft),
-        onTap: () => _go(screen),
-      );
+    contentPadding: EdgeInsets.zero,
+    leading: Icon(icon, color: AppColors.petrol),
+    title: Text(label, style: const TextStyle(fontSize: 17)),
+    trailing: const Icon(Icons.chevron_right, color: AppColors.inkSoft),
+    onTap: () => _go(screen),
+  );
 
   Widget _consultationCard(Map<String, dynamic> consultation) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Panel(
-          onTap: () => _go(ConsultationDetailScreen(consultation: consultation)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text((consultation['symptom_text'] as String?) ?? 'Ombi la matibabu',
-                  style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 4),
-              Text(consultationStatusLabel(consultation['status'] as String? ?? 'pending'),
-                  style: const TextStyle(color: AppColors.inkSoft, fontSize: 14)),
-            ],
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Panel(
+      onTap: () => _go(ConsultationDetailScreen(consultation: consultation)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            (consultation['symptom_text'] as String?) ?? 'Ombi la matibabu',
+            style: const TextStyle(fontSize: 16),
           ),
-        ),
-      );
-
+          const SizedBox(height: 4),
+          Text(
+            consultationStatusLabel(
+              consultation['status'] as String? ?? 'pending',
+            ),
+            style: const TextStyle(color: AppColors.inkSoft, fontSize: 14),
+          ),
+        ],
+      ),
+    ),
+  );
 }

@@ -20,6 +20,10 @@ class ApiException implements Exception {
 class Queued implements Exception {}
 
 class Api {
+  @visibleForTesting
+  static void Function(String event, {int? status, String? errorType})?
+      diagnostic;
+
   static final _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 12),
     receiveTimeout: const Duration(seconds: 20),
@@ -28,7 +32,7 @@ class Api {
   ));
 
   static Future<bool> get online async {
-    final result = await  Connectivity().checkConnectivity();
+    final result = await Connectivity().checkConnectivity();
     return result != ConnectivityResult.none;
   }
 
@@ -58,21 +62,32 @@ class Api {
     String? idempotencyKey,
     bool isRetry = false,
   }) async {
+    diagnostic?.call('AUTH_LOOKUP_STARTED');
     final options = await _auth();
+    diagnostic?.call('AUTH_LOOKUP_DONE');
     if (idempotencyKey != null) {
       options.headers!['Idempotency-Key'] = idempotencyKey;
     }
 
     final url = '${Config.baseUrlFor(path)}$path';
-    final r = await _dio.request(
-      url,
-      data: body,
-      queryParameters: query,
-      options: Options(
-        method: method,
-        headers: options.headers,
-      ),
-    );
+    diagnostic?.call('HTTP_REQUEST_STARTED');
+    late final Response<dynamic> r;
+    try {
+      r = await _dio.request(
+        url,
+        data: body,
+        queryParameters: query,
+        options: Options(
+          method: method,
+          headers: options.headers,
+        ),
+      );
+    } catch (error) {
+      diagnostic?.call('HTTP_REQUEST_ERROR',
+          errorType: error.runtimeType.toString());
+      rethrow;
+    }
+    diagnostic?.call('HTTP_RESPONSE_RECEIVED', status: r.statusCode);
 
     if (r.statusCode == 401 &&
         !isRetry &&
