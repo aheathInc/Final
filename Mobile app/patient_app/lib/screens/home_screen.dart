@@ -25,6 +25,7 @@ import 'education_screen.dart';
 import 'privacy_consent_screen.dart';
 import 'feedback_screen.dart';
 import 'insurance_payments_screen.dart';
+import 'assistant_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -216,6 +217,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 minimumSize: const Size.fromHeight(52),
                 side: const BorderSide(color: AppColors.clay, width: 2),
                 shape: const RoundedRectangleBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _go(const AssistantScreen()),
+              icon: const Icon(
+                Icons.auto_awesome_outlined,
+                color: AppColors.petrol,
+              ),
+              label: const Text(
+                'Msaidizi wa AI / Uliza A-Health',
+                style: TextStyle(color: AppColors.petrol, fontSize: 17),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                side: const BorderSide(color: AppColors.petrol, width: 2),
+                shape: const RoundedRectangleBorder(),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'Msaidizi wa majaribio wa urambazaji; si clinician.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.inkSoft, fontSize: 12),
               ),
             ),
 

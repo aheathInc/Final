@@ -2066,12 +2066,11 @@ paths:
       tags: [ai]
       summary: Open an assistant conversation
       description: |
-        Opens a conversation with the health assistant. Grounded on an approved
-        clinical knowledge base, never on open internet sources.
-
-        A conversation may be attached to a care thread, in which case the
-        assistant may read that thread's history and its answers become part of
-        the patient's record.
+        Opens an authenticated conversation. The default local provider is a
+        deterministic navigation and emergency-keyword stub, not a clinical
+        knowledge-base search. This endpoint does not fetch patient profile,
+        care-thread, or family-member records. Optional identifiers are stored
+        as conversation metadata only.
       operationId: createAiConversation
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -2116,14 +2115,14 @@ paths:
   /ai/conversations/{conversation_id}/messages:
     post:
       tags: [ai]
-      summary: Send a message and receive a grounded answer
+      summary: Send a message to the configured assistant provider
       description: |
-        The response carries `citations` naming the guideline passages it drew
-        on, and `escalated` when a red flag was recognised.
-
-        On escalation the client must surface the urgent-care instruction
-        rather than continuing the conversation. A stroke presentation is not
-        something to keep chatting about.
+        The response may include one structured navigation suggestion from the
+        configured provider and `escalated` when the local stub recognizes a
+        configured red-flag phrase. Navigation suggestions are untrusted
+        metadata: clients must use a strict application allowlist and must
+        never interpret message text as a route or command. Emergency
+        navigation requires a separate patient action and never dispatches SOS.
       operationId: createAiMessage
       parameters:
         - $ref: '#/components/parameters/ConversationId'
@@ -5479,8 +5478,32 @@ components:
             True when a red flag was recognised. The client must surface the
             urgent-care instruction instead of continuing the conversation.
         escalation_reason: { type: [string, 'null'] }
+        navigation_action:
+          oneOf:
+            - $ref: '#/components/schemas/AiNavigationAction'
+            - type: 'null'
+          description: Optional suggestion only; the client must reject unknown values and require a patient tap.
         model_version: { type: string }
         created_at: { type: string, format: date-time }
+
+    AiNavigationAction:
+      type: string
+      description: Allowlisted Patient app destinations. UNSUPPORTED_TEST_ACTION is emitted only by the local stub test fixture and must be ignored by clients.
+      enum:
+        - OPEN_DOCTORS
+        - START_CONSULTATION
+        - OPEN_APPOINTMENTS
+        - OPEN_DIAGNOSTICS
+        - OPEN_MEDICATIONS
+        - OPEN_PHARMACY
+        - OPEN_FAMILY
+        - OPEN_EDUCATION
+        - OPEN_PREVENTION
+        - OPEN_EMERGENCY
+        - OPEN_PRIVACY
+        - OPEN_FEEDBACK
+        - OPEN_INSURANCE_PAYMENTS
+        - UNSUPPORTED_TEST_ACTION
 
     TriageSuggestion:
       type: object

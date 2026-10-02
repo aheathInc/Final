@@ -24,7 +24,7 @@ function serialiseConversation(c: {
 function serialiseMessage(m: {
   id: string; role: string; body: string; citations: unknown;
   escalated: boolean; escalationReason: string | null;
-  modelVersion: string | null; createdAt: Date;
+  modelVersion: string | null; createdAt: Date; navigationAction?: string | null;
 }) {
   return {
     id: m.id,
@@ -33,6 +33,7 @@ function serialiseMessage(m: {
     citations: m.citations ?? [],
     escalated: m.escalated,
     escalation_reason: m.escalationReason,
+    navigation_action: m.navigationAction ?? null,
     model_version: m.modelVersion,
     created_at: m.createdAt.toISOString(),
   };
@@ -162,7 +163,10 @@ export async function sendMessage(
   }
 
   void userMessage; // created for the record; not returned to the caller separately
-  return serialiseMessage(assistantMessage);
+  const navigationAction = result.escalated
+    ? 'OPEN_EMERGENCY'
+    : result.navigationAction;
+  return serialiseMessage({ ...assistantMessage, navigationAction });
 }
 
 function hashInput(text: string): string {
