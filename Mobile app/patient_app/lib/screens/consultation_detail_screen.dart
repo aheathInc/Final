@@ -6,6 +6,7 @@ import '../core/session.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 import 'checkins_screen.dart';
+import 'feedback_screen.dart';
 import 'thread_screen.dart';
 
 class ConsultationDetailScreen extends StatefulWidget {
@@ -208,6 +209,16 @@ class _ConsultationDetailScreenState extends State<ConsultationDetailScreen> {
             ],
             if (status == 'completed') ...[
               const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => FeedbackScreen(
+                    initialConsultationId: _consultation.id,
+                  ),
+                )),
+                icon: const Icon(Icons.star_outline),
+                label: const Text('Tathmini matibabu haya'),
+              ),
+              const SizedBox(height: 20),
               const SectionTitle('Ushauri uliosainiwa'),
               if (_note == null)
                 const Empty('Dokezo lililosainiwa halijapatikana bado.')

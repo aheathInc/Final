@@ -32,6 +32,9 @@ export async function rateConsultation(
 
   const owns = consultation.patient.userId === caller.sub || consultation.patient.guardianUserId === caller.sub;
   if (!owns) throw forbidden('NOT_RESOURCE_OWNER', 'You cannot rate this consultation');
+  if (consultation.status !== 'completed') {
+    throw conflict('STATE_TRANSITION_INVALID', 'Only completed consultations can be rated');
+  }
   if (!consultation.assignedClinicianId) {
     throw conflict('STATE_TRANSITION_INVALID', 'This consultation has no assigned clinician to rate');
   }

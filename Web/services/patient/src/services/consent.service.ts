@@ -48,7 +48,9 @@ async function assertOwner(profileId: string, caller: Caller) {
 export async function listConsents(profileId: string, caller: Caller) {
   await assertOwner(profileId, caller);
   const rows = await prisma.patientConsent.findMany({
-    where: { patientProfileId: profileId, revokedAt: null },
+    // Keep revoked grants in the patient's view: the history is needed to
+    // confirm that access was withdrawn after a refresh.
+    where: { patientProfileId: profileId },
     orderBy: { grantedAt: 'desc' },
   });
   return { data: rows.map(serialise) };

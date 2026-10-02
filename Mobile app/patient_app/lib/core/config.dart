@@ -45,6 +45,7 @@ class Config {
     '/adherence-logs': 4007,
     '/ai': 4009,
     '/emergency-requests': 4010,
+    '/incident-reports': 4014,
     '/families': 4015,
     '/pharmacies': 4011,
     '/payments': 4012,
@@ -61,6 +62,10 @@ class Config {
   /// though `/care-threads` belongs to consultation.
   static String baseUrlFor(String path) {
     if (gatewayUrl.isNotEmpty) return gatewayUrl;
+
+    if (path.startsWith('/consultations/') && path.endsWith('/rating')) {
+      return 'http://$_devHost:4014';
+    }
 
     // Identity reads live in auth, while guardian-managed dependent profiles
     // are owned by the patient service.

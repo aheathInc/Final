@@ -103,6 +103,26 @@ describe('rating', () => {
     );
   });
 
+  it('refuses to rate an assigned consultation before it is completed', async () => {
+    const { user, profile } = await makePatient();
+    const clinician = await makeClinician();
+    const thread = await prisma.careThread.create({ data: { patientProfileId: profile.id } });
+    threadIds.push(thread.id);
+    const consultation = await prisma.consultationRequest.create({
+      data: {
+        careThreadId: thread.id, patientProfileId: profile.id, assignedClinicianId: clinician.id,
+        channel: 'app', modality: 'chat', urgencyLevel: 'routine', triageRuleVersion: 'test',
+        status: 'pending', slaDeadlineAt: new Date(Date.now() + 3_600_000),
+      },
+    });
+    consultationIds.push(consultation.id);
+
+    await assert.rejects(
+      () => ratings.rateConsultation(consultation.id, { sub: user.id, role: 'patient' }, { score: 5 }, meta),
+      (e: AppError) => e.code === 'STATE_TRANSITION_INVALID',
+    );
+  });
+
   it('averages correctly across multiple clinicians\u2019 ratings', async () => {
     const first = await makeCompletedConsultation();
     const clinician = first.clinician;

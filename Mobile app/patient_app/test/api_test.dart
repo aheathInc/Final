@@ -63,5 +63,25 @@ void main() {
     test('routes emergency requests to the emergency service (4010)', () {
       expect(Config.baseUrlFor('/emergency-requests'), contains(':4010'));
     });
+
+    test('routes consultation ratings to the quality service (4014)', () {
+      expect(
+        Config.baseUrlFor('/consultations/case-id/rating'),
+        contains(':4014'),
+      );
+    });
+
+    test('routes incident reports to the quality service (4014)', () {
+      expect(Config.baseUrlFor('/incident-reports'), contains(':4014'));
+    });
+
+    test('routes insurance and payment reads to their existing services', () {
+      expect(Config.baseUrlFor('/insurance/coverage'), contains(':4018'));
+      expect(Config.baseUrlFor('/payments'), contains(':4012'));
+      expect(
+        Config.baseUrlFor('/patient-profiles/profile/consents'),
+        contains(':4002'),
+      );
+    });
   });
 }

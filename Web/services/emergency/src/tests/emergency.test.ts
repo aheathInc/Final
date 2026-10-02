@@ -202,6 +202,53 @@ describe('dispatch', () => {
     });
     assert.equal(entries, 1);
   });
+
+  it('uses active emergency consent and switches to audited break-glass after revocation', async () => {
+    const { user, profile } = await makePatient();
+    const consent = await prisma.patientConsent.create({
+      data: {
+        patientProfileId: profile.id,
+        granteeType: 'emergency_responder',
+        scope: 'emergency_minimum',
+        reason: 'Synthetic consent lifecycle test',
+      },
+    });
+
+    const activeRequest = await emergencies.createEmergencyRequest(
+      { sub: user.id, role: 'patient' },
+      { scale: 'individual', location: { lat: -6.8, lng: 39.28 }, patient_profile_id: profile.id },
+    );
+    emergencyIds.push(activeRequest.id);
+    const activeUnit = await makeUnit('available');
+    const activeFacility = await makeFacility();
+    const activeDispatch = await emergencies.dispatchEmergency(
+      activeRequest.id, dispatcher,
+      { transport_unit_id: activeUnit.id, destination_facility_id: activeFacility.id }, meta,
+    );
+    assert.equal(activeDispatch.break_glass, false);
+
+    await prisma.patientConsent.update({
+      where: { id: consent.id },
+      data: { allowed: false, revokedAt: new Date() },
+    });
+    const revokedRequest = await emergencies.createEmergencyRequest(
+      { sub: user.id, role: 'patient' },
+      { scale: 'individual', location: { lat: -6.8, lng: 39.28 }, patient_profile_id: profile.id },
+    );
+    emergencyIds.push(revokedRequest.id);
+    const revokedUnit = await makeUnit('available');
+    const revokedFacility = await makeFacility();
+    const revokedDispatch = await emergencies.dispatchEmergency(
+      revokedRequest.id, dispatcher,
+      { transport_unit_id: revokedUnit.id, destination_facility_id: revokedFacility.id }, meta,
+    );
+    assert.equal(revokedDispatch.break_glass, true);
+
+    const entries = await prisma.auditLog.count({
+      where: { action: 'emergency.context_break_glass_access', entityId: profile.id },
+    });
+    assert.equal(entries, 1);
+  });
 });
 
 describe('status transitions', () => {

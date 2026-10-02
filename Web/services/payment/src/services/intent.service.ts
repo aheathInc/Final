@@ -152,7 +152,7 @@ export async function createPaymentIntent(
 export async function getPaymentIntent(intentId: string, caller: Caller) {
   const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId } });
   if (!intent) throw notFound('Payment intent not found');
-  if (intent.payerUserId && intent.payerUserId !== caller.sub && caller.role !== 'platform_admin') {
+  if (caller.role !== 'platform_admin' && intent.payerUserId !== caller.sub) {
     throw forbidden('NOT_RESOURCE_OWNER', 'This payment intent is not yours');
   }
   return serialiseIntent(intent);
@@ -161,7 +161,7 @@ export async function getPaymentIntent(intentId: string, caller: Caller) {
 export async function cancelPaymentIntent(intentId: string, caller: Caller, meta: Meta) {
   const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId } });
   if (!intent) throw notFound('Payment intent not found');
-  if (intent.payerUserId && intent.payerUserId !== caller.sub && caller.role !== 'platform_admin') {
+  if (caller.role !== 'platform_admin' && intent.payerUserId !== caller.sub) {
     throw forbidden('NOT_RESOURCE_OWNER', 'This payment intent is not yours');
   }
   // 'processing' is included deliberately: a mobile money intent moves
@@ -186,9 +186,27 @@ export async function cancelPaymentIntent(intentId: string, caller: Caller, meta
   return serialiseIntent(updated);
 }
 
-export async function listPayments(query: { consultation_id?: string; status?: string; cursor?: string; limit: number }) {
+export async function listPayments(
+  caller: Caller,
+  query: { consultation_id?: string; status?: string; cursor?: string; limit: number },
+) {
+  if (caller.role !== 'platform_admin' && !caller.sub) {
+    throw forbidden('ROLE_NOT_PERMITTED', 'A signed-in account is required to view payments');
+  }
+
+  const ownerScope = caller.role === 'platform_admin'
+    ? {}
+    : {
+        OR: [
+          { payerUserId: caller.sub! },
+          ...(caller.role === 'patient'
+            ? [{ consultation: { patient: { OR: [{ userId: caller.sub! }, { guardianUserId: caller.sub! }] } } }]
+            : []),
+        ],
+      };
   const rows = await prisma.payment.findMany({
     where: {
+      ...ownerScope,
       ...(query.consultation_id ? { consultationId: query.consultation_id } : {}),
       ...(query.status ? { status: query.status as never } : {}),
     },
