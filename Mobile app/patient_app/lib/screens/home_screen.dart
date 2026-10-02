@@ -22,6 +22,9 @@ import 'diagnostics_screen.dart';
 import 'patient_care_medicines_screen.dart';
 import 'family_screen.dart';
 import 'education_screen.dart';
+import 'privacy_consent_screen.dart';
+import 'feedback_screen.dart';
+import 'insurance_payments_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -271,6 +274,21 @@ class _HomeScreenState extends State<HomeScreen> {
               Icons.menu_book_outlined,
               'Elimu ya afya',
               const EducationScreen(),
+            ),
+            _tile(
+              Icons.privacy_tip_outlined,
+              'Faragha na ruhusa',
+              const PrivacyConsentScreen(),
+            ),
+            _tile(
+              Icons.feedback_outlined,
+              'Maoni na malalamiko',
+              const FeedbackScreen(),
+            ),
+            _tile(
+              Icons.account_balance_wallet_outlined,
+              'Bima na malipo',
+              const InsurancePaymentsScreen(),
             ),
             _tile(Icons.person_outline, S.profile, const ProfileScreen()),
           ],

@@ -129,6 +129,49 @@ describe('cancellation', () => {
   });
 });
 
+describe('payment ownership', () => {
+  it('lists only the current patient\u2019s payment records', async () => {
+    const owner = await makeUser();
+    const other = await makeUser();
+    const ownIntent = await intents.createPaymentIntent(
+      { sub: owner.id, role: 'patient' },
+      { amount: 1000, currency: 'TZS', method: 'cash', purpose: 'other' },
+      {},
+    );
+    const otherIntent = await intents.createPaymentIntent(
+      { sub: other.id, role: 'patient' },
+      { amount: 2000, currency: 'TZS', method: 'cash', purpose: 'other' },
+      {},
+    );
+    intentIds.push(ownIntent.id, otherIntent.id);
+
+    const result = await intents.listPayments(
+      { sub: owner.id, role: 'patient' },
+      { limit: 25 },
+    );
+    assert.deepEqual(
+      result.data.map((row) => (row as { payment_intent_id: string }).payment_intent_id),
+      [ownIntent.id],
+    );
+  });
+
+  it('denies a different patient reading another patient\u2019s payment intent', async () => {
+    const owner = await makeUser();
+    const other = await makeUser();
+    const intent = await intents.createPaymentIntent(
+      { sub: owner.id, role: 'patient' },
+      { amount: 1000, currency: 'TZS', method: 'cash', purpose: 'other' },
+      {},
+    );
+    intentIds.push(intent.id);
+
+    await assert.rejects(
+      () => intents.getPaymentIntent(intent.id, { sub: other.id, role: 'patient' }),
+      (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
+    );
+  });
+});
+
 describe('webhook signature', () => {
   it('verifies a correctly signed payload', () => {
     const secret = 'test-secret';

@@ -5,6 +5,7 @@ import { prisma } from '@a-health/database';
 import type { AppError } from '@a-health/http';
 import * as profiles from '../services/profile.service.js';
 import * as consents from '../services/consent.service.js';
+import { grantConsentSchema } from '../types/patient.types.js';
 
 if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
   throw new Error('Refusing to run tests outside a development database');
@@ -176,6 +177,12 @@ describe('consent', () => {
     assert.equal(revoked.allowed, false);
     assert.ok(revoked.revoked_at);
 
+    const refreshedList = await consents.listConsents(profile.id, { sub: user.id, role: 'patient' });
+    const persistedRevocation = refreshedList.data.find((row) => row.id === granted.id);
+    assert.ok(persistedRevocation);
+    assert.equal(persistedRevocation.allowed, false);
+    assert.ok(persistedRevocation.revoked_at);
+
     // Revoked, not deleted — the row itself is part of the accountability trail.
     const stillExists = await prisma.patientConsent.findUnique({ where: { id: granted.id } });
     assert.ok(stillExists);
@@ -189,5 +196,29 @@ describe('consent', () => {
       }, meta),
       (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
     );
+  });
+
+  it('a stranger cannot list or revoke another patient\'s consent', async () => {
+    const { user, profile } = await makeGuardian();
+    const consent = await consents.grantConsent(profile.id, { sub: user.id, role: 'patient' }, {
+      grantee_type: 'researcher', scope: 'investigations_only',
+    }, meta);
+    const stranger = { sub: randomUUID(), role: 'patient' };
+
+    await assert.rejects(
+      () => consents.listConsents(profile.id, stranger),
+      (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
+    );
+    await assert.rejects(
+      () => consents.revokeConsent(profile.id, consent.id, stranger, meta),
+      (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
+    );
+  });
+
+  it('rejects consent scopes outside the supported contract', () => {
+    assert.equal(grantConsentSchema.safeParse({
+      grantee_type: 'researcher',
+      scope: 'all_records_forever',
+    }).success, false);
   });
 });

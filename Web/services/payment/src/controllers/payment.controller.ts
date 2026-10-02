@@ -35,7 +35,7 @@ export const getIntent = handle((req) =>
 export const cancelIntent = handle((req, res) =>
   intents.cancelPaymentIntent(pathParam(req, 'payment_intent_id'), caller(req), meta(req, res)));
 
-export const listPayments = handle((req) => intents.listPayments(listPaymentsQuery.parse(req.query)));
+export const listPayments = handle((req) => intents.listPayments(caller(req), listPaymentsQuery.parse(req.query)));
 
 export const refund = handle(
   (req, res) => refunds.refundPayment(pathParam(req, 'payment_id'), caller(req), refundSchema.parse(req.body), meta(req, res)), 201,
