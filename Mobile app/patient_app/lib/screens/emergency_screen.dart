@@ -1,43 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../core/api.dart';
+import '../core/patient_experience.dart';
 import '../core/phone.dart';
-import '../core/strings.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
-
-/// First-aid guidance is bundled with the app, not fetched (FR-EM-03).
-///
-/// The moment it is needed most is the moment the network is least reliable,
-/// and steps that fail to load during a road accident are worse than useless.
-const _firstAid = <String, List<String>>{
-  'road_traffic': [
-    'Usimsogeze mtu aliyeumia shingo au mgongo isipokuwa kuna hatari ya moto.',
-    'Zima injini ya gari na weka alama ili magari mengine yapunguze mwendo.',
-    'Kama anavuja damu, bonyeza kwa nguvu juu ya jeraha kwa kitambaa safi.',
-    'Kama hapumui, mgeuze kwa upande ili asisonge.',
-    'Kaa naye, ongea naye, mwambie msaada unakuja.',
-  ],
-  'medical': [
-    'Mlaze mahali salama na penye hewa ya kutosha.',
-    'Legeza nguo zinazobana shingoni na kiunoni.',
-    'Kama hana fahamu lakini anapumua, mgeuze kwa upande.',
-    'Usimpe maji wala chakula kama hana fahamu kamili.',
-    'Kumbuka muda ulipoanza tatizo — daktari atahitaji kujua.',
-  ],
-  'obstetric': [
-    'Mlaze mama upande wa kushoto, si mgongoni.',
-    'Kama kuna damu nyingi, weka kitambaa safi na usiondoe kilichowekwa.',
-    'Usimpe chochote cha kunywa.',
-    'Hesabu muda kati ya uchungu mmoja na mwingine.',
-    'Kaa naye hadi gari lifike.',
-  ],
-  'trauma': [
-    'Bonyeza jeraha kwa kitambaa safi hadi damu isimame.',
-    'Kama kuna kitu kilichochomeka, usikitoe — kizungushie kitambaa.',
-    'Inua sehemu iliyoumia juu ya kiwango cha moyo kama inawezekana.',
-    'Mfunike ili asipate baridi.',
-  ],
-};
 
 const _categories = [
   ('medical', 'Ugonjwa wa ghafla'),
@@ -53,99 +20,228 @@ class EmergencyScreen extends StatefulWidget {
 }
 
 class _EmergencyScreenState extends State<EmergencyScreen> {
+  final _latitude = TextEditingController();
+  final _longitude = TextEditingController();
+  final _lookupId = TextEditingController();
   String? _category;
+  Map<String, dynamic>? _request;
   bool _busy = false;
-  bool _sent = false;
-  bool _queued = false;
   String? _error;
 
-  Future<void> _report(String category) async {
-    setState(() { _category = category; _busy = true; _error = null; });
-    try {
-      await Api.postDurable(
-        opId: newOpId(),
-        path: '/emergency-requests',
-        syncPath: '/emergency-requests',
-        body: {
-          'scale': 'individual',
-          'category': category,
-          // A real deployment reads GPS here. Sending 0,0 would put the
-          // ambulance in the Atlantic, so location is omitted rather than
-          // faked, and the dispatcher calls back for it.
-          'location': {'lat': 0, 'lng': 0},
-          'source': 'patient_app',
-        },
+  @override
+  void dispose() {
+    _latitude.dispose();
+    _longitude.dispose();
+    _lookupId.dispose();
+    super.dispose();
+  }
+
+  Future<void> _report() async {
+    final lat = double.tryParse(_latitude.text.trim());
+    final lng = double.tryParse(_longitude.text.trim());
+    if (_category == null || !isValidEmergencyCoordinates(lat, lng)) {
+      setState(
+        () => _error =
+            'Weka aina ya dharura na koordineti halali. 0,0 hairuhusiwi.',
       );
-      setState(() { _sent = true; _busy = false; });
-    } on Queued {
-      setState(() { _queued = true; _busy = false; });
-    } catch (e) {
-      setState(() { _error = S.errorGeneric; _busy = false; });
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final response = await Api.post(
+        '/emergency-requests',
+        emergencyRequestBody(
+          category: _category!,
+          latitude: lat!,
+          longitude: lng!,
+        ),
+        idempotencyKey: newOpId(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _request = emergencyRequestFromJson(response);
+        _lookupId.text = _request!['id'] as String;
+        _busy = false;
+      });
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.message;
+          _busy = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'Ombi halikufanikiwa.';
+          _busy = false;
+        });
+      }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final steps = _category == null ? null : _firstAid[_category];
-
-    return Scaffold(
-      appBar: AppBar(title: const Text(S.emergency)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          if (_sent)
-            const Notice('Ombi limetumwa. Fuata hatua hizi hadi msaada ufike.',
-                tone: NoticeTone.attention)
-          else if (_queued)
-            const Notice(
-              'Hakuna mtandao. Ombi litatumwa mtandao ukirudi — piga simu 114 sasa hivi '
-              'kama unaweza. Fuata hatua hizi wakati huo huo.',
-            )
-          else if (_error != null)
-            Notice(_error!),
-
-          if (_category == null) ...[
-            const Text('Ni tatizo la aina gani?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 16),
-            ..._categories.map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: OutlinedButton(
-                    onPressed: _busy ? null : () => _report(c.$1),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(60),
-                      shape: const RoundedRectangleBorder(),
-                      side: const BorderSide(color: AppColors.clay, width: 2),
-                    ),
-                    child: Text(c.$2,
-                        style: const TextStyle(fontSize: 17, color: AppColors.clay)),
-                  ),
-                )),
-          ],
-
-          // Shown as soon as a category is chosen, without waiting for the
-          // request to succeed. The steps are what helps in the next minute;
-          // the ambulance is what helps in the next twenty.
-          if (steps != null) ...[
-            const SizedBox(height: 20),
-            const SectionTitle('Fanya hivi sasa'),
-            ...steps.asMap().entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${e.key + 1}.',
-                          style: const TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.w600,
-                            color: AppColors.clay)),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(e.value, style: const TextStyle(fontSize: 17))),
-                    ],
-                  ),
-                )),
-          ],
-        ],
-      ),
-    );
+  Future<void> _refreshStatus({String? requestId}) async {
+    final id = requestId ?? _request?['id'] as String?;
+    if (id == null) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final response = await Api.get('/emergency-requests/$id');
+      if (mounted) {
+        setState(() {
+          _request = emergencyRequestFromJson(response);
+          _lookupId.text = _request!['id'] as String;
+          _busy = false;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.message;
+          _busy = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'Hali haikuweza kusomwa.';
+          _busy = false;
+        });
+      }
+    }
   }
+
+  Future<void> _lookupExistingStatus() async {
+    final id = _lookupId.text.trim();
+    if (id.isEmpty) {
+      setState(() => _error = 'Weka namba ya ombi ulilohifadhi.');
+      return;
+    }
+    await _refreshStatus(requestId: id);
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Dharura / SOS')),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            const Notice(
+              'Huduma hii inarekodi ombi kwenye mfumo. Haitoi uthibitisho wa gari, mhudumu au muda wa kufika. Kwa hatari ya sasa, tumia namba rasmi za dharura za eneo lako.',
+              tone: NoticeTone.attention,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Notice(_error!)
+            ],
+            if (_request case final request?) ...[
+              const SizedBox(height: 16),
+              const SectionTitle('Ombi lililorekodiwa'),
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Namba ya ombi: ${request['id']}'),
+                    Text('Hali: ${request['status']}'),
+                  ],
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _refreshStatus,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Soma hali tena'),
+              ),
+            ] else ...[
+              const SizedBox(height: 20),
+              const SectionTitle('Tuma ombi la dharura'),
+              const Text('Chagua aina ya tukio:'),
+              const SizedBox(height: 8),
+              RadioGroup<String>(
+                groupValue: _category,
+                onChanged: (value) {
+                  if (!_busy && value != null) {
+                    setState(() => _category = value);
+                  }
+                },
+                child: Column(
+                  children: [
+                    for (final item in _categories)
+                      RadioListTile<String>(
+                        value: item.$1,
+                        title: Text(item.$2),
+                        activeColor: AppColors.clay,
+                        contentPadding: EdgeInsets.zero,
+                        enabled: !_busy,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Huduma iliyopo inahitaji koordineti. Ingiza latitudo na longitudo sahihi za tukio; programu haitumii GPS wala kubuni eneo.',
+              ),
+              const SizedBox(height: 10),
+              TextField(
+              controller: _latitude,
+              key: const Key('emergency-latitude'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Latitudo',
+                  hintText: '−90 hadi 90',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+              controller: _longitude,
+              key: const Key('emergency-longitude'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Longitudo',
+                  hintText: '−180 hadi 180',
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: _busy ? null : _report,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.warning_amber_rounded),
+                label: const Text('Tuma ombi'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.clay,
+                  minimumSize: const Size.fromHeight(52),
+                ),
+              ),
+          ],
+          const SizedBox(height: 24),
+          const SectionTitle('Angalia ombi lililopo'),
+          TextField(
+            key: const Key('emergency-request-id'),
+            controller: _lookupId,
+            decoration: const InputDecoration(labelText: 'Namba ya ombi'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _lookupExistingStatus,
+            icon: const Icon(Icons.search),
+            label: const Text('Angalia hali'),
+          ),
+        ],
+        ),
+      );
 }
