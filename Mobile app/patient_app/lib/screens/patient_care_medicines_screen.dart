@@ -5,6 +5,7 @@ import '../core/api.dart';
 import '../core/db.dart';
 import '../core/patient_care.dart';
 import '../core/phone.dart';
+import '../core/session.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
 
@@ -24,8 +25,13 @@ class _PatientCareMedicinesScreenState
   List<Map<String, dynamic>> _prescriptions = [], _availability = [];
   List<Map<String, Object?>> _logs = [];
   String? _error, _availabilityError;
+  String? _ownerId;
+  DateTime? _lastSyncedAt;
   double? _latitude, _longitude;
-  bool _loading = true, _searching = false, _availabilitySearched = false;
+  bool _loading = true,
+      _searching = false,
+      _availabilitySearched = false,
+      _offline = false;
 
   @override
   void initState() {
@@ -42,6 +48,36 @@ class _PatientCareMedicinesScreenState
   }
 
   Future<void> _load() async {
+    final ownerId = await Session.userId();
+    if (ownerId == null) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _offline = true;
+          _error = 'Ingia tena ili kufungua taarifa zako zilizohifadhiwa.';
+        });
+      }
+      return;
+    }
+    final online = await Api.online;
+    if (!online) {
+      final cached = await Db.medicationSchedule(ownerId);
+      final lastSyncedAt = await Db.cacheSyncedAt(
+        'medication_schedule',
+        ownerId,
+      );
+      if (mounted) {
+        setState(() {
+          _ownerId = ownerId;
+          _logs = cached;
+          _lastSyncedAt = lastSyncedAt;
+          _offline = true;
+          _loading = false;
+          _error = null;
+        });
+      }
+      return;
+    }
     try {
       final profile = await Api.get('/patient-profiles/me');
       final id = profile['id'] as String;
@@ -50,11 +86,9 @@ class _PatientCareMedicinesScreenState
         _care.prescriptions(id),
         _care.adherenceLogs(id),
       ]);
-      final rows = (values[1] as List<Map<String, dynamic>>)
-          .map(adherenceCacheRow)
-          .toList();
-      await Db.replaceMedicationSchedule(rows);
-      final cached = await Db.medicationSchedule();
+      final rows = values[1].map(adherenceCacheRow).toList();
+      await Db.replaceMedicationSchedule(ownerId, rows);
+      final cached = await Db.medicationSchedule(ownerId);
       final serverIds = rows.map((r) => r['id']).toSet();
       final pending = cached.where(
         (r) => r['synced'] == 0 && !serverIds.contains(r['id']),
@@ -75,51 +109,73 @@ class _PatientCareMedicinesScreenState
           if (_longitude != null && _longitudeInput.text.isEmpty) {
             _longitudeInput.text = _longitude.toString();
           }
-          _prescriptions = values[0] as List<Map<String, dynamic>>;
+          _prescriptions = values[0];
           _logs = byId.values.toList();
+          _ownerId = ownerId;
+          _lastSyncedAt = DateTime.now().toUtc();
+          _offline = false;
           _loading = false;
           _error = null;
         });
-    } catch (e) {
-      final cached = await Db.medicationSchedule();
+    } catch (_) {
+      final cached = await Db.medicationSchedule(ownerId);
+      final lastSyncedAt = await Db.cacheSyncedAt(
+        'medication_schedule',
+        ownerId,
+      );
       if (mounted)
         setState(() {
           _logs = cached;
+          _ownerId = ownerId;
+          _lastSyncedAt = lastSyncedAt;
+          _offline = true;
           _loading = false;
-          _error =
-              e is ApiException ? e.message : 'Imeshindikana kupakia dawa.';
+          _error = 'Internet haipatikani. Unaona ratiba iliyohifadhiwa tu.';
         });
     }
   }
 
   Future<void> _report(Map<String, Object?> log, String status) async {
     final id = log['id'] as String;
+    final ownerId = _ownerId;
+    if (ownerId == null) return;
+    final opId = newOpId();
     try {
       final updated = await _care.confirmDose(
-        opId: newOpId(),
+        opId: opId,
         adherenceLogId: id,
         reportedStatus: status,
       );
       final savedStatus = updated['reported_status'] as String? ?? status;
-      await Db.markReported(id, savedStatus);
+      await Db.markReported(ownerId, id, savedStatus, syncStatus: 'confirmed');
       if (mounted)
         setState(
           () => _logs = _logs
               .map(
                 (r) => r['id'] == id
-                    ? {...r, 'reported_status': savedStatus, 'synced': 1}
+                    ? {
+                        ...r,
+                        'reported_status': savedStatus,
+                        'synced': 1,
+                        'sync_status': 'confirmed',
+                      }
                     : r,
               )
               .toList(),
         );
     } on Queued {
-      await Db.markReported(id, status);
+      await Db.markReported(ownerId, id, status, syncStatus: 'queued');
       if (mounted)
         setState(
           () => _logs = _logs
               .map(
                 (r) => r['id'] == id
-                    ? {...r, 'reported_status': status, 'synced': 0}
+                    ? {
+                        ...r,
+                        'reported_status': status,
+                        'synced': 0,
+                        'sync_status': 'queued',
+                      }
                     : r,
               )
               .toList(),
@@ -152,6 +208,16 @@ class _PatientCareMedicinesScreenState
       _availabilityError = null;
       _availabilitySearched = false;
     });
+    if (!await Api.online) {
+      if (mounted) {
+        setState(() {
+          _searching = false;
+          _availabilityError =
+              'INTERNET REQUIRED. Upatikanaji wa dawa hauwezi kukaguliwa ukiwa offline.';
+        });
+      }
+      return;
+    }
     try {
       final rows = await _care.medicationAvailability(
         name: name,
@@ -189,11 +255,20 @@ class _PatientCareMedicinesScreenState
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    if (_offline)
+                      Notice(
+                        _lastSyncedAt == null
+                            ? 'Cached data haipo. Ratiba ya dawa inahitaji intaneti ili kupakiwa.'
+                            : 'Cached data: ratiba ya dozi ilisawazishwa ${_date(_lastSyncedAt!.toIso8601String())}. Maagizo kamili na upatikanaji vinahitaji intaneti.',
+                        tone: NoticeTone.attention,
+                      ),
                     if (_error != null) Notice(_error!),
                     const SectionTitle('Maagizo ya daktari'),
                     if (_prescriptions.isEmpty)
-                      const Empty(
-                        'Hakuna agizo la dawa lililopo kwenye rekodi zako.',
+                      Empty(
+                        _offline
+                            ? 'Maagizo kamili ya dawa yanahitaji intaneti; rekodi tupu iliyohifadhiwa haimaanishi kuwa huna agizo.'
+                            : 'Hakuna agizo la dawa lililopo kwenye rekodi zako.',
                       ),
                     MedicationPrescriptionCards(
                       prescriptions: _prescriptions,
@@ -230,10 +305,17 @@ class _PatientCareMedicinesScreenState
                                     ),
                                   ],
                                 ),
-                              if (l['synced'] == 0)
+                              if (l['sync_status'] == 'queued' ||
+                                  l['synced'] == 0 &&
+                                      l['sync_status'] != 'failed')
                                 const Text(
-                                  'Inasubiri kusawazishwa mtandao ukirudi.',
+                                  'Pending sync — jibu halijathibitishwa na seva.',
                                   style: TextStyle(color: AppColors.amber),
+                                ),
+                              if (l['sync_status'] == 'failed')
+                                const Text(
+                                  'Jibu linahitaji kuangaliwa mtandaoni; halijathibitishwa.',
+                                  style: TextStyle(color: AppColors.clay),
                                 ),
                             ],
                           ),
@@ -366,7 +448,8 @@ class MedicationAvailabilityResults extends StatelessWidget {
     if (!searched) return const SizedBox.shrink();
     if (rows.isEmpty) {
       return const Empty(
-          'Hakuna taarifa ya upatikanaji wa dawa hii kwa eneo hilo.');
+        'Hakuna taarifa ya upatikanaji wa dawa hii kwa eneo hilo.',
+      );
     }
     return Column(
       children: rows.map((r) {

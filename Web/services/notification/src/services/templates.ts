@@ -22,20 +22,20 @@ const TEMPLATES: Record<string, Partial<Record<LanguageCode, Template>>> = {
     en: () => 'A-health: A clinician has picked up your request. Open the app or dial *150*88# to continue.',
   },
   'consultation.completed': {
-    sw: () => 'A-health: Matibabu yako yamekamilika. Angalia ushauri na dawa kwenye app au *150*88#.',
-    en: () => 'A-health: Your consultation is complete. See the advice and prescription in the app or on *150*88#.',
+    sw: () => 'A-health: Una taarifa mpya. Fungua app au piga *150*88# kwa maelezo.',
+    en: () => 'A-health: You have an update. Open the app or dial *150*88# for details.',
   },
   'adherence.reminder': {
-    sw: (v) => `A-health: Ni wakati wa ${v.medication ?? 'dawa'} ${v.dosage ?? ''}. Jibu 1 umemeza, 2 hujameza.`.trim(),
-    en: (v) => `A-health: Time for ${v.medication ?? 'your medicine'} ${v.dosage ?? ''}. Reply 1 if taken, 2 if not.`.trim(),
+    sw: () => 'A-health: Ni wakati wa dawa yako. Jibu 1 ikiwa umetumia, 2 ikiwa hujatumia.',
+    en: () => 'A-health: It is time for your medicine. Reply 1 if taken, 2 if not.',
   },
   'checkin.due': {
     sw: () => 'A-health: Ni wakati wa kujibu maswali ya ufuatiliaji. Piga *150*88# au fungua app.',
     en: () => 'A-health: Time for your follow-up check-in. Dial *150*88# or open the app.',
   },
   'screening.invitation': {
-    sw: (v) => `A-health: Umealikwa kupima ${v.programme ?? 'afya'}. Jibu 1 kukubali, 2 kukataa.`,
-    en: (v) => `A-health: You are invited for ${v.programme ?? 'screening'}. Reply 1 to accept, 2 to decline.`,
+    sw: () => 'A-health: Una taarifa mpya ya huduma ya afya. Fungua app kwa maelezo.',
+    en: () => 'A-health: You have a new health-service update. Open the app for details.',
   },
 };
 

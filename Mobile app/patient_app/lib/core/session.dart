@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Tokens live in the platform keystore, not in shared preferences.
@@ -37,6 +38,8 @@ class Session {
     if (raw == null) return null;
     return jsonDecode(raw) as Map<String, dynamic>;
   }
+
+  static Future<String?> userId() async => (await user())?['id'] as String?;
 
   /// A stable id for this installation, so the backend can manage sessions per
   /// device rather than per login.

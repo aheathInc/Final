@@ -52,6 +52,21 @@ describe('templates', () => {
     }
   });
 
+  it('keeps adherence and screening SMS privacy-minimized', () => {
+    const variables = {
+      medication: 'SyntheticSensitiveMedication',
+      dosage: '987mg',
+      programme: 'SyntheticSensitiveScreening',
+    };
+    const adherence = render('adherence.reminder', 'en', variables)!;
+    const screening = render('screening.invitation', 'en', variables)!;
+    for (const body of [adherence, screening]) {
+      assert.doesNotMatch(body, /SyntheticSensitiveMedication|987mg|SyntheticSensitiveScreening/);
+    }
+    assert.match(adherence, /Reply 1 if taken, 2 if not/);
+    assert.match(screening, /Open the app for details/);
+  });
+
   it('returns null for an unknown template', () => {
     assert.equal(render('does.not.exist', 'sw'), null);
   });

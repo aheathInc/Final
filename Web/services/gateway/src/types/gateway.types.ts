@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const ussdSessionSchema = z.object({
-  session_id: z.string().min(1),
+  session_id: z.string().min(1).max(128),
   phone_number: z.string().regex(/^\+[1-9]\d{7,14}$/),
   service_code: z.string().optional(),
-  text: z.string().default(''),
+  text: z.string().max(500).default(''),
 });
 
 export const smsInboundSchema = z.object({

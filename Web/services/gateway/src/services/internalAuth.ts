@@ -23,7 +23,14 @@ export async function mintTokenForPhone(phoneNumber: string): Promise<{ token: s
     where: { phoneNumber },
     include: { patientProfile: true, clinicianProfile: true },
   });
-  if (!user || user.status !== 'active') return null;
+  if (
+    !user ||
+    user.status !== 'active' ||
+    user.role !== 'patient' ||
+    !user.patientProfile
+  ) {
+    return null;
+  }
 
   const claims: AccessTokenClaims = {
     sub: user.id,

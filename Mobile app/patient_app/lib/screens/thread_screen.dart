@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../core/api.dart';
 import '../core/phone.dart';
 import '../core/patient_care.dart';
@@ -9,8 +11,11 @@ import '../core/theme.dart';
 import '../widgets/common.dart';
 
 class ThreadScreen extends StatefulWidget {
-  const ThreadScreen(
-      {super.key, required this.careThreadId, required this.title});
+  const ThreadScreen({
+    super.key,
+    required this.careThreadId,
+    required this.title,
+  });
   final String careThreadId;
   final String title;
 
@@ -45,8 +50,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
       if (mounted) setState(() => _canSend = thread['status'] != 'closed');
     } catch (_) {
       if (mounted)
-        setState(() => _error =
-            'Mazungumzo hayakuweza kuthibitishwa. Unaweza kusoma ujumbe uliopo.');
+        setState(
+          () => _error =
+              'Mazungumzo hayakuweza kuthibitishwa. Unaweza kusoma ujumbe uliopo.',
+        );
     }
     await _load();
   }
@@ -89,24 +96,6 @@ class _ThreadScreenState extends State<ThreadScreen> {
       _pendingOpId = null;
       _draft.clear();
       await _load();
-    } on Queued {
-      // Shown immediately with a pending marker rather than vanishing. The
-      // message is safe; pretending it was delivered would not be.
-      setState(() {
-        _messages = [
-          ..._messages,
-          {
-            'id': opId,
-            'sender_user_id': _meId,
-            'body': body,
-            'created_at': DateTime.now().toIso8601String(),
-            '_pending': true,
-          }
-        ];
-        _pendingOpId = null;
-        _draft.clear();
-      });
-      _scrollToEnd();
     } on ApiException catch (e) {
       setState(() {
         _draft.text = body;
@@ -135,14 +124,16 @@ class _ThreadScreenState extends State<ThreadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title:
-              Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
       body: SafeArea(
         child: Column(
           children: [
             if (_error != null)
               Padding(
-                  padding: const EdgeInsets.all(12), child: Notice(_error!)),
+                padding: const EdgeInsets.all(12),
+                child: Notice(_error!),
+              ),
             Expanded(
               child: _messages.isEmpty
                   ? const Empty('Bado hamjaanza kuzungumza.')
@@ -160,29 +151,36 @@ class _ThreadScreenState extends State<ThreadScreen> {
                               : Alignment.centerLeft,
                           child: Container(
                             constraints: BoxConstraints(
-                                maxWidth:
-                                    MediaQuery.of(context).size.width * 0.8),
+                              maxWidth: MediaQuery.of(context).size.width * 0.8,
+                            ),
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             color:
                                 mine ? AppColors.petrol : AppColors.paperSunk,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text((m['body'] as String?) ?? '',
-                                    style: TextStyle(
-                                        color:
-                                            mine ? Colors.white : AppColors.ink,
-                                        fontSize: 16)),
+                                Text(
+                                  (m['body'] as String?) ?? '',
+                                  style: TextStyle(
+                                    color: mine ? Colors.white : AppColors.ink,
+                                    fontSize: 16,
+                                  ),
+                                ),
                                 if (pending) ...[
                                   const SizedBox(height: 4),
-                                  Text(S.pendingSuffix,
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: mine
-                                              ? const Color(0xCCFFFFFF)
-                                              : AppColors.inkSoft)),
+                                  Text(
+                                    S.pendingSuffix,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: mine
+                                          ? const Color(0xCCFFFFFF)
+                                          : AppColors.inkSoft,
+                                    ),
+                                  ),
                                 ],
                               ],
                             ),
@@ -216,8 +214,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
                         _sending || !_canSend || _draft.text.trim().isEmpty
                             ? null
                             : _send,
-                    style:
-                        FilledButton.styleFrom(minimumSize: const Size(80, 52)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(80, 52),
+                    ),
                     child: const Text(S.send),
                   ),
                 ],

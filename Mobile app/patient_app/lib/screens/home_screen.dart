@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -37,33 +40,49 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _active = [];
   List<Map<String, dynamic>> _recent = [];
   int _pending = 0;
+  int _failed = 0;
+  int _retryableFailed = 0;
   bool _online = true;
   bool _loading = true;
   String? _name;
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      result,
+    ) {
+      final connected = result != ConnectivityResult.none;
+      if (!mounted) return;
+      setState(() => _online = connected);
+      if (connected) _load();
+    });
     _load();
   }
 
   Future<void> _load() async {
     final user = await Session.user();
-    final online = await Api.online;
+    final ownerId = user?['id'] as String?;
+    var online = await Api.online;
     await Api.flushOutbox();
-    final pending = await Outbox.pendingCount();
+    final pending = ownerId == null ? 0 : await Outbox.pendingCount(ownerId);
+    final failed = ownerId == null ? 0 : await Outbox.failedCount(ownerId);
+    final retryableFailed =
+        ownerId == null ? 0 : await Outbox.retryableFailedCount(ownerId);
 
     List<Map<String, dynamic>> consultations = [];
     if (online) {
       try {
         final data = await Api.get('/consultations', query: {'limit': 20});
-        consultations = ((data['data'] as List?) ?? [])
-            .cast<Map<String, dynamic>>();
+        consultations =
+            ((data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
         // Cached so the last advice is readable with no signal — one of the
         // three things the design says must survive losing the network.
-        await _cacheNotes();
+        if (ownerId != null) await _cacheNotes(ownerId);
       } catch (_) {
-        // Falls through to whatever is already cached.
+        // Mark the session degraded even when Wi-Fi exists but the API is down.
+        online = false;
       }
     }
 
@@ -74,18 +93,21 @@ class _HomeScreenState extends State<HomeScreen> {
       _active = groups.active;
       _recent = groups.recent;
       _pending = pending;
+      _failed = failed;
+      _retryableFailed = retryableFailed;
       _online = online;
       _loading = false;
     });
   }
 
-  Future<void> _cacheNotes() async {
+  Future<void> _cacheNotes(String ownerId) async {
     try {
       final data = await Api.get(
         '/consultations',
         query: {'limit': 5, 'status': 'completed'},
       );
       final rows = <Map<String, Object?>>[];
+      var complete = true;
       for (final raw in ((data['data'] as List?) ?? [])) {
         final c = raw as Map<String, dynamic>;
         try {
@@ -98,10 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
             'created_at': note['signed_at'] as String? ?? c['created_at'],
           });
         } on ApiException {
-          // A completed consultation without a signed note is not a note to cache.
+          complete = false;
         }
       }
-      if (rows.isNotEmpty) await Db.cacheNotes(rows);
+      if (complete) await Db.cacheNotes(ownerId, rows);
     } catch (_) {
       // Caching is best effort; failing to refresh it must never break the
       // screen that shows it.
@@ -121,6 +143,20 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (_) => false,
     );
+  }
+
+  Future<void> _retrySync() async {
+    final ownerId = await Session.userId();
+    if (ownerId == null) return;
+    await Outbox.retryFailed(ownerId);
+    await Api.flushOutbox();
+    await _load();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
   }
 
   void _go(Widget screen) {
@@ -144,16 +180,32 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             if (!_online) ...[
-              const Notice(S.offlineBanner, tone: NoticeTone.attention),
-              const SizedBox(height: 16),
-            ] else if (_pending > 0) ...[
-              Notice(
-                'Majibu $_pending ${S.pendingSuffix}.',
+              const Notice(
+                'Hakuna mtandao. Unaweza kusoma dawa na ushauri uliohifadhiwa; mabadiliko salama yakihifadhiwa yataonyesha Pending sync hadi seva ithibitishe.',
                 tone: NoticeTone.attention,
               ),
               const SizedBox(height: 16),
             ],
-
+            if (_pending > 0) ...[
+              Notice(
+                'Pending sync: majibu $_pending bado hayajathibitishwa na seva.',
+                tone: NoticeTone.attention,
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (_failed > 0) ...[
+              Notice(
+                '$_failed mabadiliko yanahitaji kuangaliwa mtandaoni. Hayatajaribiwa tena kiotomatiki.',
+                tone: NoticeTone.attention,
+              ),
+              if (_retryableFailed > 0)
+                OutlinedButton.icon(
+                  onPressed: _online ? _retrySync : null,
+                  icon: const Icon(Icons.sync),
+                  label: Text('Jaribu tena usawazishaji ($_retryableFailed)'),
+                ),
+              const SizedBox(height: 16),
+            ],
             InkWell(
               onTap: () => _go(const FacilityBrowserScreen()),
               child: Container(
@@ -184,7 +236,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
             OutlinedButton.icon(
               onPressed: () => _go(const NewConsultationScreen()),
               icon: const Icon(
@@ -202,7 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
             OutlinedButton.icon(
               onPressed: () => _go(const EmergencyScreen()),
               icon: const Icon(
@@ -219,7 +269,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: const RoundedRectangleBorder(),
               ),
             ),
-
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => _go(const AssistantScreen()),
@@ -245,7 +294,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: AppColors.inkSoft, fontSize: 12),
               ),
             ),
-
             const SizedBox(height: 28),
             const SectionTitle('Matibabu yanayoendelea'),
             if (_loading)
@@ -257,13 +305,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const Empty(S.homeNothing)
             else
               ..._active.map(_consultationCard),
-
             if (_recent.isNotEmpty) ...[
               const SizedBox(height: 24),
               const SectionTitle('Matibabu ya hivi karibuni'),
               ..._recent.take(10).map(_consultationCard),
             ],
-
             const SizedBox(height: 28),
             const SectionTitle('Afya yangu'),
             _tile(
@@ -325,33 +371,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _tile(IconData icon, String label, Widget screen) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    leading: Icon(icon, color: AppColors.petrol),
-    title: Text(label, style: const TextStyle(fontSize: 17)),
-    trailing: const Icon(Icons.chevron_right, color: AppColors.inkSoft),
-    onTap: () => _go(screen),
-  );
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: AppColors.petrol),
+        title: Text(label, style: const TextStyle(fontSize: 17)),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.inkSoft),
+        onTap: () => _go(screen),
+      );
 
   Widget _consultationCard(Map<String, dynamic> consultation) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Panel(
-      onTap: () => _go(ConsultationDetailScreen(consultation: consultation)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            (consultation['symptom_text'] as String?) ?? 'Ombi la matibabu',
-            style: const TextStyle(fontSize: 16),
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Panel(
+          onTap: () =>
+              _go(ConsultationDetailScreen(consultation: consultation)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                (consultation['symptom_text'] as String?) ?? 'Ombi la matibabu',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                consultationStatusLabel(
+                  consultation['status'] as String? ?? 'pending',
+                ),
+                style: const TextStyle(color: AppColors.inkSoft, fontSize: 14),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            consultationStatusLabel(
-              consultation['status'] as String? ?? 'pending',
-            ),
-            style: const TextStyle(color: AppColors.inkSoft, fontSize: 14),
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
