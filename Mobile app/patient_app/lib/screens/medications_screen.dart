@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../core/api.dart';
 import '../core/db.dart';
 import '../core/phone.dart';
+import '../core/session.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
@@ -22,6 +24,9 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
   List<Map<String, Object?>> _rows = [];
   bool _loading = true;
   bool _online = true;
+  String? _ownerId;
+  DateTime? _lastSyncedAt;
+  String? _message;
 
   @override
   void initState() {
@@ -30,7 +35,16 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
   }
 
   Future<void> _load() async {
-    final online = await Api.online;
+    final ownerId = await Session.userId();
+    var online = await Api.online;
+    if (ownerId == null) {
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _online = online;
+        });
+      return;
+    }
     if (online) {
       try {
         final data = await Api.get('/adherence-logs', query: {'limit': 100});
@@ -45,50 +59,86 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
             'synced': 1,
           };
         }).toList();
-        await Db.replaceMedicationSchedule(rows);
+        await Db.replaceMedicationSchedule(ownerId, rows);
       } catch (_) {
-        // Whatever is cached still shows.
+        online = false;
       }
     }
-    final rows = await Db.medicationSchedule();
+    final rows = await Db.medicationSchedule(ownerId);
+    final lastSyncedAt = await Db.cacheSyncedAt('medication_schedule', ownerId);
     if (!mounted) return;
-    setState(() { _rows = rows; _online = online; _loading = false; });
+    setState(() {
+      _rows = rows;
+      _ownerId = ownerId;
+      _lastSyncedAt = lastSyncedAt;
+      _online = online;
+      _loading = false;
+    });
   }
 
   Future<void> _report(String id, String status) async {
-    // Written locally first, so the answer is visible immediately whether or
-    // not there is signal.
-    await Db.markReported(id, status);
-    setState(() {
-      _rows = _rows.map((r) => r['id'] == id
-          ? {...r, 'reported_status': status, 'synced': 0} : r).toList();
-    });
+    final ownerId = _ownerId;
+    if (ownerId == null) return;
+    final opId = newOpId();
 
     try {
       await Api.postDurable(
-        opId: newOpId(),
+        opId: opId,
         path: '/adherence-logs/$id/confirm',
         syncPath: '/adherence-logs/{adherence_log_id}/confirm',
         pathParams: {'adherence_log_id': id},
         body: {'reported_status': status, 'channel': 'app'},
       );
-      await Db.markSynced(id);
+      await Db.markReported(ownerId, id, status, syncStatus: 'confirmed');
       if (mounted) {
         setState(() {
-          _rows = _rows.map((r) => r['id'] == id ? {...r, 'synced': 1} : r).toList();
+          _rows = _rows
+              .map(
+                (r) => r['id'] == id
+                    ? {
+                        ...r,
+                        'reported_status': status,
+                        'synced': 1,
+                        'sync_status': 'confirmed',
+                      }
+                    : r,
+              )
+              .toList();
+          _message = null;
         });
       }
     } on Queued {
-      // Stays marked unsynced; the outbox will send it.
+      await Db.markReported(ownerId, id, status, syncStatus: 'queued');
+      if (mounted) {
+        setState(() {
+          _rows = _rows
+              .map(
+                (r) => r['id'] == id
+                    ? {
+                        ...r,
+                        'reported_status': status,
+                        'synced': 0,
+                        'sync_status': 'queued',
+                      }
+                    : r,
+              )
+              .toList();
+          _message = 'Pending sync: jibu bado halijathibitishwa na seva.';
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _message = e.message);
     } catch (_) {
-      // Same: the local answer stands and will be retried.
+      if (mounted) setState(() => _message = 'Jibu la dawa halijahifadhiwa.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final due = _rows.where((r) => r['reported_status'] == 'unreported').toList();
-    final done = _rows.where((r) => r['reported_status'] != 'unreported').toList();
+    final due =
+        _rows.where((r) => r['reported_status'] == 'unreported').toList();
+    final done =
+        _rows.where((r) => r['reported_status'] != 'unreported').toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text(S.medications)),
@@ -100,8 +150,17 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   if (!_online) ...[
-                    const Notice(S.offlineBanner, tone: NoticeTone.attention),
+                    Notice(
+                      _lastSyncedAt == null
+                          ? 'Hakuna mtandao. Hakuna ratiba iliyosawazishwa kwenye kifaa hiki.'
+                          : 'Cached data: ratiba ya dawa ilisawazishwa ${DateFormat('d MMM y, HH:mm').format(_lastSyncedAt!.toLocal())}.',
+                      tone: NoticeTone.attention,
+                    ),
                     const SizedBox(height: 16),
+                  ],
+                  if (_message != null) ...[
+                    Notice(_message!, tone: NoticeTone.attention),
+                    const SizedBox(height: 12),
                   ],
                   const SectionTitle('Zinazosubiri jibu'),
                   if (due.isEmpty)
@@ -128,11 +187,15 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${r['medication_name']} ${r['dosage']}',
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+            Text(
+              '${r['medication_name']} ${r['dosage']}',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
+            ),
             if (at != null)
-              Text(DateFormat('d MMM, HH:mm').format(at.toLocal()),
-                  style: const TextStyle(color: AppColors.inkSoft)),
+              Text(
+                DateFormat('d MMM, HH:mm').format(at.toLocal()),
+                style: const TextStyle(color: AppColors.inkSoft),
+              ),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -163,22 +226,35 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
   }
 
   Widget _doneRow(Map<String, Object?> r) {
-    final synced = r['synced'] == 1;
+    final syncStatus = r['sync_status'] as String? ??
+        (r['synced'] == 1 ? 'confirmed' : 'queued');
     final taken = r['reported_status'] == 'taken';
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(taken ? Icons.check : Icons.close,
-              size: 18, color: taken ? AppColors.petrol : AppColors.inkSoft),
+          Icon(
+            taken ? Icons.check : Icons.close,
+            size: 18,
+            color: taken ? AppColors.petrol : AppColors.inkSoft,
+          ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text('${r['medication_name']} ${r['dosage']}',
-                style: const TextStyle(fontSize: 15)),
+            child: Text(
+              '${r['medication_name']} ${r['dosage']}',
+              style: const TextStyle(fontSize: 15),
+            ),
           ),
-          if (!synced)
-            const Text(S.pendingSuffix,
-                style: TextStyle(fontSize: 12, color: AppColors.amber)),
+          if (syncStatus == 'queued')
+            const Text(
+              'Pending sync — haijathibitishwa',
+              style: TextStyle(fontSize: 12, color: AppColors.amber),
+            ),
+          if (syncStatus == 'failed')
+            const Text(
+              'Inahitaji kuangaliwa mtandaoni',
+              style: TextStyle(fontSize: 12, color: AppColors.clay),
+            ),
         ],
       ),
     );

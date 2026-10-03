@@ -46,6 +46,14 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       );
       return;
     }
+    if (!await Api.online) {
+      if (mounted) {
+        setState(() {
+          _error = 'ONLINE REQUEST UNAVAILABLE. Hakuna ombi lililotumwa.';
+        });
+      }
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -69,14 +77,17 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     } on ApiException catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = e.status == 0
+              ? 'Ombi la AHP halijathibitishwa. Unganisha mtandao na angalia hali kabla ya kujaribu tena.'
+              : e.message;
           _busy = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'Ombi halikufanikiwa.';
+          _error =
+              'Ombi la AHP halijathibitishwa. Hali yake haijulikani; usidhani msaada umetumwa.';
           _busy = false;
         });
       }
@@ -132,7 +143,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             const Notice(
-              'Huduma hii inarekodi ombi kwenye mfumo. Haitoi uthibitisho wa gari, mhudumu au muda wa kufika. Kwa hatari ya sasa, tumia namba rasmi za dharura za eneo lako.',
+              'AHP emergency request needs internet. Ukiwa offline: ONLINE REQUEST UNAVAILABLE; hakuna ombi linalotumwa au kuwekwa foleni. AHP haitumi gari la dharura. Kwa hatari ya sasa tumia namba rasmi za eneo lako.',
               tone: NoticeTone.attention,
             ),
             if (_error != null) ...[
@@ -173,6 +184,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                     for (final item in _categories)
                       RadioListTile<String>(
                         value: item.$1,
+                        key: ValueKey('emergency-category-${item.$1}'),
                         title: Text(item.$2),
                         activeColor: AppColors.clay,
                         contentPadding: EdgeInsets.zero,
@@ -187,8 +199,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ),
               const SizedBox(height: 10),
               TextField(
-              controller: _latitude,
-              key: const Key('emergency-latitude'),
+                controller: _latitude,
+                key: const Key('emergency-latitude'),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                   signed: true,
@@ -200,8 +212,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               ),
               const SizedBox(height: 10),
               TextField(
-              controller: _longitude,
-              key: const Key('emergency-longitude'),
+                controller: _longitude,
+                key: const Key('emergency-longitude'),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                   signed: true,
@@ -227,21 +239,21 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   minimumSize: const Size.fromHeight(52),
                 ),
               ),
+            ],
+            const SizedBox(height: 24),
+            const SectionTitle('Angalia ombi lililopo'),
+            TextField(
+              key: const Key('emergency-request-id'),
+              controller: _lookupId,
+              decoration: const InputDecoration(labelText: 'Namba ya ombi'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _lookupExistingStatus,
+              icon: const Icon(Icons.search),
+              label: const Text('Angalia hali'),
+            ),
           ],
-          const SizedBox(height: 24),
-          const SectionTitle('Angalia ombi lililopo'),
-          TextField(
-            key: const Key('emergency-request-id'),
-            controller: _lookupId,
-            decoration: const InputDecoration(labelText: 'Namba ya ombi'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _busy ? null : _lookupExistingStatus,
-            icon: const Icon(Icons.search),
-            label: const Text('Angalia hali'),
-          ),
-        ],
         ),
       );
 }

@@ -7,11 +7,13 @@ class S {
   static const appName = 'A-health';
 
   static const loginTitle = 'Karibu A-health';
-  static const loginLede = 'Ingiza namba yako ya simu. Tutakutumia namba ya uthibitisho kwa SMS.';
+  static const loginLede =
+      'Ingiza namba yako ya simu. Tutakutumia namba ya uthibitisho kwa SMS.';
   static const phoneLabel = 'Namba ya simu';
   static const phoneHint = '0712 345 678';
   static const continueLabel = 'Endelea';
-  static const phoneInvalid = 'Namba ya simu si sahihi. Tumia namba ya Tanzania.';
+  static const phoneInvalid =
+      'Namba ya simu si sahihi. Tumia namba ya Tanzania.';
 
   static const verifyTitle = 'Weka namba ya uthibitisho';
   static const codeLabel = 'Namba ya tarakimu sita';
@@ -19,7 +21,8 @@ class S {
   static const codeInvalid = 'Namba si sahihi. Angalia SMS kisha jaribu tena.';
 
   static const homeGetHelp = 'Pata msaada wa daktari';
-  static const homeGetHelpHint = 'Eleza tatizo lako, tutakuunganisha na daktari.';
+  static const homeGetHelpHint =
+      'Eleza tatizo lako, tutakuunganisha na daktari.';
   static const homeNothing = 'Huna matibabu yanayoendelea.';
   static const emergency = 'Dharura';
 
@@ -33,10 +36,12 @@ class S {
   static const taken = 'Nimekunywa';
   static const missed = 'Sikukunywa';
 
-  static const offlineBanner = 'Hakuna mtandao. Majibu yako yamehifadhiwa na yatatumwa yenyewe.';
-  static const pendingSuffix = 'inasubiri kutumwa';
+  static const offlineBanner =
+      'Hakuna mtandao. Unaweza kusoma taarifa zilizohifadhiwa tu.';
+  static const pendingSuffix = 'Pending sync — haijathibitishwa na seva';
 
-  static const errorGeneric = 'Kuna tatizo la kiufundi. Jaribu tena baada ya muda mfupi.';
+  static const errorGeneric =
+      'Kuna tatizo la kiufundi. Jaribu tena baada ya muda mfupi.';
   static const errorOffline = 'Hakuna mtandao.';
   static const send = 'Tuma';
   static const cancel = 'Ghairi';

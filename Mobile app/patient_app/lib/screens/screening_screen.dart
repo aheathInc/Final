@@ -79,12 +79,18 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
           if (reason != null) 'decline_reason': reason,
         },
       );
-    } on Queued {
-      // Queued is fine; the list refreshes either way.
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+      return;
     } catch (_) {
-      // Falls through to the reload, which shows the true state.
+      if (mounted)
+        setState(
+          () => _error =
+              'Jibu halijathibitishwa. Unganisha intaneti na ujaribu tena.',
+        );
+      return;
     }
-    _load();
+    await _load();
   }
 
   Future<void> _decline(String id) async {

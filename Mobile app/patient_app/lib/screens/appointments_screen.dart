@@ -43,9 +43,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     } catch (e) {
       if (mounted)
         setState(() {
-          _error = e is ApiException
-              ? e.message
-              : 'Imeshindikana kupakia miadi.';
+          _error =
+              e is ApiException ? e.message : 'Imeshindikana kupakia miadi.';
           _loading = false;
         });
     }
@@ -129,9 +128,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     } catch (e) {
       if (mounted)
         setState(
-          () => _error = e is Queued
-              ? 'Ombi la miadi linasubiri kutumwa; thibitisha hali baada ya mtandao kurudi.'
-              : 'Miadi haikuhifadhiwa.',
+          () =>
+              _error = 'Miadi haikuhifadhiwa. Hakuna ombi lililowekwa foleni.',
         );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -145,11 +143,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       await _load();
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
-    } on Queued {
-      if (mounted)
-        setState(
-          () => _error = 'Ombi la kughairi linasubiri seva; hali ya sasa itaendelea kuonekana hadi uhakikisho.',
-        );
     } catch (_) {
       if (mounted) setState(() => _error = 'Miadi haikughairiwa.');
     }
@@ -164,77 +157,78 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Miadi')),
-    body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : RefreshIndicator(
-            onRefresh: _load,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (_error != null) Notice(_error!),
-                const SectionTitle('Miadi yangu'),
-                if (_appointments.isEmpty)
-                  const Empty('Huna miadi iliyohifadhiwa.'),
-                ..._appointments.map(
-                  (a) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Panel(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => AppointmentDetailScreen(
-                            appointmentId: a['id'] as String,
+        appBar: AppBar(title: const Text('Miadi')),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    if (_error != null) Notice(_error!),
+                    const SectionTitle('Miadi yangu'),
+                    if (_appointments.isEmpty)
+                      const Empty('Huna miadi iliyohifadhiwa.'),
+                    ..._appointments.map(
+                      (a) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Panel(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AppointmentDetailScreen(
+                                appointmentId: a['id'] as String,
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _date(a['starts_at'] as String?),
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                'Hali: ${a['status'] ?? 'haijulikani'} • ${a['modality'] ?? ''}',
+                              ),
+                              if (a['status'] == 'booked')
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _cancel(a['id'] as String),
+                                    child: const Text('Ghairi miadi'),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _date(a['starts_at'] as String?),
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            'Hali: ${a['status'] ?? 'haijulikani'} • ${a['modality'] ?? ''}',
-                          ),
-                          if (a['status'] == 'booked')
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: _busy
-                                    ? null
-                                    : () => _cancel(a['id'] as String),
-                                child: const Text('Ghairi miadi'),
-                              ),
-                            ),
-                        ],
+                    ),
+                    const SizedBox(height: 18),
+                    const SectionTitle('Chagua daktari na muda'),
+                    if (_clinicians.isEmpty)
+                      const Empty(
+                          'Hakuna madaktari waliothibitishwa kwa sasa.'),
+                    ..._clinicians.map(
+                      (c) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(c['full_name'] as String? ?? 'Daktari'),
+                        subtitle: Text(
+                          '${c['specialty'] ?? 'Huduma ya jumla'} • ${c['status'] ?? ''}',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _busy ? null : () => _book(c),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 18),
-                const SectionTitle('Chagua daktari na muda'),
-                if (_clinicians.isEmpty)
-                  const Empty('Hakuna madaktari waliothibitishwa kwa sasa.'),
-                ..._clinicians.map(
-                  (c) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(c['full_name'] as String? ?? 'Daktari'),
-                    subtitle: Text(
-                      '${c['specialty'] ?? 'Huduma ya jumla'} • ${c['status'] ?? ''}',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: _busy ? null : () => _book(c),
-                  ),
-                ),
-              ],
-            ),
-          ),
-  );
+              ),
+      );
 }
 
 class AppointmentDetailScreen extends StatefulWidget {
@@ -274,35 +268,36 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Maelezo ya miadi')),
-    body: _appointment == null
-        ? Center(
-            child: _error == null
-                ? const CircularProgressIndicator()
-                : Notice(_error!),
-          )
-        : ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Text(
-                _appointment!['status'] as String? ?? 'Hali haijulikani',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+        appBar: AppBar(title: const Text('Maelezo ya miadi')),
+        body: _appointment == null
+            ? Center(
+                child: _error == null
+                    ? const CircularProgressIndicator()
+                    : Notice(_error!),
+              )
+            : ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Text(
+                    _appointment!['status'] as String? ?? 'Hali haijulikani',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(_appointment!['starts_at'] as String? ??
+                      'Muda haujulikani'),
+                  Text(
+                    'Muda wa huduma: ${_appointment!['duration_minutes'] ?? '—'} min',
+                  ),
+                  Text('Njia: ${_appointment!['modality'] ?? '—'}'),
+                  if (_appointment!['reason'] != null)
+                    Text('Sababu: ${_appointment!['reason']}'),
+                  if (_appointment!['cancelled_reason'] != null)
+                    Text(
+                      'Sababu ya kughairi: ${_appointment!['cancelled_reason']}',
+                    ),
+                ],
               ),
-              Text(_appointment!['starts_at'] as String? ?? 'Muda haujulikani'),
-              Text(
-                'Muda wa huduma: ${_appointment!['duration_minutes'] ?? '—'} min',
-              ),
-              Text('Njia: ${_appointment!['modality'] ?? '—'}'),
-              if (_appointment!['reason'] != null)
-                Text('Sababu: ${_appointment!['reason']}'),
-              if (_appointment!['cancelled_reason'] != null)
-                Text(
-                  'Sababu ya kughairi: ${_appointment!['cancelled_reason']}',
-                ),
-            ],
-          ),
-  );
+      );
 }
