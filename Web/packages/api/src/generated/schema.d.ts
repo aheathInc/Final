@@ -204,6 +204,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinicians/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the authenticated clinician's own profile
+         * @description Clinician only. Resolves the profile from the authenticated token; it does not accept a caller-supplied clinician ID.
+         */
+        get: operations["getMyClinicianProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinicians": {
         parameters: {
             query?: never;
@@ -212,13 +232,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List clinicians, filtered
-         * @description The queue an administrator works from. Approving a licence was already
-         *     described, but there was no way to find the licences waiting for a
-         *     decision, which made that endpoint unusable in practice.
-         *
-         *     Admin only. Cursor paginated, because the pending list changes while
-         *     it is being worked through.
+         * Clinician directory or Admin verification list
+         * @description Authenticated non-admin callers receive active, verified clinician
+         *     directory entries. A platform_admin may filter pending and other
+         *     verification states; only that role receives license and verification
+         *     details needed for the existing Admin workflow. Cursor paginated.
          */
         get: operations["listClinicians"];
         put?: never;
@@ -1172,12 +1190,11 @@ export interface paths {
         put?: never;
         /**
          * Open an assistant conversation
-         * @description Opens a conversation with the health assistant. Grounded on an approved
-         *     clinical knowledge base, never on open internet sources.
-         *
-         *     A conversation may be attached to a care thread, in which case the
-         *     assistant may read that thread's history and its answers become part of
-         *     the patient's record.
+         * @description Opens an authenticated conversation. The default local provider is a
+         *     deterministic navigation and emergency-keyword stub, not a clinical
+         *     knowledge-base search. This endpoint does not fetch patient profile,
+         *     care-thread, or family-member records. Optional identifiers are stored
+         *     as conversation metadata only.
          */
         post: operations["createAiConversation"];
         delete?: never;
@@ -1213,13 +1230,13 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Send a message and receive a grounded answer
-         * @description The response carries `citations` naming the guideline passages it drew
-         *     on, and `escalated` when a red flag was recognised.
-         *
-         *     On escalation the client must surface the urgent-care instruction
-         *     rather than continuing the conversation. A stroke presentation is not
-         *     something to keep chatting about.
+         * Send a message to the configured assistant provider
+         * @description The response may include one structured navigation suggestion from the
+         *     configured provider and `escalated` when the local stub recognizes a
+         *     configured red-flag phrase. Navigation suggestions are untrusted
+         *     metadata: clients must use a strict application allowlist and must
+         *     never interpret message text as a route or command. Emergency
+         *     navigation requires a separate patient action and never dispatches SOS.
          */
         post: operations["createAiMessage"];
         delete?: never;
@@ -2813,13 +2830,34 @@ export interface components {
             rejection_reason?: string | null;
             languages_spoken?: components["schemas"]["LanguageCode"][];
             is_available?: boolean;
+            /** Format: date-time */
+            available_until?: string | null;
             /** @description Count of consultations currently in progress. Read-only. */
             current_load?: number;
             /** Format: float */
             rating_avg?: number | null;
+            full_name?: string | null;
+            /** Format: email */
+            email?: string | null;
+            account_status?: string;
             version: number;
             /** Format: date-time */
             updated_at: string;
+        };
+        ClinicianDirectoryEntry: {
+            /** Format: uuid */
+            id: string;
+            full_name: string | null;
+            specialty: components["schemas"]["Specialty"];
+            /** @enum {string} */
+            status: "available" | "busy" | "off_duty";
+            queue_count: number;
+            /** @description Returned to platform_admin only. */
+            license_number?: string;
+            verification_status?: components["schemas"]["VerificationStatus"];
+            /** Format: uuid */
+            facility_id?: string | null;
+            is_available?: boolean;
         };
         CareThread: {
             /** Format: uuid */
@@ -2965,6 +3003,13 @@ export interface components {
             };
             /** Format: date-time */
             offered_at: string;
+            /** @description Present for the clinician's actionable offer queue. Expired offers are omitted from that queue. */
+            offer?: {
+                /** @enum {string} */
+                state: "offered";
+                /** Format: date-time */
+                expires_at: string;
+            };
             seconds_to_sla_breach?: number;
             /** Format: float */
             rank_score?: number;
@@ -3043,6 +3088,8 @@ export interface components {
             estimated_wait_minutes?: number | null;
             /** Format: date-time */
             sla_deadline_at?: string;
+            /** Format: uuid */
+            assigned_clinician_id?: string | null;
             /** @description Present once assigned. Deliberately minimal. */
             assigned_clinician?: {
                 full_name?: string;
@@ -3380,10 +3427,17 @@ export interface components {
              */
             escalated?: boolean;
             escalation_reason?: string | null;
+            /** @description Optional suggestion only; the client must reject unknown values and require a patient tap. */
+            navigation_action?: components["schemas"]["AiNavigationAction"] | null;
             model_version?: string;
             /** Format: date-time */
             created_at: string;
         };
+        /**
+         * @description Allowlisted Patient app destinations. UNSUPPORTED_TEST_ACTION is emitted only by the local stub test fixture and must be ignored by clients.
+         * @enum {string}
+         */
+        AiNavigationAction: "OPEN_DOCTORS" | "START_CONSULTATION" | "OPEN_APPOINTMENTS" | "OPEN_DIAGNOSTICS" | "OPEN_MEDICATIONS" | "OPEN_PHARMACY" | "OPEN_FAMILY" | "OPEN_EDUCATION" | "OPEN_PREVENTION" | "OPEN_EMERGENCY" | "OPEN_PRIVACY" | "OPEN_FEEDBACK" | "OPEN_INSURANCE_PAYMENTS" | "UNSUPPORTED_TEST_ACTION";
         TriageSuggestion: {
             suggested_urgency: components["schemas"]["UrgencyLevel"];
             confidence: number;
@@ -4546,12 +4600,34 @@ export interface operations {
             422: components["responses"]["UnprocessableEntity"];
         };
     };
+    getMyClinicianProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Own clinician profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicianProfile"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
     listClinicians: {
         parameters: {
             query?: {
                 verification_status?: components["schemas"]["VerificationStatus"];
                 specialty?: components["schemas"]["Specialty"];
                 is_available?: boolean;
+                facility_id?: string;
                 /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -4569,7 +4645,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["ClinicianProfile"][];
+                        data: components["schemas"]["ClinicianDirectoryEntry"][];
                         meta: components["schemas"]["CursorMeta"];
                     };
                 };
@@ -5131,6 +5207,11 @@ export interface operations {
                      * @description Required when raising on behalf of a dependant.
                      */
                     patient_profile_id?: string;
+                    /**
+                     * Format: uuid
+                     * @description Optional verified clinician to target using the existing consultation matching rules.
+                     */
+                    clinician_id?: string;
                     channel: components["schemas"]["Channel"];
                     symptom_text?: string;
                     /** @description Coded symptom entries consumed by the triage engine. */

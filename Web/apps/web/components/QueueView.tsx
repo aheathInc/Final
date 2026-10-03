@@ -15,6 +15,7 @@ export function QueueView() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     try {
@@ -37,6 +38,16 @@ export function QueueView() {
     const t = setInterval(() => void load(), REFRESH_MS);
     return () => clearInterval(t);
   }, [load]);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const visibleEntries = entries.filter((entry) => {
+    if (scope !== 'offered') return true;
+    return entry.offer?.state === 'offered' && Date.parse(entry.offer.expires_at) > now;
+  });
 
   async function accept(id: string) {
     setBusyId(id);
@@ -82,13 +93,13 @@ export function QueueView() {
 
       {error && <div className="mt-4"><Notice>{error}</Notice></div>}
 
-      {loading ? <Loading /> : entries.length === 0 ? (
+      {loading ? <Loading /> : visibleEntries.length === 0 ? (
         <Empty>
           {scope === 'offered' ? 'No offered cases are waiting right now.' : 'You do not have active cases assigned.'}
         </Empty>
       ) : (
         <ul className="grid gap-3 p-4 lg:grid-cols-2">
-          {entries.map((e) => (
+          {visibleEntries.map((e) => (
             <li key={e.consultation.id}>
               <QueueCard entry={e} scope={scope} busy={busyId === e.consultation.id}
                 onAccept={accept} onDecline={decline} />

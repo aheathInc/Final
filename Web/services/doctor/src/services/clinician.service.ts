@@ -64,9 +64,11 @@ export async function listClinicians(query: {
   is_available?: boolean;
   cursor?: string;
   limit: number;
-}) {
+}, caller: { role: string }) {
+  const isAdmin = caller.role === 'platform_admin';
   const rows = await prisma.clinicianProfile.findMany({
     where: {
+      ...(!isAdmin ? { verificationStatus: 'verified', user: { status: 'active' } } : {}),
       ...(query.facility_id ? { facilityId: query.facility_id } : {}),
       ...(query.verification_status
         ? { verificationStatus: query.verification_status as never }
@@ -100,6 +102,14 @@ export async function listClinicians(query: {
       specialty: row.specialty,
       status,
       queue_count: assigned + offered,
+      ...(isAdmin
+        ? {
+            license_number: row.licenseNumber,
+            verification_status: row.verificationStatus,
+            facility_id: row.facilityId,
+            is_available: row.isAvailable,
+          }
+        : {}),
     };
   }));
   const last = pageRows[pageRows.length - 1];

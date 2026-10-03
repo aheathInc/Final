@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { serverGet } from '@/lib/serverToken';
-import type { ClinicianProfile, Page } from '@/lib/api';
+import type { ClinicianDirectoryEntry, Page } from '@/lib/api';
 import { Badge, Card, Empty, PageHeader, PageShell } from '@/components/ui';
 import { VerificationActions } from '@/components/VerificationActions';
 
@@ -10,7 +10,7 @@ export default async function VerificationPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
 
-  const pending = await serverGet<Page<ClinicianProfile>>(
+  const pending = await serverGet<Page<ClinicianDirectoryEntry>>(
     '/clinicians?verification_status=pending&limit=50',
   );
   const items = pending?.data ?? [];
@@ -34,7 +34,7 @@ export default async function VerificationPage() {
                   <Badge tone="attention">{c.specialty.replace(/_/g, ' ')}</Badge>
                 </div>
                 <p className="mt-1 font-mono text-sm tabular-nums text-ink-soft">
-                  Licence: {c.license_number}
+                  Licence: {c.license_number ?? 'License number unavailable'}
                 </p>
                 <VerificationActions clinicianId={c.id} />
               </Card>

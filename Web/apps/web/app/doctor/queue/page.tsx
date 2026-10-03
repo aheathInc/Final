@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { serverGet } from '@/lib/serverToken';
+import type { ClinicianProfile } from '@/lib/api';
 import { Card, PageShell } from '@/components/ui';
 import { QueueView } from '@/components/QueueView';
 import { AvailabilityToggle } from '@/components/AvailabilityToggle';
@@ -8,6 +10,7 @@ import { AvailabilityToggle } from '@/components/AvailabilityToggle';
 export default async function QueuePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
+  const profile = await serverGet<ClinicianProfile>('/clinicians/me');
 
   return (
     <PageShell>
@@ -23,7 +26,10 @@ export default async function QueuePage() {
             </p>
           </div>
           <div className="rounded-lg border border-white/15 bg-white/10 p-3 backdrop-blur">
-            <AvailabilityToggle />
+            <AvailabilityToggle
+              initial={profile?.is_available}
+              initiallyVerified={profile ? profile.verification_status === 'verified' : undefined}
+            />
           </div>
         </div>
       </header>

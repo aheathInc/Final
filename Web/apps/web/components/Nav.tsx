@@ -7,13 +7,15 @@ import { useState } from 'react';
 import {
   Activity, Siren, BadgeCheck, BookOpen, Building2, CalendarDays, CreditCard,
   Database, FlaskConical, HeartPulse, Home, Inbox, LayoutDashboard, LogOut, MessagesSquare, Pill,
-  Radio, Settings, ShieldAlert, Sparkles, Stethoscope, Users2,
+  Radio, Settings, ShieldAlert, Sparkles, Stethoscope, Users2, UserRound, History,
 } from 'lucide-react';
 
 const HIDE_ON = ['/login'];
 
 const DOCTOR = [
   { icon: Inbox, label: 'Queue', href: '/doctor/queue' },
+  { icon: UserRound, label: 'Provider profile', href: '/doctor/profile' },
+  { icon: History, label: 'Work history', href: '/doctor/work-history' },
   { icon: CalendarDays, label: 'Appointments', href: '/doctor/appointments' },
   { icon: Stethoscope, label: 'Slots', href: '/doctor/slots' },
   { icon: FlaskConical, label: 'Diagnostics', href: '/doctor/diagnostics' },

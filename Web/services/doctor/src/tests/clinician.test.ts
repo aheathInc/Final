@@ -6,8 +6,20 @@ import type { AppError } from '@a-health/http';
 import * as clinicians from '../services/clinician.service.js';
 import * as slots from '../services/slot.service.js';
 
-if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
-  throw new Error('Refusing to run tests outside a development database');
+const testDatabaseUrl = process.env.DATABASE_URL ?? '';
+let testDatabase: URL;
+try {
+  testDatabase = new URL(testDatabaseUrl);
+} catch {
+  throw new Error('Refusing clinician tests without a valid local ahealth_test DATABASE_URL.');
+}
+const testDatabaseName = decodeURIComponent(testDatabase.pathname.replace(/^\//, ''));
+if (
+  testDatabaseName !== 'ahealth_test' ||
+  !['localhost', '127.0.0.1', '::1'].includes(testDatabase.hostname) ||
+  (testDatabase.port || '5432') === '5432'
+) {
+  throw new Error('Refusing clinician tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
 }
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
@@ -90,6 +102,40 @@ describe('verification', () => {
       () => clinicians.decideVerification(profile.id, adminId, 'approve', undefined, meta),
       (e: AppError) => e.code === 'STATE_TRANSITION_INVALID',
     );
+  });
+});
+
+describe('provider profile ownership', () => {
+  it('lets a clinician read their own profile and denies another clinician', async () => {
+    const first = await makeClinician('verified');
+    const second = await makeClinician('verified');
+
+    const own = await clinicians.getClinician(first.profile.id, {
+      sub: first.user.id,
+      role: 'clinician',
+    });
+    assert.equal(own.id, first.profile.id);
+    assert.equal(own.user_id, first.user.id);
+    assert.equal(own.verification_status, 'verified');
+    assert.equal('password_hash' in own, false);
+
+    await assert.rejects(
+      () => clinicians.getClinician(first.profile.id, { sub: second.user.id, role: 'clinician' }),
+      (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
+    );
+  });
+
+  it('keeps pending license data in the platform-admin directory only', async () => {
+    const pending = await makeClinician('pending');
+    const query = { limit: 100 };
+    const adminList = await clinicians.listClinicians(query, { role: 'platform_admin' });
+    const adminEntry = adminList.data.find((entry) => entry.id === pending.profile.id);
+    assert.equal(adminEntry?.verification_status, 'pending');
+    assert.equal(adminEntry?.license_number, pending.profile.licenseNumber);
+
+    const publicList = await clinicians.listClinicians(query, { role: 'patient' });
+    assert.equal(publicList.data.some((entry) => entry.id === pending.profile.id), false);
+    assert.equal(publicList.data.some((entry) => 'license_number' in entry), false);
   });
 });
 

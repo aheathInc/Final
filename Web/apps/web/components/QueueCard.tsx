@@ -24,16 +24,20 @@ export function QueueCard({
   onDecline: (id: string, reason: DeclineReason) => void;
 }) {
   const s = urgencyStyle(entry.consultation.urgency_level);
-  const [left, setLeft] = useState(entry.seconds_to_sla_breach ?? 0);
+  const [now, setNow] = useState(() => Date.now());
   const [choosing, setChoosing] = useState(false);
+  const deadline = scope === 'offered'
+    ? Date.parse(entry.offer?.expires_at ?? '')
+    : Date.parse(entry.consultation.sla_deadline_at);
+  const left = Number.isFinite(deadline) ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
+  const expired = scope === 'offered' && left <= 0;
 
   // A queue that silently goes stale is worse than none: it shows time
   // remaining that has already run out.
   useEffect(() => {
-    setLeft(entry.seconds_to_sla_breach ?? 0);
-    const t = setInterval(() => setLeft((n) => n - 1), 1000);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [entry.seconds_to_sla_breach, entry.consultation.id]);
+  }, []);
 
   const p = entry.patient_summary;
 
@@ -42,9 +46,13 @@ export function QueueCard({
       <header className="flex items-center justify-between gap-4">
         <span className={`text-sm font-semibold ${s.text}`}>{s.label}</span>
         <span className={`font-mono text-sm tabular-nums ${left <= 0 ? 'font-semibold text-clay' : 'text-ink-soft'}`}>
-          {countdown(left)}
+          {scope === 'offered' ? `Offer expires ${countdown(left)}` : `SLA ${countdown(left)}`}
         </span>
       </header>
+
+      <p className="mt-2 text-xs text-ink-soft">
+        Request {entry.consultation.id.slice(0, 8)} · {entry.offer?.state ?? (scope === 'mine' ? 'assigned' : 'offer state unavailable')}
+      </p>
 
       <p className="mt-2 text-[0.95rem] leading-snug">
         {entry.consultation.symptom_text || 'No symptom text provided.'}
@@ -72,6 +80,8 @@ export function QueueCard({
         >
           Open case
         </Link>
+      ) : expired ? (
+        <p className="mt-4 text-sm text-ink-soft">This offer has expired and is no longer actionable.</p>
       ) : !choosing ? (
         <div className="mt-4 flex gap-3">
           <Button onClick={() => onAccept(entry.consultation.id)} disabled={busy} className="flex-1">
