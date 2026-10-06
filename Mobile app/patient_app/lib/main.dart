@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/api.dart';
+import 'core/config.dart';
 import 'core/session.dart';
 import 'core/theme.dart';
 import 'core/strings.dart';
@@ -10,6 +11,7 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  Config.validateForCurrentBuild();
   runApp(const AHealthApp());
 }
 

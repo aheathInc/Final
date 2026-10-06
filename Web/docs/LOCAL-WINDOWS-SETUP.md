@@ -61,6 +61,8 @@ docker compose --project-name ahealth-integration -f docker-compose.dev.yml stop
 
 The development and test databases start empty. Apply the existing migrations to both; no migration files are created by this setup:
 
+Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, reject production mode, and do not print them.
+
 ```powershell
 $line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1
 $env:DATABASE_URL = $line.Substring('DATABASE_URL='.Length)
@@ -71,6 +73,8 @@ Remove-Item Env:\DATABASE_URL
 ```
 
 Only after confirming the next commands target `ahealth_dev`, run the two existing auth-service development seeds. They create the clinician/admin accounts and related local queue/admin fixtures. Do not run them against the test database. The `AHP_STAFF_DEMO_V1` seed is separate and is not part of this bootstrap.
+
+Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, reject production mode, and do not print them.
 
 ```powershell
 $line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1
@@ -101,6 +105,8 @@ To stop only the isolated native database after the app stack is stopped, run fr
 After code/config changes, run `pnpm --filter a-health-web type-check`. Stop the dev server before `pnpm --filter a-health-web build`; do not build while Next dev is using the same `.next` directory.
 
 For the focused follow-up tests, set `DATABASE_URL` to the test database before running them:
+
+Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, reject production mode, and do not print them.
 
 ```powershell
 $line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1

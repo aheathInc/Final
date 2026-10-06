@@ -130,6 +130,8 @@ test('clinician login, workspace, RBAC, mobile layout and logout', async ({ page
   await page.goto('/doctor/queue');
   await page.goto('/admin/dashboard');
   await expect(page).toHaveURL(/\/doctor\/queue$/);
+  await page.goto('/admin/audit-ledger');
+  await expect(page).toHaveURL(/\/doctor\/queue$/);
   await page.goto('/analytics/dashboard');
   await expect(page).toHaveURL(/\/doctor\/queue$/);
 
@@ -169,10 +171,20 @@ test('platform admin operations, analytics, RBAC and logout', async ({ page }) =
     ['/admin/emergency', 'Emergency operations'],
     ['/admin/verification', 'Clinician verification'],
     ['/admin/facilities', 'Facilities'],
+    ['/admin/audit-ledger', 'Identity and consent audit ledger'],
     ['/analytics/dashboard', 'Analytics dashboard'],
     ['/analytics/surveillance', 'Disease surveillance'],
     ['/analytics/research', 'Research'],
   ]) await expectProtectedPage(page, path, heading);
+  await expectProtectedPage(page, '/admin/audit-ledger', 'Identity and consent audit ledger');
+  const ledgerVerification = page.waitForResponse((response) =>
+    response.url().includes('/bff/audit/verify') && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Verify full ledger' }).click();
+  const ledgerResponse = await ledgerVerification;
+  expect(ledgerResponse.status(), 'ledger verification BFF response').toBe(200);
+  await expect(page.getByRole('status')).toContainText('VALID');
+  await page.waitForTimeout(750);
   await page.goto('/analytics/dashboard');
   await expect(page.getByRole('heading', { name: 'Analytics dashboard' })).toBeVisible();
   await page.screenshot({ path: `${screenshotDir}/analytics-dashboard.png`, fullPage: true });
@@ -192,5 +204,7 @@ test('platform admin operations, analytics, RBAC and logout', async ({ page }) =
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.goto('/admin/dashboard');
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/admin/audit-ledger');
   await expect(page).toHaveURL(/\/login$/);
 });

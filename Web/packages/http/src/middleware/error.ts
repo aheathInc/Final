@@ -44,13 +44,14 @@ export function createErrorHandler(logger: Logger, exposeInternals = false) {
       return;
     }
 
-    // Unexpected. Logged in full; never returned. A stack trace in a 500 body
-    // is an information disclosure, and on this platform the stack can contain
-    // a patient's data.
-    logger.error('unhandled error', {
-      requestId,
-      err: err instanceof Error ? { message: err.message, stack: err.stack } : String(err),
-    });
+    // Production logs must not contain exception messages or stack traces:
+    // database and downstream errors can include patient data or credentials.
+    // Keep full diagnostics only in development, where the response already
+    // exposes internals and the operator controls the local environment.
+    const diagnostic = err instanceof Error
+      ? (exposeInternals ? { name: err.name, message: err.message, stack: err.stack } : { name: err.name })
+      : (exposeInternals ? { value: String(err) } : { type: typeof err });
+    logger.error('unhandled error', { requestId, err: diagnostic });
 
     res.status(500).json({
       error: {

@@ -35,7 +35,13 @@ import { prisma } from '../src/index.js';
  * back door that only works in seeds.
  */
 const CLINICIAN_EMAIL = 'daktari@dev.local';
-const CLINICIAN_PASSWORD = 'Daktari#2026';
+function readSeedPassword(): string {
+  if (process.env.NODE_ENV === 'production') throw new Error('Development seed cannot run in production.');
+  const value = process.env.AHP_SEED_CLINICIAN_PASSWORD;
+  if (!value) throw new Error('AHP_SEED_CLINICIAN_PASSWORD must be exported before running the generated seed.');
+  return value;
+}
+const CLINICIAN_PASSWORD = readSeedPassword();
 const MARKER = 'seed-dev';
 
 async function wipePrevious() {
@@ -176,7 +182,7 @@ async function main() {
   console.log('\nSeed complete.\n');
   console.log('  Log in at http://localhost:3100/login');
   console.log(`  email:    ${CLINICIAN_EMAIL}`);
-  console.log(`  password: ${CLINICIAN_PASSWORD}`);
+  console.log('  password is supplied through AHP_SEED_CLINICIAN_PASSWORD');
   console.log('\n  Three cases are waiting: one emergency, one urgent, one routine.\n');
 }
 
