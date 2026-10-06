@@ -40,6 +40,38 @@ void main() {
       );
     });
 
+    test('parses only patient-safe consent and emergency history fields', () {
+      final history = consentAuditHistoryFromJson({
+        'data': [
+          {
+            'event_type': 'consent.granted',
+            'occurred_at': '2026-10-01T10:00:00Z',
+            'scope': 'current_thread',
+            'grantee_type': 'clinician',
+            'actor_id': 'must-not-be-exposed',
+            'hash': 'must-not-be-exposed',
+          },
+          {
+            'event_type': 'emergency.context_break_glass_access',
+            'occurred_at': '2026-10-01T11:00:00Z',
+          },
+        ],
+      });
+
+      expect(history.first['scope'], 'current_thread');
+      expect(history.first.containsKey('actor_id'), isFalse);
+      expect(history.first.containsKey('hash'), isFalse);
+      expect(history.last['event_type'], 'emergency.context_break_glass_access');
+      expect(
+        () => consentAuditHistoryFromJson({
+          'data': [
+            {'event_type': 'account.password.changed', 'occurred_at': '2026-10-01T10:00:00Z'},
+          ],
+        }),
+        throwsFormatException,
+      );
+    });
+
     test('grant and revoke require same-record backend read-back', () async {
       final store = <Map<String, dynamic>>[];
       final paths = <String>[];

@@ -34,6 +34,7 @@ const ADMIN = [
   { icon: Siren, label: 'Emergency', href: '/admin/emergency' },
   { icon: Radio, label: 'Devices', href: '/admin/devices' },
   { icon: BadgeCheck, label: 'Verification', href: '/admin/verification' },
+  { icon: History, label: 'Audit ledger', href: '/admin/audit-ledger' },
   { icon: Building2, label: 'Facilities', href: '/admin/facilities' },
   { icon: ShieldAlert, label: 'Incidents', href: '/admin/incidents' },
   { icon: CreditCard, label: 'Payments', href: '/admin/payments' },

@@ -74,6 +74,11 @@ describe('verification', () => {
     assert.equal(result.verification_status, 'verified');
     const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
     assert.equal(after.status, 'active', 'approval is what makes the account usable');
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { action: 'clinician.verified', entityId: profile.id },
+    });
+    assert.equal(audit.actorUserId, adminId);
+    assert.deepEqual(audit.metadata, { verificationStatus: 'verified' });
   });
 
   it('rejecting records the reason and forces the clinician off duty', async () => {
@@ -94,6 +99,12 @@ describe('verification', () => {
     assert.equal(result.verification_status, 'rejected');
     assert.equal(result.is_available, false, 'a rejected licence must not stay on duty');
     assert.ok(result.rejection_reason);
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { action: 'clinician.rejected', entityId: profile.id },
+    });
+    assert.equal(audit.actorUserId, adminId);
+    assert.deepEqual(audit.metadata, { verificationStatus: 'rejected' });
+    assert.equal(audit.reason, null, 'free-text rejection details stay outside the ledger');
   });
 
   it('refuses to approve twice', async () => {

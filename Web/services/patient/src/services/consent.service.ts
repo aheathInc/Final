@@ -61,27 +61,29 @@ export async function grantConsent(
 ) {
   await assertOwner(profileId, caller);
 
-  const consent = await prisma.patientConsent.create({
-    data: {
-      patientProfileId: profileId,
-      granteeType: input.grantee_type as never,
-      granteeClinicianId: input.grantee_clinician_id ?? null,
-      granteeFacilityId: input.grantee_facility_id ?? null,
-      careThreadId: input.care_thread_id ?? null,
-      scope: input.scope as never,
-      reason: input.reason ?? null,
-      expiresAt: input.expires_at ? new Date(input.expires_at) : null,
-    },
-  });
+  return prisma.$transaction(async (tx) => {
+    const consent = await tx.patientConsent.create({
+      data: {
+        patientProfileId: profileId,
+        granteeType: input.grantee_type as never,
+        granteeClinicianId: input.grantee_clinician_id ?? null,
+        granteeFacilityId: input.grantee_facility_id ?? null,
+        careThreadId: input.care_thread_id ?? null,
+        scope: input.scope as never,
+        reason: input.reason ?? null,
+        expiresAt: input.expires_at ? new Date(input.expires_at) : null,
+      },
+    });
 
-  await appendAudit({
-    actorUserId: caller.sub, action: 'consent.granted',
-    entityType: 'patient_consents', entityId: consent.id,
-    metadata: { scope: input.scope, granteeType: input.grantee_type },
-    ipAddress: meta.ip, requestId: meta.requestId,
-  });
+    await appendAudit({
+      actorUserId: caller.sub, action: 'consent.granted',
+      entityType: 'patient_consents', entityId: consent.id,
+      metadata: { scope: input.scope, granteeType: input.grantee_type },
+      ipAddress: meta.ip, requestId: meta.requestId,
+    }, tx);
 
-  return serialise(consent);
+    return serialise(consent);
+  });
 }
 
 /**
@@ -91,19 +93,68 @@ export async function grantConsent(
 export async function revokeConsent(profileId: string, consentId: string, caller: Caller, meta: Meta) {
   await assertOwner(profileId, caller);
 
-  const consent = await prisma.patientConsent.findUnique({ where: { id: consentId } });
-  if (!consent || consent.patientProfileId !== profileId) throw notFound('Consent not found');
+  return prisma.$transaction(async (tx) => {
+    const consent = await tx.patientConsent.findUnique({ where: { id: consentId } });
+    if (!consent || consent.patientProfileId !== profileId) throw notFound('Consent not found');
 
-  const updated = await prisma.patientConsent.update({
-    where: { id: consentId },
-    data: { allowed: false, revokedAt: new Date(), version: { increment: 1 } },
+    const updated = await tx.patientConsent.update({
+      where: { id: consentId },
+      data: { allowed: false, revokedAt: new Date(), version: { increment: 1 } },
+    });
+
+    await appendAudit({
+      actorUserId: caller.sub, action: 'consent.revoked',
+      entityType: 'patient_consents', entityId: consentId,
+      metadata: { scope: consent.scope, granteeType: consent.granteeType },
+      ipAddress: meta.ip, requestId: meta.requestId,
+    }, tx);
+
+    return serialise(updated);
+  });
+}
+
+/** A patient or guardian may see only their own safe consent/access events. */
+export async function listOwnAuditHistory(profileId: string, caller: Caller) {
+  if (caller.role !== 'patient') {
+    throw forbidden('ROLE_NOT_PERMITTED', 'Patient audit history is available to patient accounts only');
+  }
+  await assertOwner(profileId, caller);
+
+  const consents = await prisma.patientConsent.findMany({
+    where: { patientProfileId: profileId },
+    select: { id: true, scope: true, granteeType: true },
+  });
+  const consentById = new Map(consents.map((consent) => [consent.id, consent]));
+  const rows = await prisma.auditLog.findMany({
+    where: {
+      action: { in: ['consent.granted', 'consent.revoked', 'emergency.context_break_glass_access'] },
+      OR: [
+        { entityType: 'patient_profiles', entityId: profileId },
+        { entityType: 'patient_consents', entityId: { in: consents.map((consent) => consent.id) } },
+      ],
+    },
+    orderBy: { seq: 'desc' },
+    take: 100,
+    select: { action: true, entityId: true, metadata: true, createdAt: true },
   });
 
-  await appendAudit({
-    actorUserId: caller.sub, action: 'consent.revoked',
-    entityType: 'patient_consents', entityId: consentId,
-    ipAddress: meta.ip, requestId: meta.requestId,
-  });
+  return {
+    data: rows.map((row) => {
+      const linkedConsent = row.entityId ? consentById.get(row.entityId) : undefined;
+      const metadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+        ? row.metadata as Record<string, unknown>
+        : {};
+      const scope = typeof metadata.scope === 'string' ? metadata.scope : linkedConsent?.scope;
+      const granteeType = typeof metadata.granteeType === 'string'
+        ? metadata.granteeType
+        : linkedConsent?.granteeType;
 
-  return serialise(updated);
+      return {
+        event_type: row.action,
+        occurred_at: row.createdAt.toISOString(),
+        ...(row.action.startsWith('consent.') && scope ? { scope } : {}),
+        ...(row.action.startsWith('consent.') && granteeType ? { grantee_type: granteeType } : {}),
+      };
+    }),
+  };
 }

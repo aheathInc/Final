@@ -159,6 +159,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audit/ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List supported identity, consent and emergency audit events
+         * @description Platform administrator only. Sensitive operational fields and hashes are never returned.
+         */
+        get: operations["listAuditLedgerEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify the complete internal audit hash chain
+         * @description Platform administrator only. Returns status and counts without event metadata or hashes.
+         */
+        post: operations["verifyAuditLedger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/me": {
         parameters: {
             query?: never;
@@ -991,6 +1031,26 @@ export interface paths {
         };
         /** List a patient's prescriptions */
         get: operations["listPatientPrescriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patient-profiles/{patient_profile_id}/audit-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the caller's own consent and emergency access history
+         * @description Patient role only. The caller must own or be the guardian of this profile. Hashes, actors, request IDs, reasons and arbitrary metadata are omitted.
+         */
+        get: operations["listOwnConsentAuditHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2661,6 +2721,44 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PatientAuditHistory: {
+            data: {
+                /** @enum {string} */
+                event_type: "consent.granted" | "consent.revoked" | "emergency.context_break_glass_access";
+                /** Format: date-time */
+                occurred_at: string;
+                scope?: string;
+                grantee_type?: string;
+            }[];
+        };
+        AdminAuditLedgerPage: {
+            data: {
+                seq: string;
+                /** @enum {string} */
+                category: "consent" | "verification" | "break_glass";
+                event_type: string;
+                /** Format: uuid */
+                actor_id?: string | null;
+                resource_type: string;
+                /** Format: uuid */
+                resource_id?: string | null;
+                /** Format: date-time */
+                occurred_at: string;
+                details: {
+                    [key: string]: string;
+                };
+            }[];
+            meta: {
+                next_cursor: string | null;
+                has_more: boolean;
+            };
+        };
+        AuditLedgerVerification: {
+            /** @enum {string} */
+            status: "VALID" | "INVALID";
+            events_checked: number;
+            broken_at_seq?: string;
+        };
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -4482,6 +4580,54 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
         };
     };
+    listAuditLedgerEvents: {
+        parameters: {
+            query?: {
+                category?: "consent" | "verification" | "break_glass";
+                cursor?: string;
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Safe page of supported events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditLedgerPage"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    verifyAuditLedger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete chain verification result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLedgerVerification"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     getMe: {
         parameters: {
             query?: never;
@@ -5897,6 +6043,31 @@ export interface operations {
                 };
             };
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listOwnConsentAuditHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patient_profile_id: components["parameters"]["PatientProfileId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Patient-safe history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientAuditHistory"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listAdherenceLogs: {

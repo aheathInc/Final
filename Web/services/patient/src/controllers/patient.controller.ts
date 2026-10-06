@@ -46,6 +46,9 @@ export const createDependent = handle(
 export const listConsents = handle((req) =>
   consents.listConsents(pathParam(req, 'patient_profile_id'), caller(req)));
 
+export const listConsentAuditHistory = handle((req) =>
+  consents.listOwnAuditHistory(pathParam(req, 'patient_profile_id'), caller(req)));
+
 export const grantConsent = handle(
   (req, res) => consents.grantConsent(
     pathParam(req, 'patient_profile_id'), caller(req), grantConsentSchema.parse(req.body), meta(req, res),

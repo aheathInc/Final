@@ -8,8 +8,18 @@ import * as emergencies from '../services/emergencyRequest.service.js';
 import * as units from '../services/transportUnit.service.js';
 import { isLegalStatusTransition, canDispatch } from '../services/transition.js';
 
-if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
-  throw new Error('Refusing to run tests outside a development database');
+let testDatabase: URL;
+try {
+  testDatabase = new URL(process.env.DATABASE_URL ?? '');
+} catch {
+  throw new Error('Refusing emergency tests without a valid local ahealth_test DATABASE_URL.');
+}
+if (
+  decodeURIComponent(testDatabase.pathname.replace(/^\//, '')) !== 'ahealth_test' ||
+  !['localhost', '127.0.0.1', '::1'].includes(testDatabase.hostname) ||
+  (testDatabase.port || '5432') === '5432'
+) {
+  throw new Error('Refusing emergency tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
 }
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
@@ -201,6 +211,12 @@ describe('dispatch', () => {
       where: { action: 'emergency.context_break_glass_access', entityId: profile.id },
     });
     assert.equal(entries, 1);
+    const event = await prisma.auditLog.findFirstOrThrow({
+      where: { action: 'emergency.context_break_glass_access', entityId: profile.id },
+    });
+    assert.equal(event.actorUserId, dispatcher.sub);
+    assert.deepEqual(event.metadata, { emergencyRequestId: created.id });
+    assert.equal('allergies' in (event.metadata as object), false);
   });
 
   it('uses active emergency consent and switches to audited break-glass after revocation', async () => {

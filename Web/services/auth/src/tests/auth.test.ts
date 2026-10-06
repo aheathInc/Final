@@ -1,8 +1,11 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { appendAudit, canonical, sha256 } from '@a-health/http';
 import * as auth from '../services/auth.service.js';
 import { verifyAuditChain } from '../services/audit.service.js';
+import { listLedgerEvents, verifyLedger } from '../services/ledger.service.js';
 import { AppError } from '../utils/errors.js';
 import { assertSafeDatabase, cleanupPhone, codeOf, meta, testPhone } from './helpers.js';
 
@@ -233,10 +236,170 @@ describe('profile', () => {
 });
 
 describe('audit chain', () => {
-  it('stays intact across writes', async () => {
+  it('canonicalises equivalent data with stable key order and explicit null', () => {
+    const left = { z: [2, null], a: { y: true, x: 'value' } };
+    const right = { a: { x: 'value', y: true }, z: [2, null] };
+    assert.equal(canonical(left), canonical(right));
+    assert.equal(sha256(canonical(left)), sha256(canonical(right)));
+    assert.equal(canonical(null), 'null');
+  });
+
+  it('serialises concurrent appenders into one valid chain', async () => {
+    const before = await prisma.auditLog.findFirst({
+      orderBy: { seq: 'desc' },
+      select: { hash: true },
+    });
+    const ids = [randomUUID(), randomUUID()];
+    await Promise.all(ids.map((entityId) => appendAudit({
+      action: 'test.audit.concurrent',
+      entityType: 'test_fixtures',
+      entityId,
+      metadata: { synthetic: true },
+      requestId: `test-${entityId}`,
+    })));
+
+    const rows = await prisma.auditLog.findMany({
+      where: { entityId: { in: ids } },
+      orderBy: { seq: 'asc' },
+    });
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0]!.prevHash, before?.hash ?? null);
+    assert.equal(rows[1]!.prevHash, rows[0]!.hash);
+    assert.equal((await verifyAuditChain()).ok, true);
+  });
+
+  it('continues verifying existing version 1 rows without rewriting them', async () => {
+    const action = 'test.audit.legacy_fixture';
+    const entityId = randomUUID();
+    const createdAt = new Date();
+    const legacy = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(8471120325::bigint)`;
+      const last = await tx.auditLog.findFirst({
+        orderBy: { seq: 'desc' },
+        select: { hash: true },
+      });
+      const payload = {
+        prevHash: last?.hash ?? null,
+        actorUserId: null,
+        action,
+        entityType: 'test_fixtures',
+        entityId,
+        reason: null,
+        metadata: { synthetic: true },
+        createdAt: createdAt.toISOString(),
+      };
+      return tx.auditLog.create({
+        data: {
+          hashVersion: 1,
+          actorUserId: null,
+          action,
+          entityType: 'test_fixtures',
+          entityId,
+          reason: null,
+          ipAddress: '127.0.0.1',
+          requestId: 'legacy-fixture',
+          metadata: { synthetic: true },
+          prevHash: last?.hash ?? null,
+          hash: sha256(canonical(payload)),
+          createdAt,
+        },
+      });
+    });
+
+    assert.equal(legacy.hashVersion, 1);
+    assert.equal((await verifyAuditChain()).ok, true);
+  });
+
+  it('rejects ordinary mutation and detects isolated tampering', async () => {
+    const entityId = randomUUID();
+    await appendAudit({
+      action: 'test.audit.tamper_fixture',
+      entityType: 'test_fixtures',
+      entityId,
+      metadata: { synthetic: true },
+    });
+    const row = await prisma.auditLog.findFirstOrThrow({ where: { entityId } });
+    const nextEntityId = randomUUID();
+    await appendAudit({
+      action: 'test.audit.tamper_fixture_next',
+      entityType: 'test_fixtures',
+      entityId: nextEntityId,
+      metadata: { synthetic: true },
+    });
+    const nextRow = await prisma.auditLog.findFirstOrThrow({ where: { entityId: nextEntityId } });
+
+    await assert.rejects(() => prisma.auditLog.update({
+      where: { seq: row.seq },
+      data: { reason: 'ordinary mutation must fail' },
+    }));
+    await assert.rejects(() => prisma.auditLog.delete({ where: { seq: row.seq } }));
+
+    await prisma.$executeRawUnsafe('ALTER TABLE "audit_logs" DISABLE TRIGGER "audit_logs_immutable"');
+    let alteredData = false;
+    let alteredLink = false;
+    try {
+      await prisma.auditLog.update({ where: { seq: row.seq }, data: { metadata: { altered: true } } });
+      alteredData = true;
+      const result = await verifyAuditChain();
+      assert.equal(result.ok, false);
+      assert.equal(result.brokenAtSeq, row.seq);
+
+      await prisma.auditLog.update({
+        where: { seq: row.seq },
+        data: { metadata: row.metadata as object },
+      });
+      alteredData = false;
+
+      await prisma.auditLog.update({ where: { seq: nextRow.seq }, data: { prevHash: 'broken-link' } });
+      alteredLink = true;
+      const brokenLink = await verifyAuditChain();
+      assert.equal(brokenLink.ok, false);
+      assert.equal(brokenLink.brokenAtSeq, nextRow.seq);
+    } finally {
+      if (alteredLink) {
+        await prisma.auditLog.update({
+          where: { seq: nextRow.seq },
+          data: { prevHash: nextRow.prevHash },
+        });
+      }
+      if (alteredData) {
+        await prisma.auditLog.update({
+          where: { seq: row.seq },
+          data: { metadata: row.metadata as object },
+        });
+      }
+      await prisma.$executeRawUnsafe('ALTER TABLE "audit_logs" ENABLE TRIGGER "audit_logs_immutable"');
+    }
+    assert.equal((await verifyAuditChain()).ok, true);
+  });
+
+  it('returns allowlisted admin rows and a safe full-chain status', async () => {
+    const entityId = randomUUID();
+    await appendAudit({
+      action: 'consent.granted',
+      entityType: 'patient_consents',
+      entityId,
+      metadata: { scope: 'current_thread', granteeType: 'clinician', internal: 'must-not-leak' },
+      ipAddress: '127.0.0.1',
+      requestId: randomUUID(),
+    });
+    const page = await listLedgerEvents({ category: 'consent', limit: 100 });
+    const event = page.data.find((item) => item.resource_id === entityId);
+    assert.ok(event);
+    assert.deepEqual(event.details, { scope: 'current_thread', grantee_type: 'clinician' });
+    assert.equal('hash' in event, false);
+    assert.equal('ip_address' in event, false);
+    assert.equal('request_id' in event, false);
+    const verification = await verifyLedger();
+    assert.equal(verification.status, 'VALID');
+    assert.ok(verification.events_checked > 0);
+    assert.equal('hash' in verification, false);
+  });
+
+  it('verifies the entire chain after writes', async () => {
     const phone = track(testPhone());
     await registerAndVerify(phone);
-    const result = await verifyAuditChain(5000);
+    const result = await verifyAuditChain();
     assert.equal(result.ok, true, `chain broken at seq ${result.brokenAtSeq}`);
   });
 });
