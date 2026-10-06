@@ -110,6 +110,8 @@ tags:
     description: Registration, OTP, login, token lifecycle. Phase 0.
   - name: users
     description: Own profile and dependants. Phase 0.
+  - name: audit
+    description: Authorized internal audit ledger and patient-owned transparency views.
   - name: clinicians
     description: Verification, availability, load. Phase 0.
   - name: care-threads
@@ -419,6 +421,46 @@ paths:
         '204':
           description: Session revoked
         '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /audit/ledger:
+    get:
+      tags: [audit]
+      summary: List supported identity, consent and emergency audit events
+      description: Platform administrator only. Sensitive operational fields and hashes are never returned.
+      operationId: listAuditLedgerEvents
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [consent, verification, break_glass]
+        - name: cursor
+          in: query
+          schema: { type: string, pattern: '^[1-9][0-9]*$' }
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Safe page of supported events
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminAuditLedgerPage' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /audit/verify:
+    post:
+      tags: [audit]
+      summary: Verify the complete internal audit hash chain
+      description: Platform administrator only. Returns status and counts without event metadata or hashes.
+      operationId: verifyAuditLedger
+      responses:
+        '200':
+          description: Complete chain verification result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditLedgerVerification' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /users/me:
     get:
@@ -1805,6 +1847,24 @@ paths:
                   meta:
                     $ref: '#/components/schemas/CursorMeta'
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /patient-profiles/{patient_profile_id}/audit-history:
+    get:
+      tags: [audit]
+      summary: Read the caller's own consent and emergency access history
+      description: Patient role only. The caller must own or be the guardian of this profile. Hashes, actors, request IDs, reasons and arbitrary metadata are omitted.
+      operationId: listOwnConsentAuditHistory
+      parameters:
+        - $ref: '#/components/parameters/PatientProfileId'
+      responses:
+        '200':
+          description: Patient-safe history
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PatientAuditHistory' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /adherence-logs:
     get:
@@ -4546,6 +4606,58 @@ components:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
 
   schemas:
+
+    PatientAuditHistory:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [event_type, occurred_at]
+            properties:
+              event_type:
+                type: string
+                enum: [consent.granted, consent.revoked, emergency.context_break_glass_access]
+              occurred_at: { type: string, format: date-time }
+              scope: { type: string }
+              grantee_type: { type: string }
+
+    AdminAuditLedgerPage:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required: [seq, category, event_type, resource_type, occurred_at, details]
+            properties:
+              seq: { type: string, pattern: '^[1-9][0-9]*$' }
+              category: { type: string, enum: [consent, verification, break_glass] }
+              event_type: { type: string }
+              actor_id: { type: [string, 'null'], format: uuid }
+              resource_type: { type: string }
+              resource_id: { type: [string, 'null'], format: uuid }
+              occurred_at: { type: string, format: date-time }
+              details:
+                type: object
+                additionalProperties: { type: string }
+        meta:
+          type: object
+          required: [next_cursor, has_more]
+          properties:
+            next_cursor: { type: [string, 'null'] }
+            has_more: { type: boolean }
+
+    AuditLedgerVerification:
+      type: object
+      required: [status, events_checked]
+      properties:
+        status: { type: string, enum: [VALID, INVALID] }
+        events_checked: { type: integer, minimum: 0 }
+        broken_at_seq: { type: string, pattern: '^[1-9][0-9]*$' }
 
     ErrorEnvelope:
       type: object

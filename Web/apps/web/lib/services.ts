@@ -24,6 +24,7 @@ const ROUTES: Route[] = [
 
   { pattern: '/auth', env: 'AUTH_SERVICE_URL', port: 4001 },
   { pattern: '/users', env: 'AUTH_SERVICE_URL', port: 4001 },
+  { pattern: '/audit', env: 'AUTH_SERVICE_URL', port: 4001 },
   { pattern: '/patient-profiles', env: 'PATIENT_SERVICE_URL', port: 4002 },
   { pattern: '/clinicians', env: 'DOCTOR_SERVICE_URL', port: 4003 },
   { pattern: '/appointments', env: 'APPOINTMENT_SERVICE_URL', port: 4004 },

@@ -7,7 +7,7 @@ const tokens = createTokenService({
   secret: env.JWT_SECRET, issuer: env.JWT_ISSUER,
   audience: env.JWT_AUDIENCE, ttlSeconds: env.ACCESS_TOKEN_TTL_SECONDS,
 });
-const { requireAuth } = createAuthGuards(tokens);
+const { requireAuth, requireRole } = createAuthGuards(tokens);
 const idempotency = createIdempotency(env.IDEMPOTENCY_TTL_HOURS);
 
 export const patientRouter = Router();
@@ -23,5 +23,11 @@ patientRouter.get('/patient-profiles/:patient_profile_id', requireAuth, c.getPro
 patientRouter.patch('/patient-profiles/:patient_profile_id', requireAuth, c.updateProfile);
 
 patientRouter.get('/patient-profiles/:patient_profile_id/consents', requireAuth, c.listConsents);
+patientRouter.get(
+  '/patient-profiles/:patient_profile_id/audit-history',
+  requireAuth,
+  requireRole('patient'),
+  c.listConsentAuditHistory,
+);
 patientRouter.post('/patient-profiles/:patient_profile_id/consents', requireAuth, idempotency, c.grantConsent);
 patientRouter.post('/patient-profiles/:patient_profile_id/consents/:consent_id/revoke', requireAuth, c.revokeConsent);

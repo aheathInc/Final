@@ -159,7 +159,7 @@ export async function decideVerification(
     throw conflict('STATE_TRANSITION_INVALID', 'This clinician is already verified');
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const profile = await tx.clinicianProfile.update({
       where: { id: clinicianId },
       data: {
@@ -180,21 +180,18 @@ export async function decideVerification(
       });
     }
 
-    return profile;
-  });
+    await appendAudit({
+      actorUserId: adminUserId,
+      action: decision === 'approve' ? 'clinician.verified' : 'clinician.rejected',
+      entityType: 'clinician_profiles',
+      entityId: clinicianId,
+      metadata: { verificationStatus: decision === 'approve' ? 'verified' : 'rejected' },
+      ipAddress: meta.ip,
+      requestId: meta.requestId,
+    }, tx);
 
-  await appendAudit({
-    actorUserId: adminUserId,
-    action: decision === 'approve' ? 'clinician.verified' : 'clinician.rejected',
-    entityType: 'clinician_profiles',
-    entityId: clinicianId,
-    reason: reason ?? null,
-    metadata: { licenseNumber: clinician.licenseNumber, specialty: clinician.specialty },
-    ipAddress: meta.ip,
-    requestId: meta.requestId,
+    return serialise(profile);
   });
-
-  return serialise(updated);
 }
 
 /**

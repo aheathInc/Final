@@ -40,6 +40,7 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
   bool _loading = true;
   bool _busy = false;
   List<Map<String, dynamic>> _consents = [];
+  List<Map<String, dynamic>> _auditHistory = [];
 
   @override
   void initState() {
@@ -66,11 +67,15 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
       if (profileId == null) {
         throw const FormatException('Akaunti hii haina wasifu wa mgonjwa.');
       }
-      final rows = await _repository.consents(profileId);
+      final results = await Future.wait([
+        _repository.consents(profileId),
+        _repository.consentAuditHistory(profileId),
+      ]);
       if (!mounted) return;
       setState(() {
         _profileId = profileId;
-        _consents = rows;
+        _consents = results[0] as List<Map<String, dynamic>>;
+        _auditHistory = results[1] as List<Map<String, dynamic>>;
         _loading = false;
       });
     } catch (error) {
@@ -114,12 +119,14 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
         if (_expiry != null) 'expires_at': _expiry!.toUtc().toIso8601String(),
         if (_reason.text.trim().isNotEmpty) 'reason': _reason.text.trim(),
       });
+      final history = await _repository.consentAuditHistory(profileId);
       if (!mounted) return;
       setState(() {
         _consents = [
           persisted,
           ..._consents.where((row) => row['id'] != persisted['id']),
         ];
+        _auditHistory = history;
         _busy = false;
         _recipientId.clear();
         _threadId.clear();
@@ -147,11 +154,13 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
     });
     try {
       final persisted = await _repository.revokeConsent(profileId, consentId);
+      final history = await _repository.consentAuditHistory(profileId);
       if (!mounted) return;
       setState(() {
         _consents = _consents
             .map((row) => row['id'] == consentId ? persisted : row)
             .toList();
+        _auditHistory = history;
         _busy = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +210,14 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
                 const Empty('Hakuna ruhusa iliyohifadhiwa.')
               else
                 ..._consents.map(_consentCard),
+              const SizedBox(height: 24),
+              const SectionTitle('Historia ya ruhusa na ufikiaji'),
+              if (_loading)
+                const Center(child: CircularProgressIndicator())
+              else if (_auditHistory.isEmpty)
+                const Empty('Hakuna tukio la ruhusa au ufikiaji lililorekodiwa.')
+              else
+                ..._auditHistory.map(_auditHistoryCard),
               const SizedBox(height: 24),
               const SectionTitle('Toa ruhusa mpya'),
               DropdownButtonFormField<String>(
@@ -329,6 +346,31 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
                   child: const Text('Futa ruhusa'),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _auditHistoryCard(Map<String, dynamic> row) {
+    final eventType = row['event_type'] as String? ?? '';
+    final title = switch (eventType) {
+      'consent.granted' => 'Ruhusa imetolewa',
+      'consent.revoked' => 'Ruhusa imefutwa',
+      'emergency.context_break_glass_access' => 'Ufikiaji wa dharura',
+      _ => 'Tukio la ruhusa',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleSmall),
+            Text('Muda: ${_date(row['occurred_at'])}'),
+            if (row['scope'] is String) Text('Wigo: ${row['scope']}'),
+            if (row['grantee_type'] is String)
+              Text('Aina ya mpokeaji: ${row['grantee_type']}'),
           ],
         ),
       ),

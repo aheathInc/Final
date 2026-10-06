@@ -7,9 +7,19 @@ import { randomInt } from 'node:crypto';
  * difference between a red test and a very bad afternoon.
  */
 export function assertSafeDatabase(): void {
-  const url = process.env.DATABASE_URL ?? '';
-  if (!/_dev|_test|localhost|127\.0\.0\.1/.test(url)) {
-    throw new Error(`Refusing to run tests against ${url}`);
+  let url: URL;
+  try {
+    url = new URL(process.env.DATABASE_URL ?? '');
+  } catch {
+    throw new Error('Refusing auth tests without a valid local ahealth_test DATABASE_URL.');
+  }
+  const database = decodeURIComponent(url.pathname.replace(/^\//, ''));
+  if (
+    database !== 'ahealth_test' ||
+    !['localhost', '127.0.0.1', '::1'].includes(url.hostname) ||
+    (url.port || '5432') === '5432'
+  ) {
+    throw new Error('Refusing auth tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
   }
 }
 
