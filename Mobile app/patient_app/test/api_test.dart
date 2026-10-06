@@ -2,6 +2,49 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:a_health_patient/core/config.dart';
 
 void main() {
+  group('Release API configuration', () {
+    test('requires a non-local HTTPS gateway for profile and release builds', () {
+      expect(
+        () => Config.validateGatewayForBuild(value: '', debugBuild: false),
+        throwsStateError,
+      );
+      for (final localUrl in [
+        'http://localhost:4001',
+        'https://localhost',
+        'https://127.0.0.1',
+        'https://10.0.2.2',
+        'https://service.local',
+        'https://api.example.org:4001',
+      ]) {
+        expect(
+          () => Config.validateGatewayForBuild(
+            value: localUrl,
+            debugBuild: false,
+          ),
+          throwsStateError,
+          reason: 'release must reject local or development endpoint $localUrl',
+        );
+      }
+      expect(
+        () => Config.validateGatewayForBuild(
+          value: 'https://api.example.org',
+          debugBuild: false,
+        ),
+        returnsNormally,
+      );
+    });
+
+    test('keeps local endpoint configuration available to debug builds', () {
+      expect(
+        () => Config.validateGatewayForBuild(
+          value: 'http://localhost:4001',
+          debugBuild: true,
+        ),
+        returnsNormally,
+      );
+    });
+  });
+
   group('Config Routing', () {
     test('routes /auth correctly to 4001', () {
       final url = Config.baseUrlFor('/auth/login');

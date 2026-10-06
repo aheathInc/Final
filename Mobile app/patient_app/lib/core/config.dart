@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 
 /// Where the API lives.
 ///
@@ -18,6 +19,38 @@ class Config {
   /// Example:
   ///   flutter run --dart-define=API_HOST=192.168.1.14
   static const hostOverride = String.fromEnvironment('API_HOST');
+
+  /// Development may use direct local service URLs. Profile and release builds
+  /// must be pointed at the deployed HTTPS gateway instead.
+  @visibleForTesting
+  static void validateGatewayForBuild({
+    required String value,
+    required bool debugBuild,
+  }) {
+    if (debugBuild) return;
+    final uri = Uri.tryParse(value);
+    final host = uri?.host.toLowerCase() ?? '';
+    final localHost = host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '::1' ||
+        host == '10.0.2.2' ||
+        host.endsWith('.localhost') ||
+        host.endsWith('.local');
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        host.isEmpty ||
+        localHost ||
+        (uri.hasPort && uri.port != 443)) {
+      throw StateError(
+        'Profile and release builds require API_GATEWAY_URL to be a non-local HTTPS gateway.',
+      );
+    }
+  }
+
+  static void validateForCurrentBuild() => validateGatewayForBuild(
+        value: gatewayUrl,
+        debugBuild: kDebugMode,
+      );
 
   /// An Android emulator reaches the host machine on 10.0.2.2, not localhost.
   /// A real phone uses the host machine's LAN IP instead.
@@ -61,6 +94,7 @@ class Config {
   /// Longest prefix wins: `/care-threads/x/messages` belongs to messaging even
   /// though `/care-threads` belongs to consultation.
   static String baseUrlFor(String path) {
+    validateForCurrentBuild();
     if (gatewayUrl.isNotEmpty) return gatewayUrl;
 
     if (path.startsWith('/consultations/') && path.endsWith('/rating')) {

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { randomInt } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '@a-health/database';
@@ -15,7 +16,13 @@ import { prisma } from '@a-health/database';
  * Keyed on one marker so re-running is safe: it removes only what it made.
  */
 const CLINICIAN_EMAIL = 'daktari@dev.local';
-const CLINICIAN_PASSWORD = 'Daktari#2026';
+function readSeedPassword(): string {
+  if (process.env.NODE_ENV === 'production') throw new Error('Development seed cannot run in production.');
+  const value = process.env.AHP_SEED_CLINICIAN_PASSWORD;
+  if (!value) throw new Error('AHP_SEED_CLINICIAN_PASSWORD is required to run the clinician seed.');
+  return value;
+}
+const CLINICIAN_PASSWORD = readSeedPassword();
 const MARKER = 'seed-dev';
 
 async function wipePrevious() {
@@ -178,7 +185,7 @@ async function main() {
   console.log('\nSeed complete.\n');
   console.log('  Log in at http://localhost:3100/login');
   console.log(`  email:    ${CLINICIAN_EMAIL}`);
-  console.log(`  password: ${CLINICIAN_PASSWORD}`);
+  console.log('  password is supplied through AHP_SEED_CLINICIAN_PASSWORD');
   console.log('\n  Three cases are waiting: one emergency, one urgent, one routine.');
   console.log('  The emergency SLA is 3 minutes, so re-run this to reset the countdowns.\n');
 }

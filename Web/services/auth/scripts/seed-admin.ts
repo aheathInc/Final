@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { randomInt, randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '@a-health/database';
@@ -8,7 +9,13 @@ import { prisma } from '@a-health/database';
  * in through the real POST /auth/login rather than a back door.
  */
 const ADMIN_EMAIL = 'msimamizi@dev.local';
-const ADMIN_PASSWORD = 'Msimamizi#2026';
+function readSeedPassword(): string {
+  if (process.env.NODE_ENV === 'production') throw new Error('Development seed cannot run in production.');
+  const value = process.env.AHP_SEED_ADMIN_PASSWORD;
+  if (!value) throw new Error('AHP_SEED_ADMIN_PASSWORD is required to run the admin seed.');
+  return value;
+}
+const ADMIN_PASSWORD = readSeedPassword();
 const MARKER = 'seed-admin';
 
 async function wipe() {
@@ -176,7 +183,7 @@ async function main() {
   console.log('\nAdmin seed complete.\n');
   console.log('  Log in at http://localhost:3200/login');
   console.log(`  email:    ${ADMIN_EMAIL}`);
-  console.log(`  password: ${ADMIN_PASSWORD}`);
+  console.log('  password is supplied through AHP_SEED_ADMIN_PASSWORD');
   console.log('\n  3 emergencies waiting, 3 ambulances, 1 licence pending, 1 incident report.\n');
 }
 
