@@ -15,6 +15,7 @@ const { requireAuth, requireRole, requireVerifiedClinician } = createAuthGuards(
 export const clinicianRouter = Router();
 
 // `me` routes are declared before `:clinician_id` so the literal wins the match.
+clinicianRouter.get('/clinicians/me', requireAuth, requireRole('clinician'), controller.getMe);
 clinicianRouter.put(
   '/clinicians/me/availability',
   requireAuth,

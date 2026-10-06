@@ -1,4 +1,4 @@
-import { after, beforeEach, describe, it } from 'node:test';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
@@ -9,15 +9,38 @@ import { tick } from '../workers/sla.worker.js';
 
 const databaseUrl = process.env.DATABASE_URL ?? '';
 let databaseName = '';
-try { databaseName = decodeURIComponent(new URL(databaseUrl).pathname.split('/').filter(Boolean)[0] ?? ''); } catch { /* rejected below */ }
-if (databaseName !== 'ahealth_test') {
-  throw new Error(`Refusing offer lifecycle DB tests against ${databaseName || 'an unknown database'}; DATABASE_URL must name ahealth_test`);
+let parsedDatabaseUrl: URL | undefined;
+try {
+  parsedDatabaseUrl = new URL(databaseUrl);
+  databaseName = decodeURIComponent(parsedDatabaseUrl.pathname.split('/').filter(Boolean)[0] ?? '');
+} catch { /* rejected below */ }
+if (
+  databaseName !== 'ahealth_test' ||
+  !parsedDatabaseUrl ||
+  !['localhost', '127.0.0.1', '::1'].includes(parsedDatabaseUrl.hostname) ||
+  (parsedDatabaseUrl.port || '5432') === '5432'
+) {
+  throw new Error('Refusing offer lifecycle DB tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
 }
 
 type Fixture = { patientUserId: string; patientProfileId: string; clinicianUserId: string; clinicianId: string; threadId: string; consultationId: string };
 const fixtures: Fixture[] = [];
 const extraClinicianUserIds: string[] = [];
 const extraClinicianIds: string[] = [];
+let marketplaceProfiles: Array<{ id: string; isAvailable: boolean }> = [];
+before(async () => {
+  // The shared test database may also contain the persistent synthetic
+  // marketplace clinicians used by the Staff Web acceptance fixture. Keep
+  // them out of these routing assertions and restore their original state.
+  marketplaceProfiles = await prisma.clinicianProfile.findMany({
+    where: { user: { email: { in: ['marketplace.doctor.a@dev.local', 'marketplace.doctor.b@dev.local'] } } },
+    select: { id: true, isAvailable: true },
+  });
+  await prisma.clinicianProfile.updateMany({
+    where: { id: { in: marketplaceProfiles.map((profile) => profile.id) } },
+    data: { isAvailable: false },
+  });
+});
 beforeEach(async () => {
   const previousClinicianIds = [...fixtures.map((fixture) => fixture.clinicianId), ...extraClinicianIds];
   if (previousClinicianIds.length > 0) {
@@ -33,13 +56,19 @@ after(async () => {
   const threadIds = fixtures.map((f) => f.threadId);
   const profileIds = fixtures.map((f) => f.patientProfileId);
   const userIds = [...fixtures.flatMap((f) => [f.patientUserId, f.clinicianUserId]), ...extraClinicianUserIds];
-  await prisma.consultationOffer.deleteMany({ where: { consultationId: { in: consultationIds } } });
-  await prisma.consultationRequest.deleteMany({ where: { id: { in: consultationIds } } });
-  await prisma.careThread.deleteMany({ where: { id: { in: threadIds } } });
-  await prisma.patientProfile.deleteMany({ where: { id: { in: profileIds } } });
-  await prisma.clinicianProfile.deleteMany({ where: { id: { in: [...fixtures.map((f) => f.clinicianId), ...extraClinicianIds] } } });
-  await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-  await prisma.$disconnect();
+  try {
+    await prisma.consultationOffer.deleteMany({ where: { consultationId: { in: consultationIds } } });
+    await prisma.consultationRequest.deleteMany({ where: { id: { in: consultationIds } } });
+    await prisma.careThread.deleteMany({ where: { id: { in: threadIds } } });
+    await prisma.patientProfile.deleteMany({ where: { id: { in: profileIds } } });
+    await prisma.clinicianProfile.deleteMany({ where: { id: { in: [...fixtures.map((f) => f.clinicianId), ...extraClinicianIds] } } });
+    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  } finally {
+    await Promise.all(marketplaceProfiles.map((profile) =>
+      prisma.clinicianProfile.update({ where: { id: profile.id }, data: { isAvailable: profile.isAvailable } }),
+    ));
+    await prisma.$disconnect();
+  }
 });
 
 async function makeFixture(options: { available?: boolean; status?: 'pending' | 'offered'; deadline?: Date } = {}) {
@@ -74,7 +103,9 @@ async function makeFixture(options: { available?: boolean; status?: 'pending' | 
 }
 
 async function queueFor(f: Awaited<ReturnType<typeof makeFixture>>) {
-  return getQueue(f.clinicianCaller, { scope: 'offered', limit: 50 }) as Promise<{ data: Array<{ consultation: { id: string } }> }>;
+  return getQueue(f.clinicianCaller, { scope: 'offered', limit: 50 }) as Promise<{
+    data: Array<{ consultation: { id: string }; offer?: { state: string; expires_at: string } }>;
+  }>;
 }
 
 describe('consultation offer expiry lifecycle', () => {
@@ -98,7 +129,10 @@ describe('consultation offer expiry lifecycle', () => {
     assert.ok(after.expiresAt > new Date());
     assert.equal(after.respondedAt?.getTime(), expiredAt.getTime());
     assert.ok(after.version > before.version);
-    assert.ok((await queueFor(f)).data.some((row) => row.consultation.id === f.consultationId));
+    const queued = (await queueFor(f)).data.find((row) => row.consultation.id === f.consultationId);
+    assert.ok(queued);
+    assert.equal(queued.offer?.state, 'offered');
+    assert.equal(Date.parse(queued.offer?.expires_at ?? ''), after.expiresAt.getTime());
   });
 
   it('keeps repeated and concurrent routing idempotent for one consultation/clinician pair', async () => {

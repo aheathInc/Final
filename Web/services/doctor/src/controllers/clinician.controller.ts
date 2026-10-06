@@ -25,7 +25,7 @@ function ownProfileId(req: Request): string {
 export async function list(req: Request, res: Response, next: NextFunction) {
   try {
     const query = listCliniciansQuery.parse(req.query);
-    res.status(200).json(await clinicians.listClinicians(query));
+    res.status(200).json(await clinicians.listClinicians(query, { role: req.auth!.role }));
   } catch (err) {
     next(err);
   }
@@ -41,6 +41,19 @@ export async function getOne(req: Request, res: Response, next: NextFunction) {
           role: req.auth!.role,
         }),
       );
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getMe(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.status(200).json(
+      await clinicians.getClinician(ownProfileId(req), {
+        sub: req.auth!.sub,
+        role: req.auth!.role,
+      }),
+    );
   } catch (err) {
     next(err);
   }

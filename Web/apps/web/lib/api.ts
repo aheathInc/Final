@@ -59,6 +59,7 @@ export interface QueueEntry {
     has_chronic_conditions?: boolean;
   };
   offered_at: string;
+  offer?: { state: string; expires_at: string };
   seconds_to_sla_breach?: number;
   rank_score?: number;
 }
@@ -213,13 +214,35 @@ export interface Payment {
 
 export interface ClinicianProfile {
   id: string;
+  user_id?: string;
+  facility_id?: string | null;
   full_name?: string | null;
+  email?: string | null;
+  account_status?: string;
   license_number: string;
   specialty: string;
   verification_status: 'pending' | 'verified' | 'rejected' | 'suspended';
+  rejection_reason?: string | null;
+  languages_spoken?: string[];
   is_available: boolean;
+  available_until?: string | null;
+  current_load?: number;
   rating_avg?: number | null;
+  version?: number;
+  updated_at?: string;
   created_at?: string;
+}
+
+export interface ClinicianDirectoryEntry {
+  id: string;
+  full_name: string | null;
+  specialty: string;
+  status: 'available' | 'busy' | 'off_duty';
+  queue_count: number;
+  license_number?: string;
+  verification_status?: 'pending' | 'verified' | 'rejected' | 'suspended';
+  facility_id?: string | null;
+  is_available?: boolean;
 }
 
 export type GeoLevel = 'ward' | 'district' | 'region' | 'national' | 'continental';

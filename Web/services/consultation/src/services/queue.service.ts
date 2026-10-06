@@ -16,7 +16,12 @@ type ConsultationRow = Parameters<typeof serialiseConsultation>[0] & {
   patient?: { dateOfBirth: Date | null; sex: string | null; chronicConditions: unknown } | null;
 };
 
-function entry(c: ConsultationRow, offeredAt: Date, rankScore?: number) {
+function entry(
+  c: ConsultationRow,
+  offeredAt: Date,
+  rankScore?: number,
+  offer?: { status: string; expiresAt: Date },
+) {
   const chronic = c.patient?.chronicConditions;
   return {
     consultation: serialiseConsultation(c),
@@ -29,6 +34,9 @@ function entry(c: ConsultationRow, offeredAt: Date, rankScore?: number) {
     },
     offered_at: offeredAt.toISOString(),
     seconds_to_sla_breach: Math.round((c.slaDeadlineAt.getTime() - Date.now()) / 1000),
+    ...(offer
+      ? { offer: { state: offer.status, expires_at: offer.expiresAt.toISOString() } }
+      : {}),
     ...(rankScore !== undefined ? { rank_score: rankScore } : {}),
   };
 }
@@ -70,7 +78,10 @@ export async function getQueue(
     : offers;
 
   return toCursorPage(filtered, query.limit, (o) =>
-    entry(o.consultation, o.offeredAt, Number(o.rankScore)),
+    entry(o.consultation, o.offeredAt, Number(o.rankScore), {
+      status: o.status,
+      expiresAt: o.expiresAt,
+    }),
   );
 }
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Badge, PageHeader, Card, PageShell } from '@/components/ui';
 import { serverGet } from '@/lib/serverToken';
-import type { ClinicianProfile, Device, EmergencyRequest, Facility, IncidentReport, Page, Payment } from '@/lib/api';
+import type { ClinicianDirectoryEntry, Device, EmergencyRequest, Facility, IncidentReport, Page, Payment } from '@/lib/api';
 
 function Stat({ label, value, href }: { label: string; value: number | string; href: string }) {
   return (
@@ -15,7 +15,7 @@ function Stat({ label, value, href }: { label: string; value: number | string; h
 export default async function AdminDashboard() {
   const [emergencies, verifications, payments, devices, facilities, incidents] = await Promise.all([
     serverGet<Page<EmergencyRequest>>('/emergency-requests?limit=20'),
-    serverGet<Page<ClinicianProfile>>('/clinicians?verification_status=pending&limit=20'),
+    serverGet<Page<ClinicianDirectoryEntry>>('/clinicians?verification_status=pending&limit=20'),
     serverGet<Page<Payment>>('/payments?limit=20'),
     serverGet<{ data: Device[] }>('/devices'),
     serverGet<Page<Facility>>('/facilities?limit=20'),

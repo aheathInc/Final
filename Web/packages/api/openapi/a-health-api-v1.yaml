@@ -534,17 +534,29 @@ paths:
                 $ref: '#/components/schemas/PatientProfile'
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
+  /clinicians/me:
+    get:
+      tags: [clinicians]
+      summary: Get the authenticated clinician's own profile
+      description: Clinician only. Resolves the profile from the authenticated token; it does not accept a caller-supplied clinician ID.
+      operationId: getMyClinicianProfile
+      responses:
+        '200':
+          description: Own clinician profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClinicianProfile' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   /clinicians:
     get:
       tags: [clinicians]
-      summary: List clinicians, filtered
+      summary: Clinician directory or Admin verification list
       description: |
-        The queue an administrator works from. Approving a licence was already
-        described, but there was no way to find the licences waiting for a
-        decision, which made that endpoint unusable in practice.
-
-        Admin only. Cursor paginated, because the pending list changes while
-        it is being worked through.
+        Authenticated non-admin callers receive active, verified clinician
+        directory entries. A platform_admin may filter pending and other
+        verification states; only that role receives license and verification
+        details needed for the existing Admin workflow. Cursor paginated.
       operationId: listClinicians
       parameters:
         - name: verification_status
@@ -556,6 +568,9 @@ paths:
         - name: is_available
           in: query
           schema: { type: boolean }
+        - name: facility_id
+          in: query
+          schema: { type: string, format: uuid }
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -569,7 +584,7 @@ paths:
                 properties:
                   data:
                     type: array
-                    items: { $ref: '#/components/schemas/ClinicianProfile' }
+                    items: { $ref: '#/components/schemas/ClinicianDirectoryEntry' }
                   meta: { $ref: '#/components/schemas/CursorMeta' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
@@ -4816,12 +4831,33 @@ components:
           items:
             $ref: '#/components/schemas/LanguageCode'
         is_available: { type: boolean }
+        available_until: { type: [string, 'null'], format: date-time }
         current_load:
           type: integer
           description: Count of consultations currently in progress. Read-only.
         rating_avg: { type: [number, 'null'], format: float }
+        full_name: { type: [string, 'null'] }
+        email: { type: [string, 'null'], format: email }
+        account_status: { type: string }
         version: { type: integer }
         updated_at: { type: string, format: date-time }
+
+    ClinicianDirectoryEntry:
+      type: object
+      required: [id, full_name, specialty, status, queue_count]
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: [string, 'null'] }
+        specialty: { $ref: '#/components/schemas/Specialty' }
+        status: { type: string, enum: [available, busy, off_duty] }
+        queue_count: { type: integer }
+        license_number:
+          type: string
+          description: Returned to platform_admin only.
+        verification_status:
+          $ref: '#/components/schemas/VerificationStatus'
+        facility_id: { type: [string, 'null'], format: uuid }
+        is_available: { type: boolean }
 
     CareThread:
       type: object
@@ -4984,6 +5020,13 @@ components:
               $ref: '#/components/schemas/LanguageCode'
             has_chronic_conditions: { type: boolean }
         offered_at: { type: string, format: date-time }
+        offer:
+          type: object
+          description: Present for the clinician's actionable offer queue. Expired offers are omitted from that queue.
+          required: [state, expires_at]
+          properties:
+            state: { type: string, enum: [offered] }
+            expires_at: { type: string, format: date-time }
         seconds_to_sla_breach: { type: integer }
         rank_score: { type: number, format: float }
 
