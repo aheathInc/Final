@@ -114,6 +114,18 @@ enum ConsultationModality {
   async
 }
 
+enum ClinicalCollaborationStatus {
+  requested
+  accepted
+  declined
+  revoked
+  expired
+}
+
+enum ClinicalCollaborationScope {
+  consultation_summary
+}
+
 enum CareThreadStatus {
   open
   closed
@@ -341,6 +353,9 @@ model ClinicianProfile {
   facilityId String?   @map("facility_id") @db.Uuid
   facility   Facility? @relation(fields: [facilityId], references: [id], onDelete: Restrict)
 
+  departmentId String?     @map("department_id") @db.Uuid
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
   licenseNumber      String             @unique @map("license_number") @db.VarChar(50)
   specialty          Specialty
   verificationStatus VerificationStatus @default(pending) @map("verification_status")
@@ -388,10 +403,14 @@ model ClinicianProfile {
   familyObgynAssignments FamilyAssignment[]    @relation("FamilyObgyn")
   investigationOrders    InvestigationOrder[]
   incidentReports        IncidentReport[]
+  collaborationsRequested ProviderClinicalCollaboration[] @relation("CollaborationRequester")
+  collaborationsReceived  ProviderClinicalCollaboration[] @relation("CollaborationInvitee")
+  collaborationMessages   ProviderClinicalCollaborationMessage[]
 
   // The routing engine's candidate lookup. Partial index in a migration:
   //   WHERE verification_status = 'verified' AND is_available = true
   @@index([verificationStatus, isAvailable, specialty])
+  @@index([departmentId])
   @@index([updatedAt])
   @@map("clinician_profiles")
 }
@@ -554,6 +573,7 @@ model CareThread {
   messages       Message[]
   appointments   Appointment[]
   prescriptions  Prescription[]
+  clinicalCollaborations ProviderClinicalCollaboration[]
   followUpCycles FollowUpCycle[]
   checkIns       CheckIn[]
   consents       PatientConsent[]
@@ -615,6 +635,7 @@ model ConsultationRequest {
   offers         ConsultationOffer[]
   note           ConsultationNote?
   messages       Message[]
+  clinicalCollaborations ProviderClinicalCollaboration[]
   prescriptions  Prescription[]
   followUpCycles FollowUpCycle[]
 
@@ -932,6 +953,8 @@ model PatientConsent {
   // rather than a lifetime of history.
   careThreadId String?     @map("care_thread_id") @db.Uuid
   careThread   CareThread? @relation(fields: [careThreadId], references: [id], onDelete: Cascade)
+
+  clinicalCollaborations ProviderClinicalCollaboration[]
 
   scope      ConsentScope
   allowed    Boolean      @default(true)
@@ -1435,12 +1458,78 @@ model Department {
   specialty  Specialty?
   isActive   Boolean    @default(true) @map("is_active")
 
+  clinicians ClinicianProfile[]
+
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([facilityId, name])
   @@map("departments")
+}
+
+// Provider-to-provider case sharing is separate from the patient's care thread
+// and messaging channel. Access is further conditioned on the exact, active
+// patient consent recorded in patientConsentId.
+model ProviderClinicalCollaboration {
+  id String @id @default(uuid()) @db.Uuid
+
+  consultationId String              @map("consultation_id") @db.Uuid
+  consultation   ConsultationRequest @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  careThreadId   String              @map("care_thread_id") @db.Uuid
+  careThread     CareThread          @relation(fields: [careThreadId], references: [id], onDelete: Cascade)
+
+  requesterClinicianId String           @map("requester_clinician_id") @db.Uuid
+  requesterClinician   ClinicianProfile @relation("CollaborationRequester", fields: [requesterClinicianId], references: [id], onDelete: Restrict)
+  invitedClinicianId   String           @map("invited_clinician_id") @db.Uuid
+  invitedClinician     ClinicianProfile @relation("CollaborationInvitee", fields: [invitedClinicianId], references: [id], onDelete: Restrict)
+
+  // Historical assignment context; these IDs do not confer access.
+  requesterFacilityId   String? @map("requester_facility_id") @db.Uuid
+  requesterDepartmentId String? @map("requester_department_id") @db.Uuid
+  invitedFacilityId     String? @map("invited_facility_id") @db.Uuid
+  invitedDepartmentId   String? @map("invited_department_id") @db.Uuid
+
+  patientConsentId String?         @map("patient_consent_id") @db.Uuid
+  patientConsent   PatientConsent? @relation(fields: [patientConsentId], references: [id], onDelete: SetNull)
+
+  scope    ClinicalCollaborationScope  @default(consultation_summary)
+  status   ClinicalCollaborationStatus @default(requested)
+  question String                      @db.VarChar(4000)
+
+  requestedAt     DateTime  @default(now()) @map("requested_at")
+  respondedAt     DateTime? @map("responded_at")
+  expiresAt       DateTime  @map("expires_at")
+  revokedAt       DateTime? @map("revoked_at")
+  revokedByUserId String?   @map("revoked_by_user_id") @db.Uuid
+
+  messages ProviderClinicalCollaborationMessage[]
+
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([consultationId, status])
+  @@index([requesterClinicianId, status, requestedAt])
+  @@index([invitedClinicianId, status, requestedAt])
+  @@index([patientConsentId, status])
+  @@index([status, expiresAt])
+  @@map("provider_clinical_collaborations")
+}
+
+model ProviderClinicalCollaborationMessage {
+  id String @id @default(uuid()) @db.Uuid
+
+  collaborationId String                       @map("collaboration_id") @db.Uuid
+  collaboration   ProviderClinicalCollaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  authorClinicianId String           @map("author_clinician_id") @db.Uuid
+  author            ClinicianProfile @relation(fields: [authorClinicianId], references: [id], onDelete: Restrict)
+
+  body      String   @db.VarChar(8000)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([collaborationId, createdAt])
+  @@map("provider_clinical_collaboration_messages")
 }
 
 // ===========================================================================

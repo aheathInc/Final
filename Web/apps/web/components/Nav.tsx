@@ -22,6 +22,7 @@ const DOCTOR = [
   { icon: HeartPulse, label: 'Follow-up', href: '/doctor/follow-up' },
   { icon: Users2, label: 'Families', href: '/doctor/families' },
   { icon: MessagesSquare, label: 'Network', href: '/doctor/network' },
+  { icon: MessagesSquare, label: 'Clinical collaboration', href: '/doctor/clinical-collaboration' },
   { icon: BadgeCheck, label: 'Second opinions', href: '/doctor/second-opinions' },
   { icon: Sparkles, label: 'Assistant', href: '/doctor/assistant' },
   { icon: Pill, label: 'Pharmacy', href: '/doctor/pharmacy' },

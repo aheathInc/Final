@@ -94,8 +94,40 @@ export async function revokeConsent(profileId: string, consentId: string, caller
   await assertOwner(profileId, caller);
 
   return prisma.$transaction(async (tx) => {
+    // Collaboration reads and grants lock consent before locking collaboration
+    // rows. Keep the same order here so revocation cannot deadlock with an
+    // in-flight case access or request, and so it cannot miss a new grant.
+    await tx.$queryRaw`SELECT "id" FROM "patient_consents" WHERE "id" = ${consentId}::uuid FOR UPDATE`;
     const consent = await tx.patientConsent.findUnique({ where: { id: consentId } });
     if (!consent || consent.patientProfileId !== profileId) throw notFound('Consent not found');
+
+    const activeCollaborations = await tx.providerClinicalCollaboration.findMany({
+      where: { patientConsentId: consentId, status: { in: ['requested', 'accepted'] } },
+      select: { id: true, status: true },
+    });
+
+    for (const collaboration of activeCollaborations) {
+      const changed = await tx.providerClinicalCollaboration.updateMany({
+        where: { id: collaboration.id, status: collaboration.status },
+        data: {
+          status: 'revoked',
+          revokedAt: new Date(),
+          revokedByUserId: caller.sub,
+          version: { increment: 1 },
+        },
+      });
+      if (changed.count === 1) {
+        await appendAudit({
+          actorUserId: caller.sub,
+          action: 'provider_collaboration.revoked',
+          entityType: 'provider_clinical_collaborations',
+          entityId: collaboration.id,
+          metadata: { scope: 'consultation_summary', reason: 'patient_consent_revoked' },
+          ipAddress: meta.ip,
+          requestId: meta.requestId,
+        }, tx);
+      }
+    }
 
     const updated = await tx.patientConsent.update({
       where: { id: consentId },

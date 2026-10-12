@@ -24,6 +24,8 @@ if (
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
 const createdUsers: string[] = [];
+const facilityIds: string[] = [];
+const departmentIds: string[] = [];
 const adminId = randomUUID();
 
 after(async () => {
@@ -32,6 +34,8 @@ after(async () => {
     await prisma.clinicianProfile.deleteMany({ where: { userId: id } }).catch(() => undefined);
     await prisma.user.delete({ where: { id } }).catch(() => undefined);
   }
+  await prisma.department.deleteMany({ where: { id: { in: departmentIds } } }).catch(() => undefined);
+  await prisma.facility.deleteMany({ where: { id: { in: facilityIds } } }).catch(() => undefined);
   await prisma.$disconnect();
 });
 
@@ -147,6 +151,36 @@ describe('provider profile ownership', () => {
     const publicList = await clinicians.listClinicians(query, { role: 'patient' });
     assert.equal(publicList.data.some((entry) => entry.id === pending.profile.id), false);
     assert.equal(publicList.data.some((entry) => 'license_number' in entry), false);
+  });
+});
+
+describe('facility and department assignment', () => {
+  it('assigns only a department belonging to the selected active facility', async () => {
+    const { profile } = await makeClinician('verified');
+    const facility = await prisma.facility.create({ data: { name: `Assignment facility ${randomUUID()}`, type: 'clinic' } });
+    facilityIds.push(facility.id);
+    const otherFacility = await prisma.facility.create({ data: { name: `Other assignment facility ${randomUUID()}`, type: 'clinic' } });
+    facilityIds.push(otherFacility.id);
+    const department = await prisma.department.create({ data: { facilityId: facility.id, name: `Imaging ${randomUUID()}`, specialty: 'other' } });
+    departmentIds.push(department.id);
+    const foreignDepartment = await prisma.department.create({ data: { facilityId: otherFacility.id, name: `Foreign ${randomUUID()}`, specialty: 'other' } });
+    departmentIds.push(foreignDepartment.id);
+
+    const assigned = await clinicians.setClinicianAssignment(
+      profile.id, { facility_id: facility.id, department_id: department.id }, adminId, meta,
+    );
+    assert.equal(assigned.facility_id, facility.id);
+    assert.equal(assigned.department_id, department.id);
+    assert.equal(assigned.department_name, department.name);
+
+    await assert.rejects(
+      () => clinicians.setClinicianAssignment(
+        profile.id, { facility_id: facility.id, department_id: foreignDepartment.id }, adminId, meta,
+      ),
+      (error: AppError) => error.code === 'VALIDATION_FAILED',
+    );
+    const unchanged = await prisma.clinicianProfile.findUniqueOrThrow({ where: { id: profile.id } });
+    assert.equal(unchanged.departmentId, department.id);
   });
 });
 

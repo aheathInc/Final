@@ -39,6 +39,14 @@ export const verificationDecisionSchema = z
     path: ['reason'],
   });
 
+export const clinicianAssignmentSchema = z.object({
+  facility_id: z.string().uuid().nullable(),
+  department_id: z.string().uuid().nullable(),
+}).refine((input) => input.department_id === null || input.facility_id !== null, {
+  message: 'A department requires a facility assignment',
+  path: ['facility_id'],
+});
+
 export const availabilitySchema = z.object({
   is_available: z.boolean(),
   until: z.string().datetime().optional(),

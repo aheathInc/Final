@@ -331,6 +331,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clinicians/{clinician_id}/assignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set facility and department context for a clinician
+         * @description Platform administrators only. A department must belong to the selected active facility. Assignment context is not a case-access grant.
+         */
+        put: operations["setClinicianAssignment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clinicians/me/availability": {
         parameters: {
             query?: never;
@@ -2114,6 +2134,173 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/network/collaborations/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List consultation cases the verified clinician is involved in
+         * @description Patient identity is omitted. Only assigned or primary clinicians may request sharing.
+         */
+        get: operations["listCollaborativeCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations/eligible-clinicians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List verified clinicians explicitly authorized for one case
+         * @description Returns only named clinicians with an active current-thread consent for the case. Facility membership alone is never sufficient.
+         */
+        get: operations["listEligibleCollaborators"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the current clinician's collaboration requests */
+        get: operations["listProviderCollaborations"];
+        put?: never;
+        /**
+         * Request patient-consented case collaboration from a named clinician
+         * @description Requires current case involvement, current clinician verification, and active patient consent naming the invitee for this care thread. Scope is consultation summary only.
+         */
+        post: operations["requestProviderCollaboration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations/{collaboration_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a collaboration request
+         * @description Only the requester and the named invitee may see the request.
+         */
+        get: operations["getProviderCollaboration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations/{collaboration_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a collaboration request */
+        post: operations["acceptProviderCollaboration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations/{collaboration_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a collaboration request */
+        post: operations["declineProviderCollaboration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations/{collaboration_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke or relinquish collaboration access */
+        post: operations["revokeProviderCollaboration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations/{collaboration_id}/case": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the limited case summary while collaboration access is active */
+        get: operations["getProviderSharedCase"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/collaborations/{collaboration_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the provider-only discussion for an active collaboration */
+        get: operations["listProviderCollaborationMessages"];
+        put?: never;
+        /** Add a provider-only message to an active collaboration */
+        post: operations["createProviderCollaborationMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/education/topics": {
         parameters: {
             query?: never;
@@ -2779,7 +2966,7 @@ export interface components {
          *     breaking and requires a new API version.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_UNAVAILABLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
         PageMeta: {
             page: number;
             page_size: number;
@@ -2922,6 +3109,9 @@ export interface components {
             user_id?: string;
             /** Format: uuid */
             facility_id?: string | null;
+            /** Format: uuid */
+            department_id?: string | null;
+            department_name?: string | null;
             license_number?: string;
             specialty?: components["schemas"]["Specialty"];
             verification_status: components["schemas"]["VerificationStatus"];
@@ -3943,6 +4133,77 @@ export interface components {
             answered_at?: string | null;
             version?: number;
         };
+        ProviderCollaborator: {
+            /** Format: uuid */
+            clinician_id: string;
+            full_name?: string | null;
+            specialty: components["schemas"]["Specialty"];
+            /** Format: uuid */
+            facility_id: string | null;
+            facility_name: string | null;
+            /** Format: uuid */
+            department_id?: string | null;
+            department_name?: string | null;
+        };
+        ProviderClinicalCase: {
+            /** Format: uuid */
+            consultation_id: string;
+            /** Format: uuid */
+            care_thread_id: string;
+            urgency_level: components["schemas"]["UrgencyLevel"];
+            status: components["schemas"]["ConsultationStatus"];
+            case_summary?: string | null;
+            structured_symptoms?: unknown;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        ProviderClinicalCollaboration: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            consultation_id: string;
+            /** Format: uuid */
+            care_thread_id: string;
+            requester: components["schemas"]["ProviderCollaborator"];
+            invited: components["schemas"]["ProviderCollaborator"];
+            requester_assignment_at_request: components["schemas"]["ProviderAssignmentSnapshot"];
+            invited_assignment_at_request: components["schemas"]["ProviderAssignmentSnapshot"];
+            /** @enum {string} */
+            viewer_role: "requester" | "invitee";
+            /** @enum {string} */
+            scope: "consultation_summary";
+            /** @enum {string} */
+            status: "requested" | "accepted" | "declined" | "revoked" | "expired";
+            question: string;
+            /** Format: date-time */
+            requested_at: string;
+            /** Format: date-time */
+            responded_at?: string | null;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            revoked_at?: string | null;
+            version: number;
+        };
+        ProviderClinicalCollaborationMessage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            collaboration_id: string;
+            /** Format: uuid */
+            author_clinician_id: string;
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ProviderAssignmentSnapshot: {
+            /** Format: uuid */
+            facility_id: string | null;
+            /** Format: uuid */
+            department_id: string | null;
+        };
         /** @enum {string} */
         ContentFormat: "article" | "audio" | "video" | "interactive" | "sms_series";
         EducationTopic: {
@@ -4862,6 +5123,40 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    setClinicianAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinician_id: components["parameters"]["ClinicianId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    facility_id: string | null;
+                    /** Format: uuid */
+                    department_id: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Assignment updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicianProfile"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
         };
     };
     setAvailability: {
@@ -7785,6 +8080,347 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SecondOpinion"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listCollaborativeCases: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Involved consultation cases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProviderClinicalCase"][];
+                        meta: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listEligibleCollaborators: {
+        parameters: {
+            query: {
+                consultation_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Explicitly consented clinicians */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProviderCollaborator"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listProviderCollaborations: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requests where the caller is requester or invitee */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProviderClinicalCollaboration"][];
+                        meta: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    requestProviderCollaboration: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    consultation_id: string;
+                    /** Format: uuid */
+                    invited_clinician_id: string;
+                    question: string;
+                    /**
+                     * Format: date-time
+                     * @description Defaults to seven days; maximum 30 days and never beyond consent expiry.
+                     */
+                    expires_at?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Request created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderClinicalCollaboration"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getProviderCollaboration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collaboration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Collaboration request */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderClinicalCollaboration"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    acceptProviderCollaboration: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collaboration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted and access activated after consent is rechecked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderClinicalCollaboration"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    declineProviderCollaboration: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collaboration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request declined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderClinicalCollaboration"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    revokeProviderCollaboration: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collaboration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderClinicalCollaboration"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getProviderSharedCase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collaboration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consultation summary, without patient identity or longitudinal records */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        collaboration_id: string;
+                        /** @enum {string} */
+                        scope: "consultation_summary";
+                        case: components["schemas"]["ProviderClinicalCase"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listProviderCollaborationMessages: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                collaboration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discussion messages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ProviderClinicalCollaborationMessage"][];
+                        meta: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createProviderCollaborationMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collaboration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Message recorded; patient-facing care-thread messages are unchanged */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderClinicalCollaborationMessage"];
                 };
             };
             403: components["responses"]["Forbidden"];
