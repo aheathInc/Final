@@ -216,6 +216,8 @@ export interface ClinicianProfile {
   id: string;
   user_id?: string;
   facility_id?: string | null;
+  department_id?: string | null;
+  department_name?: string | null;
   full_name?: string | null;
   email?: string | null;
   account_status?: string;
@@ -231,6 +233,54 @@ export interface ClinicianProfile {
   version?: number;
   updated_at?: string;
   created_at?: string;
+}
+
+export interface ProviderCollaborator {
+  clinician_id: string;
+  full_name: string | null;
+  specialty: string;
+  facility_id: string | null;
+  facility_name: string | null;
+  department_id: string | null;
+  department_name: string | null;
+}
+
+export interface ProviderClinicalCase {
+  consultation_id: string;
+  care_thread_id: string;
+  urgency_level: Urgency;
+  status: string;
+  case_summary?: string | null;
+  structured_symptoms?: unknown;
+  created_at: string;
+  updated_at?: string;
+}
+
+export type ProviderCollaborationStatus = 'requested' | 'accepted' | 'declined' | 'revoked' | 'expired';
+
+export interface ProviderClinicalCollaboration {
+  id: string;
+  consultation_id: string;
+  care_thread_id: string;
+  requester: ProviderCollaborator;
+  invited: ProviderCollaborator;
+  viewer_role: 'requester' | 'invitee';
+  scope: 'consultation_summary';
+  status: ProviderCollaborationStatus;
+  question: string;
+  requested_at: string;
+  responded_at: string | null;
+  expires_at: string;
+  revoked_at: string | null;
+  version: number;
+}
+
+export interface ProviderClinicalCollaborationMessage {
+  id: string;
+  collaboration_id: string;
+  author_clinician_id: string;
+  body: string;
+  created_at: string;
 }
 
 export interface ClinicianDirectoryEntry {

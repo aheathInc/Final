@@ -6,6 +6,7 @@ import {
   encodeCursor,
   forbidden,
   notFound,
+  unprocessable,
 } from '@a-health/http';
 
 export interface RequestMeta {
@@ -29,11 +30,15 @@ function serialise(c: {
   version: number;
   updatedAt: Date;
   user?: { fullName: string | null; email: string | null; status: string } | null;
+  departmentId?: string | null;
+  department?: { name: string } | null;
 }) {
   return {
     id: c.id,
     user_id: c.userId,
     facility_id: c.facilityId,
+    department_id: c.departmentId ?? null,
+    department_name: c.department?.name ?? null,
     license_number: c.licenseNumber,
     specialty: c.specialty,
     verification_status: c.verificationStatus,
@@ -125,7 +130,10 @@ export async function listClinicians(query: {
 export async function getClinician(clinicianId: string, caller: { sub: string; role: string }) {
   const clinician = await prisma.clinicianProfile.findUnique({
     where: { id: clinicianId },
-    include: { user: { select: { fullName: true, email: true, status: true } } },
+    include: {
+      user: { select: { fullName: true, email: true, status: true } },
+      department: { select: { name: true } },
+    },
   });
   if (!clinician) throw notFound('Clinician not found');
 
@@ -134,6 +142,58 @@ export async function getClinician(clinicianId: string, caller: { sub: string; r
     throw forbidden('NOT_RESOURCE_OWNER', 'You cannot view another clinician’s record');
   }
   return serialise(clinician);
+}
+
+/** Only operations staff assign organisational context; caller-supplied IDs are checked against the database. */
+export async function setClinicianAssignment(
+  clinicianId: string,
+  input: { facility_id: string | null; department_id: string | null },
+  adminUserId: string,
+  meta: RequestMeta,
+) {
+  const clinician = await prisma.clinicianProfile.findUnique({ where: { id: clinicianId } });
+  if (!clinician) throw notFound('Clinician not found');
+
+  if (input.facility_id) {
+    const facility = await prisma.facility.findUnique({ where: { id: input.facility_id } });
+    if (!facility || !facility.isActive) {
+      throw unprocessable('An active facility assignment is required', 'facility_id');
+    }
+  }
+
+  if (input.department_id) {
+    const department = await prisma.department.findUnique({ where: { id: input.department_id } });
+    if (!department || !department.isActive || department.facilityId !== input.facility_id) {
+      throw unprocessable('The department must be active and belong to the selected facility', 'department_id');
+    }
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const profile = await tx.clinicianProfile.update({
+      where: { id: clinicianId },
+      data: {
+        facilityId: input.facility_id,
+        departmentId: input.department_id,
+        version: { increment: 1 },
+      },
+      include: {
+        user: { select: { fullName: true, email: true, status: true } },
+        department: { select: { name: true } },
+      },
+    });
+    await appendAudit({
+      actorUserId: adminUserId,
+      action: 'clinician.assignment_updated',
+      entityType: 'clinician_profiles',
+      entityId: clinicianId,
+      metadata: { hasFacility: Boolean(input.facility_id), hasDepartment: Boolean(input.department_id) },
+      ipAddress: meta.ip,
+      requestId: meta.requestId,
+    }, tx);
+    return profile;
+  });
+
+  return serialise(updated);
 }
 
 /**

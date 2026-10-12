@@ -2,8 +2,8 @@ openapi: 3.1.0
 
 info:
   title: A-health Platform API
-  version: 1.0.0-phase1
-  summary: Contract for Phase 0 (Identity) and Phase 1 (Core Consultation).
+  version: 1.0.0-phaseA
+  summary: Contract for core consultation and provider clinical collaboration.
   description: |
     Authoritative contract for the A-health platform. Frontend and backend build
     against this document in parallel; it is the single source of truth for
@@ -143,7 +143,7 @@ tags:
   - name: diagnostics
     description: Laboratory, imaging and pathology orders and results. Phase 4.
   - name: network
-    description: Professional communities, case discussion, second opinions. Phase 5.
+    description: Professional communities, second opinions, and consent-gated provider case collaboration.
   - name: education
     description: Multilingual health education content. Phase 3.
   - name: families
@@ -686,6 +686,34 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+
+  /clinicians/{clinician_id}/assignment:
+    put:
+      tags: [clinicians]
+      summary: Set facility and department context for a clinician
+      description: Platform administrators only. A department must belong to the selected active facility. Assignment context is not a case-access grant.
+      operationId: setClinicianAssignment
+      parameters:
+        - $ref: '#/components/parameters/ClinicianId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [facility_id, department_id]
+              properties:
+                facility_id: { type: [string, 'null'], format: uuid }
+                department_id: { type: [string, 'null'], format: uuid }
+      responses:
+        '200':
+          description: Assignment updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClinicianProfile' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /clinicians/me/availability:
     put:
@@ -3464,6 +3492,266 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
 
+  /network/collaborations/cases:
+    get:
+      tags: [network]
+      summary: List consultation cases the verified clinician is involved in
+      description: Patient identity is omitted. Only assigned or primary clinicians may request sharing.
+      operationId: listCollaborativeCases
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Involved consultation cases
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProviderClinicalCase' }
+                  meta: { $ref: '#/components/schemas/CursorMeta' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /network/collaborations/eligible-clinicians:
+    get:
+      tags: [network]
+      summary: List verified clinicians explicitly authorized for one case
+      description: Returns only named clinicians with an active current-thread consent for the case. Facility membership alone is never sufficient.
+      operationId: listEligibleCollaborators
+      parameters:
+        - name: consultation_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Explicitly consented clinicians
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProviderCollaborator' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /network/collaborations:
+    get:
+      tags: [network]
+      summary: List the current clinician's collaboration requests
+      operationId: listProviderCollaborations
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Requests where the caller is requester or invitee
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProviderClinicalCollaboration' }
+                  meta: { $ref: '#/components/schemas/CursorMeta' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [network]
+      summary: Request patient-consented case collaboration from a named clinician
+      description: Requires current case involvement, current clinician verification, and active patient consent naming the invitee for this care thread. Scope is consultation summary only.
+      operationId: requestProviderCollaboration
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consultation_id, invited_clinician_id, question]
+              properties:
+                consultation_id: { type: string, format: uuid }
+                invited_clinician_id: { type: string, format: uuid }
+                question: { type: string, minLength: 1, maxLength: 4000 }
+                expires_at: { type: string, format: date-time, description: Defaults to seven days; maximum 30 days and never beyond consent expiry. }
+      responses:
+        '201':
+          description: Request created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProviderClinicalCollaboration' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /network/collaborations/{collaboration_id}:
+    get:
+      tags: [network]
+      summary: Read a collaboration request
+      description: Only the requester and the named invitee may see the request.
+      operationId: getProviderCollaboration
+      parameters:
+        - name: collaboration_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Collaboration request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProviderClinicalCollaboration' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /network/collaborations/{collaboration_id}/accept:
+    post:
+      tags: [network]
+      summary: Accept a collaboration request
+      operationId: acceptProviderCollaboration
+      parameters:
+        - name: collaboration_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Accepted and access activated after consent is rechecked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProviderClinicalCollaboration' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /network/collaborations/{collaboration_id}/decline:
+    post:
+      tags: [network]
+      summary: Decline a collaboration request
+      operationId: declineProviderCollaboration
+      parameters:
+        - name: collaboration_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Request declined
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProviderClinicalCollaboration' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /network/collaborations/{collaboration_id}/revoke:
+    post:
+      tags: [network]
+      summary: Revoke or relinquish collaboration access
+      operationId: revokeProviderCollaboration
+      parameters:
+        - name: collaboration_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Access revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProviderClinicalCollaboration' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /network/collaborations/{collaboration_id}/case:
+    get:
+      tags: [network]
+      summary: Read the limited case summary while collaboration access is active
+      operationId: getProviderSharedCase
+      parameters:
+        - name: collaboration_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Consultation summary, without patient identity or longitudinal records
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [collaboration_id, scope, case]
+                properties:
+                  collaboration_id: { type: string, format: uuid }
+                  scope: { type: string, enum: [consultation_summary] }
+                  case: { $ref: '#/components/schemas/ProviderClinicalCase' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /network/collaborations/{collaboration_id}/messages:
+    get:
+      tags: [network]
+      summary: Read the provider-only discussion for an active collaboration
+      operationId: listProviderCollaborationMessages
+      parameters:
+        - name: collaboration_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Discussion messages
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProviderClinicalCollaborationMessage' }
+                  meta: { $ref: '#/components/schemas/CursorMeta' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [network]
+      summary: Add a provider-only message to an active collaboration
+      operationId: createProviderCollaborationMessage
+      parameters:
+        - name: collaboration_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 8000 }
+      responses:
+        '201':
+          description: Message recorded; patient-facing care-thread messages are unchanged
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProviderClinicalCollaborationMessage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   # ----------------------------------------------------------------------
   # Health education
   # ----------------------------------------------------------------------
@@ -4705,7 +4993,14 @@ components:
         - VERSION_CONFLICT
         - STATE_TRANSITION_INVALID
         - CLINICIAN_NOT_VERIFIED
+        - CLINICIAN_ASSIGNMENT_INVALID
         - CLINICIAN_UNAVAILABLE
+        - FACILITY_MEMBERSHIP_REQUIRED
+        - COLLABORATOR_NOT_ELIGIBLE
+        - PATIENT_CONSENT_REQUIRED
+        - COLLABORATION_ALREADY_EXISTS
+        - COLLABORATION_EXPIRED
+        - COLLABORATION_NOT_ACTIVE
         - CONSULTATION_ALREADY_ASSIGNED
         - CARE_THREAD_CLOSED
         - SLOT_UNAVAILABLE
@@ -4932,6 +5227,8 @@ components:
         id: { type: string, format: uuid }
         user_id: { type: string, format: uuid }
         facility_id: { type: [string, 'null'], format: uuid }
+        department_id: { type: [string, 'null'], format: uuid }
+        department_name: { type: [string, 'null'] }
         license_number: { type: string }
         specialty:
           $ref: '#/components/schemas/Specialty'
@@ -6126,6 +6423,75 @@ components:
         requested_at: { type: string, format: date-time }
         answered_at: { type: [string, 'null'], format: date-time }
         version: { type: integer }
+
+    ProviderCollaborator:
+      type: object
+      required: [clinician_id, specialty, facility_id, facility_name]
+      properties:
+        clinician_id: { type: string, format: uuid }
+        full_name: { type: [string, 'null'] }
+        specialty: { $ref: '#/components/schemas/Specialty' }
+        facility_id: { type: [string, 'null'], format: uuid }
+        facility_name: { type: [string, 'null'] }
+        department_id: { type: [string, 'null'], format: uuid }
+        department_name: { type: [string, 'null'] }
+
+    ProviderClinicalCase:
+      type: object
+      required: [consultation_id, care_thread_id, urgency_level, status, created_at]
+      properties:
+        consultation_id: { type: string, format: uuid }
+        care_thread_id: { type: string, format: uuid }
+        urgency_level: { $ref: '#/components/schemas/UrgencyLevel' }
+        status: { $ref: '#/components/schemas/ConsultationStatus' }
+        case_summary: { type: [string, 'null'] }
+        structured_symptoms: {}
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ProviderClinicalCollaboration:
+      type: object
+      required: [id, consultation_id, care_thread_id, requester, invited, requester_assignment_at_request, invited_assignment_at_request, viewer_role, scope, status, question, requested_at, expires_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        consultation_id: { type: string, format: uuid }
+        care_thread_id: { type: string, format: uuid }
+        requester: { $ref: '#/components/schemas/ProviderCollaborator' }
+        invited: { $ref: '#/components/schemas/ProviderCollaborator' }
+        requester_assignment_at_request:
+          $ref: '#/components/schemas/ProviderAssignmentSnapshot'
+        invited_assignment_at_request:
+          $ref: '#/components/schemas/ProviderAssignmentSnapshot'
+        viewer_role:
+          type: string
+          enum: [requester, invitee]
+        scope: { type: string, enum: [consultation_summary] }
+        status:
+          type: string
+          enum: [requested, accepted, declined, revoked, expired]
+        question: { type: string }
+        requested_at: { type: string, format: date-time }
+        responded_at: { type: [string, 'null'], format: date-time }
+        expires_at: { type: string, format: date-time }
+        revoked_at: { type: [string, 'null'], format: date-time }
+        version: { type: integer }
+
+    ProviderClinicalCollaborationMessage:
+      type: object
+      required: [id, collaboration_id, author_clinician_id, body, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        collaboration_id: { type: string, format: uuid }
+        author_clinician_id: { type: string, format: uuid }
+        body: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ProviderAssignmentSnapshot:
+      type: object
+      required: [facility_id, department_id]
+      properties:
+        facility_id: { type: [string, 'null'], format: uuid }
+        department_id: { type: [string, 'null'], format: uuid }
 
     ContentFormat:
       type: string

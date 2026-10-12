@@ -1,12 +1,23 @@
 import { prisma } from '@a-health/database';
 import { verifyAuditChain } from '@a-health/http';
 
-export type LedgerCategory = 'consent' | 'verification' | 'break_glass';
+export type LedgerCategory = 'consent' | 'verification' | 'break_glass' | 'collaboration';
 
 const ACTIONS: Record<LedgerCategory, string[]> = {
   consent: ['consent.granted', 'consent.revoked'],
-  verification: ['clinician.verified', 'clinician.rejected'],
+  verification: ['clinician.verified', 'clinician.rejected', 'clinician.assignment_updated'],
   break_glass: ['emergency.context_break_glass_access'],
+  collaboration: [
+    'provider_collaboration.requested',
+    'provider_collaboration.accepted',
+    'provider_collaboration.declined',
+    'provider_collaboration.case_access_granted',
+    'provider_collaboration.case_accessed',
+    'provider_collaboration.discussion_accessed',
+    'provider_collaboration.message_recorded',
+    'provider_collaboration.revoked',
+    'provider_collaboration.expired',
+  ],
 };
 
 const ALL_SUPPORTED_ACTIONS = Object.values(ACTIONS).flat();
@@ -33,6 +44,19 @@ function safeDetails(action: string, value: unknown): Record<string, string> {
   }
   if (action === 'clinician.verified') return { verification_status: 'verified' };
   if (action === 'clinician.rejected') return { verification_status: 'rejected' };
+  if (action === 'clinician.assignment_updated') return { assignment: 'updated' };
+  if (ACTIONS.collaboration.includes(action)) {
+    const scope = metadata.scope;
+    const reason = metadata.reason;
+    return {
+      ...(scope === 'consultation_summary' ? { scope } : {}),
+      ...(reason === 'access_expired' || reason === 'patient_consent_expired' ||
+          reason === 'patient_consent_unavailable' || reason === 'patient_consent_revoked' ||
+          reason === 'participant_revoked'
+        ? { reason }
+        : {}),
+    };
+  }
   if (action === 'emergency.context_break_glass_access') {
     const emergencyRequestId = metadata.emergencyRequestId;
     return typeof emergencyRequestId === 'string' && uuid.test(emergencyRequestId)
@@ -88,6 +112,7 @@ export async function listLedgerEvents(input: {
 function categoryFor(action: string): LedgerCategory {
   if (ACTIONS.consent.includes(action)) return 'consent';
   if (ACTIONS.verification.includes(action)) return 'verification';
+  if (ACTIONS.collaboration.includes(action)) return 'collaboration';
   return 'break_glass';
 }
 

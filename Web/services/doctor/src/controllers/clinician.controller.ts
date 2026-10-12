@@ -4,6 +4,7 @@ import * as clinicians from '../services/clinician.service.js';
 import * as slots from '../services/slot.service.js';
 import {
   availabilitySchema,
+  clinicianAssignmentSchema,
   listCliniciansQuery,
   publishSlotsSchema,
   slotsQuery,
@@ -73,6 +74,17 @@ export async function decideVerification(req: Request, res: Response, next: Next
           meta(req, res),
         ),
       );
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function setAssignment(req: Request, res: Response, next: NextFunction) {
+  try {
+    const input = clinicianAssignmentSchema.parse(req.body);
+    res.status(200).json(await clinicians.setClinicianAssignment(
+      pathParam(req, 'clinician_id'), input, req.auth!.sub, meta(req, res),
+    ));
   } catch (err) {
     next(err);
   }

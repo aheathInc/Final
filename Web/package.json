@@ -10,9 +10,11 @@
     "test": "turbo test",
     "seed:staff-demo": "tsx scripts/seed-staff-demo.ts",
     "seed:provider-marketplace-test": "tsx scripts/seed-provider-marketplace-test.ts",
+    "seed:provider-collaboration-test": "tsx scripts/seed-provider-collaboration-test.ts",
     "seed:provider-marketplace-test:replay": "tsx scripts/seed-provider-marketplace-test.ts --replay",
     "undo:staff-demo": "tsx scripts/seed-staff-demo.ts --undo",
-    "type-check:staff-demo": "tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --esModuleInterop --skipLibCheck scripts/seed-staff-demo.ts"
+    "type-check:staff-demo": "tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --esModuleInterop --skipLibCheck scripts/seed-staff-demo.ts",
+    "type-check:provider-collaboration-test": "tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --esModuleInterop --skipLibCheck scripts/seed-provider-collaboration-test.ts"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

@@ -46,3 +46,10 @@ clinicianRouter.post(
   requireRole('platform_admin'),
   controller.decideVerification,
 );
+
+clinicianRouter.put(
+  '/clinicians/:clinician_id/assignment',
+  requireAuth,
+  requireRole('platform_admin'),
+  controller.setAssignment,
+);
