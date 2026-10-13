@@ -71,6 +71,24 @@ void main() {
       expect(url, contains(':4005'));
     });
 
+    test('routes prescription fulfilment and handoff to pharmacy service (4011)', () {
+      expect(
+        Config.baseUrlFor('/prescriptions/rx-1/fulfillment'),
+        contains(':4011'),
+      );
+      expect(
+        Config.baseUrlFor('/prescriptions/rx-1/dispense-code'),
+        contains(':4011'),
+      );
+      expect(
+        Config.baseUrlFor('/prescriptions/rx-1/dispense-code/revoke'),
+        contains(':4011'),
+      );
+      expect(
+        Config.baseUrlFor('/patient-profiles/me/prescriptions'),
+        contains(':4005'),
+      );
+    });
     test('routes investigation orders to diagnostics service (4013)', () {
       expect(Config.baseUrlFor('/investigation-orders'), contains(':4013'));
     });

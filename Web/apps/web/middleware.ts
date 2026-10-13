@@ -6,6 +6,7 @@ const PUBLIC = ['/login', '/api/auth'];
 
 function homeFor(role?: string) {
   if (role === 'clinician') return '/doctor/queue';
+  if (role === 'pharmacist') return '/pharmacy';
   if (role === 'platform_admin') return '/admin/dashboard';
   if (role === 'dispatcher') return '/admin/emergency';
   if (role === 'facility_admin') return '/admin/facilities';
@@ -14,6 +15,7 @@ function homeFor(role?: string) {
 }
 
 function allowed(path: string, role?: string) {
+  if (path.startsWith('/pharmacy')) return role === 'pharmacist';
   if (path.startsWith('/doctor')) return role === 'clinician';
   if (path.startsWith('/admin')) return ['platform_admin', 'dispatcher', 'facility_admin'].includes(role ?? '');
   if (path.startsWith('/analytics')) return ['platform_admin', 'researcher'].includes(role ?? '');

@@ -416,7 +416,7 @@ export async function completeConsultation(
   caller: Caller,
   input: {
     note: { diagnosis_text: string; diagnosis_codes?: string[]; advice_text: string; red_flags_discussed?: string[] };
-    prescription?: { items: { medication_name: string; dosage: string; frequency_per_day: number; duration_days: number; instructions?: string }[] };
+    prescription?: { items: { medication_name: string; dosage: string; frequency_per_day: number; duration_days: number; instructions?: string; quantity_prescribed?: number }[]; valid_until?: string };
     follow_up_cycle?: { frequency: string; custom_cron?: string; duration_days: number; questionnaire_key?: string; recovery_criteria?: Record<string, unknown> };
     close_care_thread?: boolean;
   },
@@ -468,6 +468,9 @@ export async function completeConsultation(
           consultationId,
           patientProfileId: consultation.patientProfileId,
           prescribedById: cpid,
+          validUntil: input.prescription.valid_until
+            ? new Date(`${input.prescription.valid_until}T23:59:59.999Z`)
+            : null,
           items: {
             create: input.prescription.items.map((i) => ({
               medicationName: i.medication_name,
@@ -475,6 +478,7 @@ export async function completeConsultation(
               frequencyPerDay: i.frequency_per_day,
               durationDays: i.duration_days,
               instructions: i.instructions ?? null,
+              quantityPrescribed: i.quantity_prescribed ?? null,
             })),
           },
         },
@@ -637,8 +641,8 @@ export async function referConsultation(
 
 function serialisePrescription(p: {
   id: string; careThreadId: string; consultationId: string; patientProfileId: string;
-  prescribedById: string; status: string; createdAt: Date; version: number;
-  items: { id: string; medicationName: string; dosage: string; frequencyPerDay: number; durationDays: number; instructions: string | null }[];
+  prescribedById: string; status: string; createdAt: Date; version: number; validUntil?: Date | null;
+  items: { id: string; medicationName: string; dosage: string; frequencyPerDay: number; durationDays: number; instructions: string | null; quantityPrescribed?: number | null }[];
 }) {
   return {
     id: p.id,
@@ -647,6 +651,7 @@ function serialisePrescription(p: {
     patient_profile_id: p.patientProfileId,
     prescribed_by_id: p.prescribedById,
     status: p.status,
+    valid_until: p.validUntil?.toISOString() ?? null,
     items: p.items.map((i) => ({
       id: i.id,
       medication_name: i.medicationName,
@@ -654,6 +659,7 @@ function serialisePrescription(p: {
       frequency_per_day: i.frequencyPerDay,
       duration_days: i.durationDays,
       instructions: i.instructions,
+      quantity_prescribed: i.quantityPrescribed ?? null,
     })),
     created_at: p.createdAt.toISOString(),
     version: p.version,

@@ -299,6 +299,8 @@ model User {
   messagesSent     Message[]
   notifications    NotificationLog[]
   idempotency      IdempotencyRecord[]
+  pharmacyMemberships PharmacyMembership[] @relation("PharmacyMember")
+  verifiedPharmacyMemberships PharmacyMembership[] @relation("PharmacyMembershipVerifier")
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -455,6 +457,7 @@ model Facility {
   isActive     Boolean      @default(true) @map("is_active")
 
   clinicians     ClinicianProfile[]
+  pharmacies     Pharmacy[]
   consents       PatientConsent[]
   sourcedRecords MedicalRecord[]    @relation("RecordSource")
 
@@ -803,6 +806,9 @@ model Prescription {
   prescribedBy   ClinicianProfile @relation(fields: [prescribedById], references: [id], onDelete: Restrict)
 
   status PrescriptionStatus @default(active)
+  /// Set by the prescribing clinician. A missing value means this legacy or
+  /// incomplete prescription is not eligible for pharmacy handoff.
+  validUntil DateTime? @map("valid_until")
 
   items         PrescriptionItem[]
   adherenceLogs AdherenceLog[]
@@ -829,6 +835,9 @@ model PrescriptionItem {
   frequencyPerDay Int     @map("frequency_per_day")
   durationDays    Int     @map("duration_days")
   instructions    String?
+  /// Explicit quantity from the prescribing clinician. No quantity is
+  /// inferred from dose frequency because the unit/formulation is unknown.
+  quantityPrescribed Int? @map("quantity_prescribed")
 
   adherenceLogs AdherenceLog[]
 
@@ -2105,6 +2114,9 @@ model Pharmacy {
   /// checked on every dispensing action, not just at onboarding.
   isVerified Boolean @default(false) @map("is_verified")
 
+  facilityId String?   @unique @map("facility_id") @db.Uuid
+  facility   Facility? @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+
   lat          Float?
   lng          Float?
   regionCode   String? @map("region_code") @db.VarChar(20)
@@ -2113,6 +2125,7 @@ model Pharmacy {
   isActive     Boolean @default(true) @map("is_active")
 
   stock             PharmacyStock[]
+  memberships       PharmacyMembership[]
   dispenseCodes     DispenseCode[]
   dispensingRecords DispensingRecord[]
 
@@ -2131,6 +2144,9 @@ model PharmacyStock {
 
   medicationName String      @map("medication_name") @db.VarChar(150)
   stockStatus    StockStatus @default(unknown) @map("stock_status")
+  /// Null means the reported status is qualitative only and cannot authorize
+  /// dispensing. This is on-hand stock; the service does not model reserves.
+  quantityOnHand Int? @map("quantity_on_hand")
   unitPrice      Decimal?    @map("unit_price") @db.Decimal(12, 2)
   currency       String?     @db.VarChar(3)
 
@@ -2141,6 +2157,8 @@ model PharmacyStock {
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  dispensingItems DispensingItem[]
 
   @@unique([pharmacyId, medicationName])
   @@index([medicationName, stockStatus])
@@ -2160,12 +2178,39 @@ model DispenseCode {
 
   expiresAt  DateTime  @map("expires_at")
   redeemedAt DateTime? @map("redeemed_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  dispensingRecords DispensingRecord[]
 
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([prescriptionId])
   @@index([expiresAt])
   @@map("dispense_codes")
+}
+
+/// Membership is provisioned and verified by an administrator through the
+/// existing controlled staff process. A pharmacist role alone is insufficient.
+model PharmacyMembership {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation("PharmacyMember", fields: [userId], references: [id], onDelete: Cascade)
+  pharmacyId String  @map("pharmacy_id") @db.Uuid
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  professionalLicenseNumber String   @map("professional_license_number") @db.VarChar(60)
+  isActive      Boolean   @default(true) @map("is_active")
+  isVerified    Boolean   @default(false) @map("is_verified")
+  verifiedAt    DateTime? @map("verified_at")
+  verifiedByUserId String? @map("verified_by_user_id") @db.Uuid
+  verifiedBy    User?     @relation("PharmacyMembershipVerifier", fields: [verifiedByUserId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, pharmacyId])
+  @@index([pharmacyId, isActive, isVerified])
+  @@map("pharmacy_memberships")
 }
 
 model DispensingRecord {
@@ -2177,6 +2222,10 @@ model DispensingRecord {
   pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Restrict)
 
   pharmacistUserId String?          @map("pharmacist_user_id") @db.Uuid
+  handoffId String? @map("handoff_id") @db.Uuid
+  handoff DispenseCode? @relation(fields: [handoffId], references: [id], onDelete: SetNull)
+  idempotencyKey String? @unique @map("idempotency_key") @db.VarChar(128)
+  idempotencyRequestHash String? @map("idempotency_request_hash") @db.VarChar(64)
   status           DispensingStatus @default(pending)
   dispensedAt      DateTime?        @map("dispensed_at")
 
@@ -2199,6 +2248,9 @@ model DispensingItem {
 
   prescriptionItemId String           @map("prescription_item_id") @db.Uuid
   prescriptionItem   PrescriptionItem @relation(fields: [prescriptionItemId], references: [id], onDelete: Restrict)
+
+  pharmacyStockId String? @map("pharmacy_stock_id") @db.Uuid
+  pharmacyStock PharmacyStock? @relation(fields: [pharmacyStockId], references: [id], onDelete: Restrict)
 
   quantityDispensed Int @map("quantity_dispensed")
 

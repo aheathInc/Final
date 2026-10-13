@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
-import { pathParam } from '@a-health/http';
+import { pathParam, unprocessable } from '@a-health/http';
 import * as pharmacies from '../services/pharmacy.service.js';
 import * as dispensing from '../services/dispensing.service.js';
 import {
-  completeDispensingSchema, listPharmaciesQuery, searchMedicationQuery, verifyDispenseCodeSchema,
+  completeDispensingSchema, issueHandoffSchema, listPharmaciesQuery, searchMedicationQuery, verifyDispenseCodeSchema,
 } from '../types/pharmacy.types.js';
 
 const caller = (req: Request) => ({
@@ -23,16 +23,30 @@ export const listPharmacies = handle((req) => pharmacies.listPharmacies(listPhar
 
 export const searchMedication = handle((req) => pharmacies.searchMedication(searchMedicationQuery.parse(req.query)));
 
+export const listMyPharmacies = handle((req) => dispensing.listMyPharmacies(caller(req)));
+
+export const getPrescriptionFulfillment = handle((req) =>
+  dispensing.getPrescriptionFulfillment(pathParam(req, 'prescription_id'), caller(req)));
+
 export const issueDispenseCode = handle(
-  (req, res) => dispensing.issueDispenseCode(pathParam(req, 'prescription_id'), caller(req), meta(req, res)), 201,
+  (req, res) => {
+    issueHandoffSchema.parse(req.body ?? {});
+    return dispensing.issueDispenseCode(pathParam(req, 'prescription_id'), caller(req), meta(req, res));
+  }, 201,
 );
 
-export const verifyDispenseCode = handle((req) => {
+export const revokeDispenseCode = handle((req, res) =>
+  dispensing.revokeDispenseCode(pathParam(req, 'prescription_id'), caller(req), meta(req, res)));
+
+export const verifyDispenseCode = handle((req, res) => {
   const input = verifyDispenseCodeSchema.parse(req.body);
-  return dispensing.verifyDispenseCode(input.code, input.pharmacy_id, caller(req));
+  return dispensing.verifyDispenseCode(input.reference, input.pharmacy_id, caller(req), meta(req, res));
 });
 
-export const completeDispensing = handle((req) => {
+export const completeDispensing = handle((req, res) => {
   const input = completeDispensingSchema.parse(req.body);
-  return dispensing.completeDispensing(pathParam(req, 'dispensing_id'), caller(req), input.items);
+  if (req.get('Idempotency-Key') !== input.idempotency_key) {
+    throw unprocessable('Idempotency-Key header must match the request body', 'idempotency_key');
+  }
+  return dispensing.completeDispensing(pathParam(req, 'dispensing_id'), caller(req), input, meta(req, res));
 });

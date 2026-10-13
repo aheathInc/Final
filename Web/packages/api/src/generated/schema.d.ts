@@ -1821,7 +1821,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Find a medication in stock nearby
+         * Find reported medication stock, optionally ranked by supplied location
          * @description A prescription is not treatment; obtaining the medicine is. When the
          *     point of care has none, this answers where it is — with distance and
          *     stock status visible before the patient travels, rather than after.
@@ -1845,13 +1845,66 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Issue a verification code for a prescription
-         * @description Short-lived, single-pharmacy code the patient presents at the counter.
-         *     The pharmacist enters it to pull the prescription directly, which
-         *     removes lost paper, proves the prescription is genuine, and keeps the
-         *     medication record continuous across facilities.
+         * Create or rotate a secure prescription handoff reference
+         * @description The patient, guardian, or issuing clinician receives an unpredictable
+         *     opaque reference. Only its hash is stored. It is returned once; rotating
+         *     a reference revokes previous values. It is not an authorization token.
          */
         post: operations["issueDispenseCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/prescriptions/{prescription_id}/fulfillment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read prescription fulfilment for its patient or guardian
+         * @description Returns item quantities and persisted dispensing history. Facility availability is time-sensitive and is not a reservation.
+         */
+        get: operations["getPrescriptionFulfillment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/prescriptions/{prescription_id}/dispense-code/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke active prescription handoff references */
+        post: operations["revokePrescriptionHandoff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pharmacist/me/pharmacies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the caller's verified active pharmacy memberships */
+        get: operations["listMyPharmacies"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1868,10 +1921,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Redeem a verification code at the counter
-         * @description Pharmacist-facing. Returns only what dispensing requires — the items,
-         *     the doses, and the prescriber. Not the diagnosis. Role-based access is
-         *     the point: a pharmacist needs the medication, not the condition.
+         * Verify a handoff reference for an authenticated pharmacist
+         * @description Requires an active pharmacist account and verified membership at the named pharmacy. The opaque reference alone grants no access. The result omits diagnosis, consultation notes and patient contact information.
          */
         post: operations["verifyDispenseCode"];
         delete?: never;
@@ -1890,10 +1941,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Record what was actually dispensed
-         * @description Substitution requires pharmacist review and, where the item differs
-         *     clinically, prescriber approval. The platform never permits silent
-         *     substitution.
+         * Atomically record partial or complete dispensing
+         * @description Enforces current pharmacist membership, prescription validity, remaining quantities and confirmed on-hand stock. Inventory decrement, dispensing history and prescription status commit atomically. Medication substitution is not supported.
          */
         post: operations["completeDispensing"];
         delete?: never;
@@ -3228,7 +3277,7 @@ export interface components {
          *     breaking and requires a new API version.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "REFERRAL_ALREADY_EXISTS" | "REFERRAL_CONSENT_REQUIRED" | "REFERRAL_DESTINATION_INELIGIBLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "REFERRAL_ALREADY_EXISTS" | "REFERRAL_CONSENT_REQUIRED" | "REFERRAL_DESTINATION_INELIGIBLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "PRESCRIPTION_EXPIRED" | "PRESCRIPTION_NOT_FINALIZED" | "PRESCRIBER_NOT_AUTHORIZED" | "PHARMACY_MEMBERSHIP_REQUIRED" | "HANDOFF_REFERENCE_INVALID" | "HANDOFF_REFERENCE_REVOKED" | "HANDOFF_REFERENCE_EXPIRED" | "PRESCRIPTION_ALREADY_FULFILLED" | "IDEMPOTENCY_KEY_REUSED" | "DISPENSING_ALREADY_RECORDED" | "QUANTITY_EXCEEDS_REMAINING" | "INVENTORY_AMBIGUOUS" | "INVENTORY_UNAVAILABLE" | "INSUFFICIENT_INVENTORY" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
         PageMeta: {
             page: number;
             page_size: number;
@@ -3741,6 +3790,8 @@ export interface components {
             prescribed_by_id: string;
             /** @enum {string} */
             status: "active" | "completed" | "discontinued";
+            /** Format: date-time */
+            valid_until?: string | null;
             items: components["schemas"]["PrescriptionItem"][];
             /**
              * Format: float
@@ -3761,6 +3812,7 @@ export interface components {
             frequency_per_day: number;
             duration_days: number;
             instructions?: string | null;
+            quantity_prescribed?: number | null;
         };
         AdherenceLog: {
             /** Format: uuid */
@@ -3794,12 +3846,19 @@ export interface components {
             red_flags_discussed?: string[];
         };
         PrescriptionInput: {
+            /**
+             * Format: date
+             * @description Clinician-selected validity date. The platform does not infer a clinical validity period.
+             */
+            valid_until?: string;
             items: {
                 medication_name: string;
                 /** @example 500mg */
                 dosage: string;
                 frequency_per_day: number;
                 duration_days: number;
+                /** @description Clinician-selected quantity in the prescribed dispensing unit; never inferred from frequency. */
+                quantity_prescribed?: number;
                 instructions?: string;
             }[];
         };
@@ -4232,6 +4291,9 @@ export interface components {
             medication_name: string;
             /** @enum {string} */
             stock_status: "in_stock" | "low_stock" | "out_of_stock" | "unknown";
+            quantity_on_hand: number | null;
+            /** @enum {string} */
+            fulfillment_status: "available" | "partially_available" | "unavailable" | "unknown";
             unit_price?: number | null;
             currency?: string | null;
             /**
@@ -4241,12 +4303,9 @@ export interface components {
              */
             last_reported_at?: string;
         };
-        DispenseCode: {
-            code: string;
-            /** Format: uuid */
-            prescription_id: string;
-            /** Format: uuid */
-            pharmacy_id?: string | null;
+        PrescriptionHandoffReference: {
+            /** @description Opaque 256-bit reference returned once. Never log or store the plaintext. */
+            reference: string;
             /** Format: date-time */
             expires_at: string;
         };
@@ -4258,12 +4317,88 @@ export interface components {
             /** Format: uuid */
             dispensing_id: string;
             /** Format: uuid */
-            prescription_id?: string;
-            patient_display_name?: string;
+            prescription_id: string;
+            patient_display_name: string;
             prescribed_by: string;
             /** Format: date-time */
             prescribed_at?: string;
-            items: components["schemas"]["PrescriptionItem"][];
+            /** Format: date-time */
+            valid_until: string;
+            pharmacy: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+            };
+            items: components["schemas"]["PharmacistDispensingItem"][];
+        };
+        PharmacistDispensingItem: {
+            /** Format: uuid */
+            id: string;
+            medication_name: string;
+            dosage: string;
+            frequency_per_day?: number;
+            duration_days?: number;
+            instructions?: string | null;
+            quantity_prescribed: number;
+            quantity_dispensed: number;
+            quantity_remaining: number | null;
+            quantity_on_hand: number | null;
+            /** @enum {string} */
+            inventory_status: "in_stock" | "low_stock" | "out_of_stock" | "unknown";
+        };
+        PrescriptionFulfillment: {
+            /** Format: uuid */
+            prescription_id: string;
+            /** @enum {string} */
+            status: "active" | "completed" | "discontinued";
+            /** @enum {string} */
+            fulfilment_status: "complete" | "validity_unspecified" | "quantity_unspecified" | "expired" | "cancelled" | "partial" | "not_dispensed";
+            /** Format: date-time */
+            valid_until: string | null;
+            facility_pharmacy: null | {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                items: {
+                    /** Format: uuid */
+                    prescription_item_id: string;
+                    medication_name: string;
+                    quantity_remaining: number | null;
+                    quantity_on_hand: number | null;
+                    /** @enum {string} */
+                    availability: "available" | "partially_available" | "unavailable" | "unknown";
+                    /** Format: date-time */
+                    last_reported_at: string | null;
+                }[];
+            };
+            items: {
+                /** Format: uuid */
+                id: string;
+                medication_name: string;
+                dosage: string;
+                frequency_per_day?: number;
+                duration_days?: number;
+                quantity_prescribed: number | null;
+                quantity_dispensed: number;
+                quantity_remaining: number | null;
+                /** @enum {string} */
+                status: "dispensed" | "not_dispensed" | "partially_dispensed" | "quantity_unspecified";
+            }[];
+            dispensing_history: {
+                /** Format: uuid */
+                dispensing_id: string;
+                pharmacy: components["schemas"]["Pharmacy"];
+                /** Format: date-time */
+                dispensed_at: string | null;
+                /** @enum {string} */
+                status: "partial" | "complete";
+                items: {
+                    /** Format: uuid */
+                    prescription_item_id: string;
+                    medication_name: string;
+                    quantity_dispensed: number;
+                }[];
+            }[];
         };
         DispensingRecord: {
             /** Format: uuid */
@@ -7902,8 +8037,9 @@ export interface operations {
         parameters: {
             query: {
                 medication_name: string;
-                lat: number;
-                lng: number;
+                lat?: number;
+                lng?: number;
+                required_quantity?: number;
                 radius_km?: number;
             };
             header?: never;
@@ -7928,6 +8064,54 @@ export interface operations {
     issueDispenseCode: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                prescription_id: components["parameters"]["PrescriptionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plaintext reference returned once to the authorized caller */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionHandoffReference"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getPrescriptionFulfillment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prescription_id: components["parameters"]["PrescriptionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Patient-owned fulfilment status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionFulfillment"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    revokePrescriptionHandoff: {
+        parameters: {
+            query?: never;
             header: {
                 /**
                  * @description Client-generated UUID, created at the moment the user acted. Reused
@@ -7943,38 +8127,60 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Code issued */
-            201: {
+            /** @description Revocation result */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DispenseCode"];
+                    "application/json": {
+                        revoked: boolean;
+                    };
                 };
             };
-            409: components["responses"]["Conflict"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listMyPharmacies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pharmacies the authenticated pharmacist may act for */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                        }[];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
         };
     };
     verifyDispenseCode: {
         parameters: {
             query?: never;
-            header: {
-                /**
-                 * @description Client-generated UUID, created at the moment the user acted. Reused
-                 *     unchanged across every retry of the same intent. The server replays the
-                 *     original response for 24 hours.
-                 */
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
                 "application/json": {
-                    code: string;
+                    reference: string;
                     /** Format: uuid */
-                    pharmacy_id?: string;
+                    pharmacy_id: string;
                 };
             };
         };
@@ -8011,13 +8217,11 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    idempotency_key: string;
                     items: {
                         /** Format: uuid */
                         prescription_item_id: string;
                         quantity_dispensed: number;
-                        substituted_with?: string;
-                        /** Format: uuid */
-                        substitution_approved_by?: string;
                     }[];
                 };
             };

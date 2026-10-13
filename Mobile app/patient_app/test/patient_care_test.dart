@@ -114,6 +114,52 @@ void main() {
       expect(prescriptions.single['consultation_id'], 'case-1');
     });
 
+    test('reads fulfilment and creates or revokes an opaque handoff online', () async {
+      final getPaths = <String>[];
+      final postPaths = <String>[];
+      final idempotencyKeys = <String?>[];
+      final reference = 'A' * 43;
+      final repository = PatientCareRepository(
+        get: (path, {query}) async {
+          getPaths.add(path);
+          return {
+            'prescription_id': 'rx-1',
+            'fulfilment_status': 'partial',
+            'items': [
+              {
+                'id': 'item-1',
+                'quantity_prescribed': 10,
+                'quantity_dispensed': 4,
+                'quantity_remaining': 6,
+              },
+            ],
+          };
+        },
+        post: (path, body, {idempotencyKey}) async {
+          postPaths.add(path);
+          idempotencyKeys.add(idempotencyKey);
+          return path.endsWith('/revoke')
+              ? {'revoked': true}
+              : {'reference': reference, 'expires_at': '2026-10-14T00:00:00Z'};
+        },
+      );
+
+      final fulfillment = await repository.prescriptionFulfillment('rx-1');
+      final handoff = await repository.createPrescriptionHandoff('rx-1');
+      final revoked = await repository.revokePrescriptionHandoff('rx-1');
+
+      expect(getPaths, ['/prescriptions/rx-1/fulfillment']);
+      expect(fulfillment['fulfilment_status'], 'partial');
+      expect((fulfillment['items'] as List).single['quantity_remaining'], 6);
+      expect(handoff['reference'], reference);
+      expect(revoked['revoked'], isTrue);
+      expect(postPaths, [
+        '/prescriptions/rx-1/dispense-code',
+        '/prescriptions/rx-1/dispense-code/revoke',
+      ]);
+      expect(idempotencyKeys, hasLength(2));
+      expect(idempotencyKeys.every((key) => key != null && key.isNotEmpty), isTrue);
+    });
     test('sends a message on the existing care thread with idempotency',
         () async {
       String? actualPath;

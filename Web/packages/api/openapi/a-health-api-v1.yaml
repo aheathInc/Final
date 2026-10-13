@@ -2986,7 +2986,7 @@ paths:
   /pharmacies/medication-search:
     get:
       tags: [pharmacy]
-      summary: Find a medication in stock nearby
+      summary: Find reported medication stock, optionally ranked by supplied location
       description: |
         A prescription is not treatment; obtaining the medicine is. When the
         point of care has none, this answers where it is — with distance and
@@ -2999,12 +2999,13 @@ paths:
           schema: { type: string }
         - name: lat
           in: query
-          required: true
           schema: { type: number }
         - name: lng
           in: query
-          required: true
           schema: { type: number }
+        - name: required_quantity
+          in: query
+          schema: { type: integer, minimum: 1 }
         - name: radius_km
           in: query
           schema: { type: number, default: 15 }
@@ -3024,44 +3025,100 @@ paths:
   /prescriptions/{prescription_id}/dispense-code:
     post:
       tags: [pharmacy]
-      summary: Issue a verification code for a prescription
+      summary: Create or rotate a secure prescription handoff reference
       description: |
-        Short-lived, single-pharmacy code the patient presents at the counter.
-        The pharmacist enters it to pull the prescription directly, which
-        removes lost paper, proves the prescription is genuine, and keeps the
-        medication record continuous across facilities.
+        The patient, guardian, or issuing clinician receives an unpredictable
+        opaque reference. Only its hash is stored. It is returned once; rotating
+        a reference revokes previous values. It is not an authorization token.
       operationId: issueDispenseCode
+      parameters:
+        - $ref: '#/components/parameters/PrescriptionId'
+      responses:
+        '201':
+          description: Plaintext reference returned once to the authorized caller
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrescriptionHandoffReference' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /prescriptions/{prescription_id}/fulfillment:
+    get:
+      tags: [pharmacy]
+      summary: Read prescription fulfilment for its patient or guardian
+      description: Returns item quantities and persisted dispensing history. Facility availability is time-sensitive and is not a reservation.
+      operationId: getPrescriptionFulfillment
+      parameters:
+        - $ref: '#/components/parameters/PrescriptionId'
+      responses:
+        '200':
+          description: Patient-owned fulfilment status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrescriptionFulfillment' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /prescriptions/{prescription_id}/dispense-code/revoke:
+    post:
+      tags: [pharmacy]
+      summary: Revoke active prescription handoff references
+      operationId: revokePrescriptionHandoff
       parameters:
         - $ref: '#/components/parameters/PrescriptionId'
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
-        '201':
-          description: Code issued
+        '200':
+          description: Revocation result
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/DispenseCode' }
-        '409': { $ref: '#/components/responses/Conflict' }
+              schema:
+                type: object
+                required: [revoked]
+                properties:
+                  revoked: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /pharmacist/me/pharmacies:
+    get:
+      tags: [pharmacy]
+      summary: List the caller's verified active pharmacy memberships
+      operationId: listMyPharmacies
+      responses:
+        '200':
+          description: Pharmacies the authenticated pharmacist may act for
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name]
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /dispensing/verify:
     post:
       tags: [pharmacy]
-      summary: Redeem a verification code at the counter
+      summary: Verify a handoff reference for an authenticated pharmacist
       description: |
-        Pharmacist-facing. Returns only what dispensing requires — the items,
-        the doses, and the prescriber. Not the diagnosis. Role-based access is
-        the point: a pharmacist needs the medication, not the condition.
+        Requires an active pharmacist account and verified membership at the named pharmacy. The opaque reference alone grants no access. The result omits diagnosis, consultation notes and patient contact information.
       operationId: verifyDispenseCode
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [code]
+              required: [reference, pharmacy_id]
               properties:
-                code: { type: string }
+                reference: { type: string, minLength: 43, maxLength: 43 }
                 pharmacy_id: { type: string, format: uuid }
       responses:
         '200':
@@ -3075,11 +3132,9 @@ paths:
   /dispensing/{dispensing_id}/complete:
     post:
       tags: [pharmacy]
-      summary: Record what was actually dispensed
+      summary: Atomically record partial or complete dispensing
       description: |
-        Substitution requires pharmacist review and, where the item differs
-        clinically, prescriber approval. The platform never permits silent
-        substitution.
+        Enforces current pharmacist membership, prescription validity, remaining quantities and confirmed on-hand stock. Inventory decrement, dispensing history and prescription status commit atomically. Medication substitution is not supported.
       operationId: completeDispensing
       parameters:
         - $ref: '#/components/parameters/DispensingId'
@@ -3090,8 +3145,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [items]
+              required: [idempotency_key, items]
               properties:
+                idempotency_key: { type: string, minLength: 16, maxLength: 128 }
                 items:
                   type: array
                   items:
@@ -3100,8 +3156,6 @@ paths:
                     properties:
                       prescription_item_id: { type: string, format: uuid }
                       quantity_dispensed: { type: integer }
-                      substituted_with: { type: string }
-                      substitution_approved_by: { type: string, format: uuid }
       responses:
         '200':
           description: Recorded
@@ -5337,6 +5391,20 @@ components:
         - DEVICE_REVOKED
         - DISPENSE_CODE_INVALID
         - DISPENSE_CODE_EXPIRED
+        - PRESCRIPTION_EXPIRED
+        - PRESCRIPTION_NOT_FINALIZED
+        - PRESCRIBER_NOT_AUTHORIZED
+        - PHARMACY_MEMBERSHIP_REQUIRED
+        - HANDOFF_REFERENCE_INVALID
+        - HANDOFF_REFERENCE_REVOKED
+        - HANDOFF_REFERENCE_EXPIRED
+        - PRESCRIPTION_ALREADY_FULFILLED
+        - IDEMPOTENCY_KEY_REUSED
+        - DISPENSING_ALREADY_RECORDED
+        - QUANTITY_EXCEEDS_REMAINING
+        - INVENTORY_AMBIGUOUS
+        - INVENTORY_UNAVAILABLE
+        - INSUFFICIENT_INVENTORY
         - RESULT_ALREADY_ACKNOWLEDGED
         - ETHICS_APPROVAL_REQUIRED
         - AGGREGATE_TOO_SMALL
@@ -5940,6 +6008,7 @@ components:
         status:
           type: string
           enum: [active, completed, discontinued]
+        valid_until: { type: [string, 'null'], format: date-time }
         items:
           type: array
           items:
@@ -5962,6 +6031,7 @@ components:
         frequency_per_day: { type: integer }
         duration_days: { type: integer }
         instructions: { type: [string, 'null'] }
+        quantity_prescribed: { type: [integer, 'null'], minimum: 1 }
 
     AdherenceLog:
       type: object
@@ -6008,6 +6078,10 @@ components:
       type: object
       required: [items]
       properties:
+        valid_until:
+          type: string
+          format: date
+          description: Clinician-selected validity date. The platform does not infer a clinical validity period.
         items:
           type: array
           minItems: 1
@@ -6019,6 +6093,7 @@ components:
               dosage: { type: string, examples: ['500mg'] }
               frequency_per_day: { type: integer, minimum: 1, maximum: 12 }
               duration_days: { type: integer, minimum: 1, maximum: 365 }
+              quantity_prescribed: { type: integer, minimum: 1, maximum: 100000, description: Clinician-selected quantity in the prescribed dispensing unit; never inferred from frequency. }
               instructions: { type: string }
 
     FollowUpCycleInput:
@@ -6575,13 +6650,17 @@ components:
 
     MedicationAvailability:
       type: object
-      required: [pharmacy, medication_name, stock_status]
+      required: [pharmacy, medication_name, stock_status, quantity_on_hand, fulfillment_status]
       properties:
         pharmacy: { $ref: '#/components/schemas/Pharmacy' }
         medication_name: { type: string }
         stock_status:
           type: string
           enum: [in_stock, low_stock, out_of_stock, unknown]
+        quantity_on_hand: { type: [integer, 'null'], minimum: 0 }
+        fulfillment_status:
+          type: string
+          enum: [available, partially_available, unavailable, unknown]
         unit_price: { type: [number, 'null'] }
         currency: { type: [string, 'null'] }
         last_reported_at:
@@ -6591,13 +6670,15 @@ components:
             Stock data ages fast. A stale figure sent someone on a journey for
             nothing, so the age is always visible.
 
-    DispenseCode:
+    PrescriptionHandoffReference:
       type: object
-      required: [code, expires_at, prescription_id]
+      required: [reference, expires_at]
       properties:
-        code: { type: string }
-        prescription_id: { type: string, format: uuid }
-        pharmacy_id: { type: [string, 'null'], format: uuid }
+        reference:
+          type: string
+          minLength: 43
+          maxLength: 43
+          description: Opaque 256-bit reference returned once. Never log or store the plaintext.
         expires_at: { type: string, format: date-time }
 
     DispensingView:
@@ -6605,16 +6686,102 @@ components:
       description: |
         Deliberately narrow. A pharmacist needs the medication, the dose and
         the prescriber — not the diagnosis.
-      required: [dispensing_id, items, prescribed_by]
+      required: [dispensing_id, prescription_id, valid_until, patient_display_name, prescribed_by, pharmacy, items]
       properties:
         dispensing_id: { type: string, format: uuid }
         prescription_id: { type: string, format: uuid }
         patient_display_name: { type: string }
         prescribed_by: { type: string }
         prescribed_at: { type: string, format: date-time }
+        valid_until: { type: string, format: date-time }
+        pharmacy:
+          type: object
+          required: [id, name]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
         items:
           type: array
-          items: { $ref: '#/components/schemas/PrescriptionItem' }
+          items: { $ref: '#/components/schemas/PharmacistDispensingItem' }
+
+    PharmacistDispensingItem:
+      type: object
+      required: [id, medication_name, dosage, quantity_prescribed, quantity_dispensed, quantity_remaining, quantity_on_hand, inventory_status]
+      properties:
+        id: { type: string, format: uuid }
+        medication_name: { type: string }
+        dosage: { type: string }
+        frequency_per_day: { type: integer }
+        duration_days: { type: integer }
+        instructions: { type: [string, 'null'] }
+        quantity_prescribed: { type: integer, minimum: 1 }
+        quantity_dispensed: { type: integer, minimum: 0 }
+        quantity_remaining: { type: [integer, 'null'], minimum: 0 }
+        quantity_on_hand: { type: [integer, 'null'], minimum: 0 }
+        inventory_status: { type: string, enum: [in_stock, low_stock, out_of_stock, unknown] }
+
+    PrescriptionFulfillment:
+      type: object
+      required: [prescription_id, status, fulfilment_status, valid_until, facility_pharmacy, items, dispensing_history]
+      properties:
+        prescription_id: { type: string, format: uuid }
+        status: { type: string, enum: [active, completed, discontinued] }
+        fulfilment_status: { type: string, enum: [complete, validity_unspecified, quantity_unspecified, expired, cancelled, partial, not_dispensed] }
+        valid_until: { type: [string, 'null'], format: date-time }
+        facility_pharmacy:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [id, name, items]
+              properties:
+                id: { type: string, format: uuid }
+                name: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [prescription_item_id, medication_name, quantity_remaining, quantity_on_hand, availability, last_reported_at]
+                    properties:
+                      prescription_item_id: { type: string, format: uuid }
+                      medication_name: { type: string }
+                      quantity_remaining: { type: [integer, 'null'], minimum: 0 }
+                      quantity_on_hand: { type: [integer, 'null'], minimum: 0 }
+                      availability: { type: string, enum: [available, partially_available, unavailable, unknown] }
+                      last_reported_at: { type: [string, 'null'], format: date-time }
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, medication_name, dosage, quantity_prescribed, quantity_dispensed, quantity_remaining, status]
+            properties:
+              id: { type: string, format: uuid }
+              medication_name: { type: string }
+              dosage: { type: string }
+              frequency_per_day: { type: integer }
+              duration_days: { type: integer }
+              quantity_prescribed: { type: [integer, 'null'], minimum: 1 }
+              quantity_dispensed: { type: integer, minimum: 0 }
+              quantity_remaining: { type: [integer, 'null'], minimum: 0 }
+              status: { type: string, enum: [dispensed, not_dispensed, partially_dispensed, quantity_unspecified] }
+        dispensing_history:
+          type: array
+          items:
+            type: object
+            required: [dispensing_id, pharmacy, dispensed_at, status, items]
+            properties:
+              dispensing_id: { type: string, format: uuid }
+              pharmacy: { $ref: '#/components/schemas/Pharmacy' }
+              dispensed_at: { type: [string, 'null'], format: date-time }
+              status: { type: string, enum: [partial, complete] }
+              items:
+                type: array
+                items:
+                  type: object
+                  required: [prescription_item_id, medication_name, quantity_dispensed]
+                  properties:
+                    prescription_item_id: { type: string, format: uuid }
+                    medication_name: { type: string }
+                    quantity_dispensed: { type: integer, minimum: 1 }
 
     DispensingRecord:
       type: object

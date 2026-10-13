@@ -40,6 +40,24 @@ export function assertLocalAuthSeedEnvironment(input: Pick<AuthSecurityInput, 'N
   }
 }
 
+export function assertLocalPharmacyFixtureTarget(input: {
+  NODE_ENV?: string;
+  DATABASE_URL?: string;
+  currentDatabase: string | null;
+  serverAddress: string | null;
+  serverPort: number | null;
+}): void {
+  assertLocalAuthSeedEnvironment(input);
+  const url = new URL(input.DATABASE_URL!);
+  const expectedDatabase = decodeURIComponent(url.pathname.replace(/^\//, ''));
+  const actualAddress = (input.serverAddress ?? '').toLowerCase().replace(/^::ffff:/, '').replace(/\/\d+$/, '');
+  const isLoopback = ['127.0.0.1', '::1'].includes(actualAddress);
+
+  if (input.currentDatabase !== expectedDatabase || input.serverPort !== Number(url.port) || !isLoopback) {
+    throw new Error('Pharmacy acceptance fixtures require the connected database identity to match the local non-5432 development/test URL.');
+  }
+}
+
 /**
  * Resolves the three OTP development capabilities independently. Missing or
  * unrecognized environments fail closed; callers never receive a dev bypass.

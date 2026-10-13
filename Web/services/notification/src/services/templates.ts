@@ -29,6 +29,15 @@ const TEMPLATES: Record<string, Partial<Record<LanguageCode, Template>>> = {
     sw: () => 'A-health: Kuna taarifa mpya ya rufaa yako. Fungua app kuangalia hali na hatua zinazofuata.',
     en: () => 'A-health: Your referral has an update. Open the app to view its status and next steps.',
   },
+  // Deliberately generic: prescription and medication details never go to ordinary SMS.
+  'prescription.handoff_ready': {
+    sw: () => 'A-health: Agizo lako lina taarifa mpya. Fungua app kwa maelezo salama.',
+    en: () => 'A-health: Your prescription has a secure update. Open the app for details.',
+  },
+  'prescription.fulfilment_update': {
+    sw: () => 'A-health: Agizo lako la dawa limesasishwa. Fungua app kwa maelezo salama.',
+    en: () => 'A-health: Your prescription fulfilment has changed. Open the app for details.',
+  },
   'adherence.reminder': {
     sw: () => 'A-health: Ni wakati wa dawa yako. Jibu 1 ikiwa umetumia, 2 ikiwa hujatumia.',
     en: () => 'A-health: It is time for your medicine. Reply 1 if taken, 2 if not.',

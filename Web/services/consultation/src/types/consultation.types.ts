@@ -44,9 +44,11 @@ export const completeSchema = z.object({
             frequency_per_day: z.number().int().min(1).max(12),
             duration_days: z.number().int().min(1).max(365),
             instructions: z.string().max(500).optional(),
+            quantity_prescribed: z.number().int().min(1).max(100000).optional(),
           }),
         )
         .min(1),
+      valid_until: z.string().date().optional(),
     })
     .optional(),
   follow_up_cycle: z
