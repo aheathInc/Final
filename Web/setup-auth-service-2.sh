@@ -5,6 +5,9 @@
 #
 set -euo pipefail
 
+echo "This initial Auth generator is retired; it would overwrite the maintained security-hardened service. Use the tracked services/auth source and scripts/local/bootstrap-env.ps1 instead." >&2
+exit 1
+
 ROOT="$(pwd)"
 SVC="$ROOT/services/auth"
 

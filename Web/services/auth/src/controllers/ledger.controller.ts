@@ -3,7 +3,7 @@ import { z } from 'zod';
 import * as ledger from '../services/ledger.service.js';
 
 const listQuery = z.object({
-  category: z.enum(['consent', 'verification', 'break_glass', 'collaboration']).optional(),
+  category: z.enum(['consent', 'verification', 'break_glass', 'collaboration', 'referral']).optional(),
   cursor: z.string().regex(/^[1-9][0-9]*$/).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });

@@ -25,6 +25,10 @@ const TEMPLATES: Record<string, Partial<Record<LanguageCode, Template>>> = {
     sw: () => 'A-health: Una taarifa mpya. Fungua app au piga *150*88# kwa maelezo.',
     en: () => 'A-health: You have an update. Open the app or dial *150*88# for details.',
   },
+  'referral.update': {
+    sw: () => 'A-health: Kuna taarifa mpya ya rufaa yako. Fungua app kuangalia hali na hatua zinazofuata.',
+    en: () => 'A-health: Your referral has an update. Open the app to view its status and next steps.',
+  },
   'adherence.reminder': {
     sw: () => 'A-health: Ni wakati wa dawa yako. Jibu 1 ikiwa umetumia, 2 ikiwa hujatumia.',
     en: () => 'A-health: It is time for your medicine. Reply 1 if taken, 2 if not.',

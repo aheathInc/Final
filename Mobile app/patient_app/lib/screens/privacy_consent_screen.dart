@@ -41,6 +41,8 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
   bool _busy = false;
   List<Map<String, dynamic>> _consents = [];
   List<Map<String, dynamic>> _auditHistory = [];
+  List<Map<String, dynamic>> _facilities = [];
+  List<Map<String, dynamic>> _patientConsultations = [];
 
   @override
   void initState() {
@@ -74,10 +76,29 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
       if (!mounted) return;
       setState(() {
         _profileId = profileId;
-        _consents = results[0] as List<Map<String, dynamic>>;
-        _auditHistory = results[1] as List<Map<String, dynamic>>;
+        _consents = results[0];
+        _auditHistory = results[1];
         _loading = false;
       });
+      try {
+        final options = await Future.wait([
+          Api.get('/facilities', query: {'limit': 100}),
+          Api.get('/consultations', query: {'limit': 100}),
+        ]);
+        final facilityRows = options[0] is Map ? options[0]['data'] : null;
+        final consultationRows = options[1] is Map ? options[1]['data'] : null;
+        if (!mounted) return;
+        setState(() {
+          _facilities = facilityRows is List
+              ? facilityRows.whereType<Map>().map((row) => Map<String, dynamic>.from(row)).toList()
+              : [];
+          _patientConsultations = consultationRows is List
+              ? consultationRows.whereType<Map>().map((row) => Map<String, dynamic>.from(row)).toList()
+              : [];
+        });
+      } catch (_) {
+        // Consent history remains usable when facility/case pickers are offline.
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -186,6 +207,20 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
   }
 
+  List<Map<String, dynamic>> get _threadOptions {
+    final seen = <String>{};
+    return _patientConsultations.where((row) {
+      final id = row['care_thread_id'];
+      return id is String && seen.add(id);
+    }).toList();
+  }
+
+  String _threadLabel(Map<String, dynamic> row) {
+    final summary = row['symptom_text'] as String?;
+    if (summary == null || summary.isEmpty) return 'Mazungumzo ya huduma';
+    return summary.length > 42 ? '${summary.substring(0, 42)}…' : summary;
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Faragha na ruhusa')),
@@ -234,14 +269,30 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
               ),
               if (_grantee == 'clinician' || _grantee == 'facility') ...[
                 const SizedBox(height: 10),
-                TextField(
-                  controller: _recipientId,
-                  decoration: InputDecoration(
-                    labelText: _grantee == 'clinician'
-                        ? 'Kitambulisho cha clinician'
-                        : 'Kitambulisho cha facility',
+                if (_grantee == 'facility' && _scope == 'current_thread' && _facilities.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    initialValue: _facilities.any((row) => row['id'] == _recipientId.text)
+                        ? _recipientId.text
+                        : null,
+                    decoration: const InputDecoration(labelText: 'Kituo kitakachopokea rufaa'),
+                    items: [
+                      for (final row in _facilities)
+                        DropdownMenuItem(
+                          value: row['id'] as String,
+                          child: Text(row['name'] as String? ?? 'Kituo'),
+                        ),
+                    ],
+                    onChanged: _busy ? null : (value) => _recipientId.text = value ?? '',
+                  )
+                else
+                  TextField(
+                    controller: _recipientId,
+                    decoration: InputDecoration(
+                      labelText: _grantee == 'clinician'
+                          ? 'Kitambulisho cha clinician'
+                          : 'Kitambulisho cha facility',
+                    ),
                   ),
-                ),
               ],
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
@@ -258,12 +309,35 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
                     : (value) => setState(() => _scope = value ?? _scope),
               ),
               const SizedBox(height: 10),
-              TextField(
-                controller: _threadId,
-                decoration: const InputDecoration(
-                  labelText: 'Kitambulisho cha thread (hiari)',
+              if (_scope == 'current_thread' && _patientConsultations.isNotEmpty)
+                DropdownButtonFormField<String>(
+                initialValue: _threadOptions.any((row) => row['care_thread_id'] == _threadId.text)
+                      ? _threadId.text
+                      : null,
+                  decoration: InputDecoration(
+                    labelText: _grantee == 'facility'
+                        ? 'Mazungumzo yatakayotumika kwa ruhusa ya rufaa'
+                        : 'Mazungumzo ya huduma',
+                  ),
+                  items: [
+                    for (final row in _threadOptions)
+                      if (row['care_thread_id'] is String)
+                        DropdownMenuItem(
+                          value: row['care_thread_id'] as String,
+                          child: Text(_threadLabel(row)),
+                        ),
+                  ],
+                  onChanged: _busy ? null : (value) => _threadId.text = value ?? '',
+                )
+              else
+                TextField(
+                  controller: _threadId,
+                  decoration: InputDecoration(
+                    labelText: _scope == 'current_thread'
+                        ? 'Kitambulisho cha thread (kinahitajika)'
+                        : 'Kitambulisho cha thread (hiari)',
+                  ),
                 ),
-              ),
               const SizedBox(height: 10),
               TextField(
                 controller: _reason,

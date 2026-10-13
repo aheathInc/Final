@@ -4,10 +4,11 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import { appendAudit, canonical, sha256 } from '@a-health/http';
 import * as auth from '../services/auth.service.js';
+import { env } from '../config/env.js';
 import { verifyAuditChain } from '../services/audit.service.js';
 import { listLedgerEvents, verifyLedger } from '../services/ledger.service.js';
 import { AppError } from '../utils/errors.js';
-import { assertSafeDatabase, cleanupPhone, codeOf, meta, testPhone } from './helpers.js';
+import { assertSafeDatabase, cleanupPhone, codeOf, meta, testPhone, wrongOtpCode } from './helpers.js';
 
 assertSafeDatabase();
 
@@ -80,11 +81,18 @@ describe('otp verification', () => {
     assert.equal(user?.status, 'active');
   });
 
-  it('allows the development bypass code and returns profile details', async () => {
+  it('rejects a non-issued code even in local test mode', async () => {
     const phone = track(testPhone());
-    const challenge = await auth.requestOtp(phone, 'sms');
-    const session = await auth.verifyOtp(challenge.challenge_id, '000000', 'test-device', meta);
+    const challenge = await auth.registerPatient({ phone_number: phone, preferred_language: 'sw' }, meta);
+    const issuedCode = codeOf(challenge);
+    const lastDigit = Number(issuedCode.at(-1));
+    const wrongCode = `${issuedCode.slice(0, -1)}${lastDigit === 9 ? 0 : lastDigit + 1}`;
 
+    await assert.rejects(
+      () => auth.verifyOtp(challenge.challenge_id, wrongCode, 'test-device', meta),
+      (error: AppError) => error.code === 'OTP_INVALID',
+    );
+    const session = await auth.verifyOtp(challenge.challenge_id, issuedCode, 'test-device', meta);
     assert.ok(session.access_token);
     assert.ok(session.refresh_token);
     assert.ok(session.user);
@@ -99,7 +107,7 @@ describe('otp verification', () => {
       meta,
     );
     await assert.rejects(
-      () => auth.verifyOtp(challenge.challenge_id, '111111', undefined, meta),
+      () => auth.verifyOtp(challenge.challenge_id, wrongOtpCode(codeOf(challenge)), undefined, meta),
       (e: AppError) => ['OTP_INVALID', 'OTP_ATTEMPTS_EXCEEDED'].includes(e.code),
     );
     const row = await prisma.otpChallenge.findUniqueOrThrow({
@@ -115,7 +123,7 @@ describe('otp verification', () => {
       meta,
     );
     const real = codeOf(challenge);
-    const wrong = real === '111111' ? '222222' : '111111';
+    const wrong = wrongOtpCode(real);
 
     for (let i = 0; i < 5; i += 1) {
       await auth.verifyOtp(challenge.challenge_id, wrong, undefined, meta).catch(() => undefined);
@@ -189,6 +197,39 @@ describe('refresh token rotation', () => {
       where: { userId: user.id, revokedAt: null },
     });
     assert.equal(live, 0, 'every token in the family must be revoked');
+  });
+});
+
+describe('OTP request rate limiting', () => {
+  it('rejects requests beyond the configured rolling-hour limit', async () => {
+    const phone = track(testPhone());
+    for (let request = 0; request < env.OTP_REQUESTS_PER_HOUR; request += 1) {
+      await auth.requestOtp(phone, 'sms');
+    }
+
+    await assert.rejects(
+      () => auth.requestOtp(phone, 'sms'),
+      (error: AppError) => error.code === 'RATE_LIMITED',
+    );
+  });
+});
+
+describe('logout', () => {
+  it('revokes refresh tokens for the current device', async () => {
+    const phone = track(testPhone());
+    const session = await registerAndVerify(phone);
+    const user = await prisma.user.findUniqueOrThrow({ where: { phoneNumber: phone } });
+
+    await auth.logout(user.id, 'test-device', meta);
+
+    await assert.rejects(
+      () => auth.refreshSession(session.refresh_token, meta),
+      (error: AppError) => error.code === 'TOKEN_INVALID',
+    );
+    assert.equal(
+      await prisma.refreshToken.count({ where: { userId: user.id, revokedAt: null } }),
+      0,
+    );
   });
 });
 

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api, errorMessage } from '@/lib/api';
 import { Badge, Card, Empty } from '@/components/ui';
 
-type Category = 'all' | 'consent' | 'verification' | 'break_glass';
+type Category = 'all' | 'consent' | 'verification' | 'break_glass' | 'collaboration' | 'referral';
 interface AuditEvent {
   seq: string;
   category: Exclude<Category, 'all'>;
@@ -21,6 +21,8 @@ const labels: Record<Exclude<Category, 'all'>, string> = {
   consent: 'Consent',
   verification: 'Clinician verification',
   break_glass: 'Emergency access',
+  collaboration: 'Clinical collaboration',
+  referral: 'Digital referrals',
 };
 
 export function AuditLedgerPanel({ events, unavailable }: { events: AuditEvent[]; unavailable: boolean }) {
@@ -61,6 +63,8 @@ export function AuditLedgerPanel({ events, unavailable }: { events: AuditEvent[]
               <option value="consent">Consent</option>
               <option value="verification">Clinician verification</option>
               <option value="break_glass">Emergency access</option>
+              <option value="collaboration">Clinical collaboration</option>
+              <option value="referral">Digital referrals</option>
             </select>
           </label>
           <button

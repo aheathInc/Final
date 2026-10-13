@@ -23,7 +23,11 @@ set -euo pipefail
 ROOT="$(pwd)"
 [ -f "$ROOT/pnpm-workspace.yaml" ] || { echo "Run this from the repo root."; exit 1; }
 
-DB_URL="${DATABASE_URL:-postgresql://ahealth:ahealth@localhost:5432/ahealth_dev?schema=public}"
+DB_URL="${DATABASE_URL:-}"
+if [ -z "$DB_URL" ]; then
+  echo "Set DATABASE_URL to the isolated local AHP development database before running this setup."
+  exit 1
+fi
 
 # Reuse an existing secret if any service already has one, so re-running this
 # never invalidates sessions that are already working.
@@ -73,7 +77,9 @@ for name in "${!PORTS[@]}"; do
     # service's own env schema.
     case "$name" in
       auth)
+        echo "AUTH_LOCAL_OTP_MODE=true"
         echo "OTP_ECHO_IN_RESPONSE=true"
+        echo "OTP_LOG_TO_CONSOLE=false"
         ;;
       notification)
         echo "SMS_PROVIDER=console"

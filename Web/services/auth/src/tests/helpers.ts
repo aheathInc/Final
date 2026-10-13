@@ -31,23 +31,29 @@ export function testPhone(): string {
 export const meta = { ip: '127.0.0.1', requestId: 'test' };
 
 /**
- * Reads the code out of the challenge response.
+ * Reads the code from the explicitly authorized local development/test echo.
  *
  * There is deliberately no way to recover it from the stored hash. An earlier
- * version of this helper tried brute force over the six-digit space, which is
- * roughly eight hours at bcrypt cost 12 — the cost factor doing exactly what
- * it is there to do. Tests read the code the same way a developer does, from
- * the dev echo.
+ * version of this helper tried brute force over the six-digit space. Tests
+ * use the same local-only response echo as the development acceptance flow;
+ * plaintext console logging and verification bypasses are separate and off.
  */
 export function codeOf(challenge: { dev_code?: string }): string {
   if (!challenge.dev_code) {
     throw new Error(
-      'No dev_code in the challenge. Set OTP_ECHO_IN_RESPONSE=true in services/auth/.env to run these tests.',
+      'No dev_code in the challenge. For local tests, explicitly enable AUTH_LOCAL_OTP_MODE and OTP_ECHO_IN_RESPONSE with a local ahealth_test database.',
     );
   }
   return challenge.dev_code;
 }
 
+export function wrongOtpCode(code: string): string {
+  if (!/^\d{6}$/.test(code)) {
+    throw new Error('Expected a six-digit OTP from the local test challenge.');
+  }
+  const firstDigit = code[0] === '0' ? '1' : '0';
+  return String(firstDigit) + code.slice(1);
+}
 /** Removes everything a test created, in FK-safe order. */
 export async function cleanupPhone(phone: string): Promise<void> {
   const user = await prisma.user.findUnique({

@@ -29,6 +29,7 @@ import 'privacy_consent_screen.dart';
 import 'feedback_screen.dart';
 import 'insurance_payments_screen.dart';
 import 'assistant_screen.dart';
+import 'referrals_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -317,6 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
               'Miadi',
               const AppointmentsScreen(),
             ),
+            _tile(Icons.alt_route, 'Rufaa Zangu', const ReferralsScreen()),
             _tile(
               Icons.biotech_outlined,
               'Vipimo na majibu',

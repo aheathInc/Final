@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { randomInt } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '@a-health/database';
+import { assertLocalAuthSeedEnvironment } from '../src/config/security.js';
 
 /**
  * Development seed: one clinician you can log in as, and three waiting cases
@@ -17,7 +18,7 @@ import { prisma } from '@a-health/database';
  */
 const CLINICIAN_EMAIL = 'daktari@dev.local';
 function readSeedPassword(): string {
-  if (process.env.NODE_ENV === 'production') throw new Error('Development seed cannot run in production.');
+  assertLocalAuthSeedEnvironment({ NODE_ENV: process.env.NODE_ENV, DATABASE_URL: process.env.DATABASE_URL });
   const value = process.env.AHP_SEED_CLINICIAN_PASSWORD;
   if (!value) throw new Error('AHP_SEED_CLINICIAN_PASSWORD is required to run the clinician seed.');
   return value;

@@ -6,14 +6,14 @@ This runbook describes a controlled release for the repository baseline `4a25d94
 
 - A named release owner, a maintenance window, an approved hosting/network design, TLS certificates, and an incident contact.
 - A managed PostgreSQL instance and a secret manager. Never copy local `.env`, `.env.local`, `.local`, or acceptance files to production.
-- Set `NODE_ENV=production` explicitly for every backend process. Several local schemas default to development mode when it is omitted.
+- Set `NODE_ENV=production` explicitly for every backend process. Auth refuses startup when `NODE_ENV` is missing or unrecognized; it does not infer development mode.
 - Set a high-entropy `JWT_SECRET` of at least 32 characters, and explicitly set the same `JWT_ISSUER` and `JWT_AUDIENCE` on every token issuer/verifier.
 - Set `NEXTAUTH_SECRET` and an HTTPS `NEXTAUTH_URL` for Staff Web. HTTPS makes its session cookies `Secure`, `HttpOnly`, and `SameSite=Lax`.
 - Set `DATABASE_URL`, all enabled service URLs, and `GATEWAY_SHARED_SECRET` (minimum 16 characters) through the secret manager. Do not use local defaults or values from examples.
 - Choose external providers deliberately. Production rejects the AI chat stub, SMS console provider, and payment console provider. A real provider URL/key must be supplied before enabling that integration.
 - Build the patient app with the deployed HTTPS gateway URL. The release build rejects local, insecure, blank, and nonstandard API URLs.
 
-Safe variable names and placeholders are in the tracked `.env.example` files. The seed-only `AHP_SEED_ADMIN_PASSWORD` and `AHP_SEED_CLINICIAN_PASSWORD` variables are for local development; development seed scripts refuse `NODE_ENV=production`. Do not seed synthetic users in production.
+Safe variable names and placeholders are in the tracked `.env.example` files. Auth requires a non-placeholder `JWT_SECRET` of at least 32 characters. Production startup rejects local OTP mode, response echo, and OTP console logging; all are disabled by default and require independent local/test opt-ins plus a local non-5432 AHP database. OTP verification always validates the stored challenge hash; no static verification bypass is available. Seed-only `AHP_SEED_ADMIN_PASSWORD` and `AHP_SEED_CLINICIAN_PASSWORD` are for local development; Auth demo seeds require explicit development/test mode and a local non-5432 `ahealth_dev` or `ahealth_test` database. Do not seed synthetic users in production.
 
 ## Locked dependency and build checks
 

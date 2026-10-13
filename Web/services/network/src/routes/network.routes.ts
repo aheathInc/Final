@@ -7,7 +7,7 @@ const tokens = createTokenService({
   secret: env.JWT_SECRET, issuer: env.JWT_ISSUER,
   audience: env.JWT_AUDIENCE, ttlSeconds: env.ACCESS_TOKEN_TTL_SECONDS,
 });
-const { requireAuth, requireVerifiedClinician } = createAuthGuards(tokens);
+const { requireAuth, requireRole, requireVerifiedClinician } = createAuthGuards(tokens);
 const idempotency = createIdempotency(env.IDEMPOTENCY_TTL_HOURS);
 
 export const networkRouter = Router();
@@ -37,3 +37,21 @@ networkRouter.get('/network/collaborations/:collaboration_id/case', requireAuth,
 networkRouter.get('/network/collaborations/:collaboration_id/messages', requireAuth, requireVerifiedClinician, c.listCollaborationMessages);
 networkRouter.post('/network/collaborations/:collaboration_id/messages', requireAuth, requireVerifiedClinician, idempotency, c.createCollaborationMessage);
 networkRouter.get('/network/collaborations/:collaboration_id', requireAuth, requireVerifiedClinician, c.getCollaboration);
+
+// Digital referrals are independent records with a separate, exact facility
+// consent. They do not inherit Phase A collaboration permission.
+networkRouter.get('/referrals', requireAuth, requireRole('patient'), c.listPatientReferrals);
+networkRouter.get('/referrals/cases', requireAuth, requireVerifiedClinician, c.listReferralCases);
+networkRouter.get('/referrals/authorizations', requireAuth, requireVerifiedClinician, c.listReferralAuthorizations);
+networkRouter.get('/referrals/source', requireAuth, requireVerifiedClinician, c.listSourceReferrals);
+networkRouter.get('/referrals/inbox', requireAuth, requireVerifiedClinician, c.listInboxReferrals);
+networkRouter.post('/referrals', requireAuth, requireVerifiedClinician, idempotency, c.createReferral);
+networkRouter.get('/referrals/:referral_id/summary', requireAuth, c.getReferralSummary);
+networkRouter.get('/referrals/:referral_id', requireAuth, c.getReferral);
+networkRouter.post('/referrals/:referral_id/submit', requireAuth, requireVerifiedClinician, idempotency, c.submitReferral);
+networkRouter.post('/referrals/:referral_id/receive', requireAuth, requireVerifiedClinician, idempotency, c.receiveReferral);
+networkRouter.post('/referrals/:referral_id/accept', requireAuth, requireVerifiedClinician, idempotency, c.acceptReferral);
+networkRouter.post('/referrals/:referral_id/decline', requireAuth, requireVerifiedClinician, idempotency, c.declineReferral);
+networkRouter.post('/referrals/:referral_id/start-care', requireAuth, requireVerifiedClinician, idempotency, c.startReferralCare);
+networkRouter.post('/referrals/:referral_id/complete', requireAuth, requireVerifiedClinician, idempotency, c.completeReferral);
+networkRouter.post('/referrals/:referral_id/cancel', requireAuth, idempotency, c.cancelReferral);

@@ -61,7 +61,10 @@ foreach ($name in $services.Keys) {
   $port = $services[$name]
   $actual = @('NODE_ENV=development', "PORT=$port", "DATABASE_URL=$dbUrl", "JWT_SECRET=$jwtSecret", 'JWT_ISSUER=a-health', 'JWT_AUDIENCE=a-health-api')
   $example = @('NODE_ENV=development', "PORT=$port", "DATABASE_URL=$dbExample", 'JWT_SECRET=replace-with-at-least-32-random-local-characters', 'JWT_ISSUER=a-health', 'JWT_AUDIENCE=a-health-api')
-  if ($name -eq 'auth') { $actual += 'OTP_ECHO_IN_RESPONSE=true'; $example += 'OTP_ECHO_IN_RESPONSE=true' }
+  if ($name -eq 'auth') {
+    $actual += @('AUTH_LOCAL_OTP_MODE=true', 'OTP_ECHO_IN_RESPONSE=true', 'OTP_LOG_TO_CONSOLE=false')
+    $example += @('AUTH_LOCAL_OTP_MODE=true', 'OTP_ECHO_IN_RESPONSE=true', 'OTP_LOG_TO_CONSOLE=false')
+  }
   if ($name -eq 'ai') { $actual += @('CHAT_PROVIDER=stub', 'TRANSCRIBE_PROVIDER=stub'); $example += @('CHAT_PROVIDER=stub', 'TRANSCRIBE_PROVIDER=stub') }
   if ($name -eq 'payment') { $actual += 'MOBILE_MONEY_PROVIDER=console'; $example += 'MOBILE_MONEY_PROVIDER=console' }
   $dir = Join-Path $root "services\$name"

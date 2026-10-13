@@ -1,10 +1,11 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { resolveAuthSecuritySettings } from './security.js';
 
 dotenv.config();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']),
   PORT: z.coerce.number().default(4001),
   SERVICE_NAME: z.string().default('auth'),
 
@@ -39,16 +40,19 @@ const envSchema = z.object({
    */
   REFRESH_RETENTION_DAYS: z.coerce.number().default(60),
 
-  // Development only: return the OTP in the response so you can test without
-  // an SMS provider. Refused when NODE_ENV is production.
-  OTP_ECHO_IN_RESPONSE: z
-    .string()
-    .default('false')
-    .transform((v) => v === 'true'),
+  AUTH_LOCAL_OTP_MODE: z.enum(['true', 'false']).default('false'),
+  OTP_ECHO_IN_RESPONSE: z.enum(['true', 'false']).default('false'),
+  OTP_LOG_TO_CONSOLE: z.enum(['true', 'false']).default('false'),
 });
 
-export const env = envSchema.parse(process.env);
-
-if (env.NODE_ENV === 'production' && env.OTP_ECHO_IN_RESPONSE) {
-  throw new Error('OTP_ECHO_IN_RESPONSE cannot be enabled in production.');
+const parsed = envSchema.safeParse(process.env);
+if (!parsed.success) {
+  throw new Error('Invalid Auth configuration. Set NODE_ENV explicitly and verify required settings; values are not shown.');
 }
+
+const security = resolveAuthSecuritySettings({ ...parsed.data, DATABASE_URL: parsed.data.DATABASE_URL });
+if (parsed.data.NODE_ENV === 'production' && /replace|placeholder|change[-_ ]?me|example/i.test(parsed.data.JWT_SECRET)) {
+  throw new Error('Invalid Auth configuration: production JWT_SECRET must be a non-placeholder secret.');
+}
+
+export const env = { ...parsed.data, ...security };

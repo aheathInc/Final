@@ -1,7 +1,7 @@
 import { prisma } from '@a-health/database';
 import { verifyAuditChain } from '@a-health/http';
 
-export type LedgerCategory = 'consent' | 'verification' | 'break_glass' | 'collaboration';
+export type LedgerCategory = 'consent' | 'verification' | 'break_glass' | 'collaboration' | 'referral';
 
 const ACTIONS: Record<LedgerCategory, string[]> = {
   consent: ['consent.granted', 'consent.revoked'],
@@ -17,6 +17,11 @@ const ACTIONS: Record<LedgerCategory, string[]> = {
     'provider_collaboration.message_recorded',
     'provider_collaboration.revoked',
     'provider_collaboration.expired',
+  ],
+  referral: [
+    'referral.created', 'referral.submitted', 'referral.received', 'referral.accepted',
+    'referral.declined', 'referral.care_started', 'referral.completed', 'referral.cancelled',
+    'referral.expired', 'referral.access_denied',
   ],
 };
 
@@ -55,6 +60,23 @@ function safeDetails(action: string, value: unknown): Record<string, string> {
           reason === 'participant_revoked'
         ? { reason }
         : {}),
+    };
+  }
+  if (ACTIONS.referral.includes(action)) {
+    const from = metadata.from;
+    const to = metadata.to;
+    const outcome = metadata.outcome_status;
+    const reason = metadata.reason;
+    const states = ['draft', 'submitted', 'received', 'accepted', 'declined', 'in_care', 'completed', 'cancelled', 'expired'];
+    return {
+      ...(typeof from === 'string' && states.includes(from) ? { from } : {}),
+      ...(typeof to === 'string' && states.includes(to) ? { to } : {}),
+      ...(outcome === 'care_provided' || outcome === 'redirected' || outcome === 'unable_to_complete'
+        ? { outcome_status: outcome } : {}),
+      ...(reason === 'patient_consent_revoked' || reason === 'patient_cancelled' ||
+          reason === 'source_cancelled' || reason === 'authorization_unavailable' ||
+          reason === 'referral_expired' || reason === 'participant_not_authorized'
+        ? { reason } : {}),
     };
   }
   if (action === 'emergency.context_break_glass_access') {
@@ -113,6 +135,7 @@ function categoryFor(action: string): LedgerCategory {
   if (ACTIONS.consent.includes(action)) return 'consent';
   if (ACTIONS.verification.includes(action)) return 'verification';
   if (ACTIONS.collaboration.includes(action)) return 'collaboration';
+  if (ACTIONS.referral.includes(action)) return 'referral';
   return 'break_glass';
 }
 

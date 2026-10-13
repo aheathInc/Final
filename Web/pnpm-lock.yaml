@@ -909,6 +909,9 @@ importers:
       '@a-health/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@a-health/notification':
+        specifier: workspace:*
+        version: link:../notification
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -977,6 +980,9 @@ importers:
       '@a-health/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@a-health/notification':
+        specifier: workspace:*
+        version: link:../notification
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2

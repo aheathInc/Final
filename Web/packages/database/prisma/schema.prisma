@@ -126,6 +126,30 @@ enum ClinicalCollaborationScope {
   consultation_summary
 }
 
+enum DigitalReferralStatus {
+  draft
+  submitted
+  received
+  accepted
+  declined
+  in_care
+  completed
+  cancelled
+  expired
+}
+
+enum DigitalReferralPriority {
+  routine
+  urgent
+  emergency
+}
+
+enum DigitalReferralOutcomeStatus {
+  care_provided
+  redirected
+  unable_to_complete
+}
+
 enum CareThreadStatus {
   open
   closed
@@ -324,6 +348,7 @@ model PatientProfile {
   followUpCycles FollowUpCycle[]
   consents       PatientConsent[]
   medicalRecords MedicalRecord[]
+  digitalReferrals DigitalReferral[]
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -406,6 +431,10 @@ model ClinicianProfile {
   collaborationsRequested ProviderClinicalCollaboration[] @relation("CollaborationRequester")
   collaborationsReceived  ProviderClinicalCollaboration[] @relation("CollaborationInvitee")
   collaborationMessages   ProviderClinicalCollaborationMessage[]
+  referralsSent            DigitalReferral[] @relation("ReferralSourceClinician")
+  referralsReceived        DigitalReferral[] @relation("ReferralDestinationClinician")
+  referralsAcknowledged    DigitalReferral[] @relation("ReferralReceivedClinician")
+  referralOutcomes         DigitalReferralOutcome[]
 
   // The routing engine's candidate lookup. Partial index in a migration:
   //   WHERE verification_status = 'verified' AND is_available = true
@@ -443,6 +472,8 @@ model Facility {
   vaccinations        Vaccination[]
   incidentReports     IncidentReport[]
   emergencyArrivals   EmergencyRequest[]   @relation("EmergencyDestination")
+  referralsFrom       DigitalReferral[]    @relation("ReferralSourceFacility")
+  referralsTo         DigitalReferral[]    @relation("ReferralDestinationFacility")
 
   @@index([regionCode, type])
   @@map("facilities")
@@ -636,6 +667,7 @@ model ConsultationRequest {
   note           ConsultationNote?
   messages       Message[]
   clinicalCollaborations ProviderClinicalCollaboration[]
+  digitalReferrals DigitalReferral[]
   prescriptions  Prescription[]
   followUpCycles FollowUpCycle[]
 
@@ -955,6 +987,7 @@ model PatientConsent {
   careThread   CareThread? @relation(fields: [careThreadId], references: [id], onDelete: Cascade)
 
   clinicalCollaborations ProviderClinicalCollaboration[]
+  digitalReferrals DigitalReferral[]
 
   scope      ConsentScope
   allowed    Boolean      @default(true)
@@ -1459,6 +1492,8 @@ model Department {
   isActive   Boolean    @default(true) @map("is_active")
 
   clinicians ClinicianProfile[]
+  referralsFrom DigitalReferral[] @relation("ReferralSourceDepartment")
+  referralsTo   DigitalReferral[] @relation("ReferralDestinationDepartment")
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -1530,6 +1565,81 @@ model ProviderClinicalCollaborationMessage {
 
   @@index([collaborationId, createdAt])
   @@map("provider_clinical_collaboration_messages")
+}
+
+// A referral coordinates a bounded transfer of one consultation to one
+// destination facility. The snapshot is sourced from that consultation; it is
+// not a copy of the patient's longitudinal record.
+model DigitalReferral {
+  id String @id @default(uuid()) @db.Uuid
+
+  patientProfileId String         @map("patient_profile_id") @db.Uuid
+  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  consultationId   String              @map("consultation_id") @db.Uuid
+  consultation     ConsultationRequest @relation(fields: [consultationId], references: [id], onDelete: Restrict)
+
+  sourceClinicianId String           @map("source_clinician_id") @db.Uuid
+  sourceClinician   ClinicianProfile @relation("ReferralSourceClinician", fields: [sourceClinicianId], references: [id], onDelete: Restrict)
+  sourceFacilityId  String           @map("source_facility_id") @db.Uuid
+  sourceFacility    Facility         @relation("ReferralSourceFacility", fields: [sourceFacilityId], references: [id], onDelete: Restrict)
+  sourceDepartmentId String?         @map("source_department_id") @db.Uuid
+  sourceDepartment   Department?     @relation("ReferralSourceDepartment", fields: [sourceDepartmentId], references: [id], onDelete: SetNull)
+
+  destinationFacilityId String   @map("destination_facility_id") @db.Uuid
+  destinationFacility   Facility @relation("ReferralDestinationFacility", fields: [destinationFacilityId], references: [id], onDelete: Restrict)
+  destinationDepartmentId String?     @map("destination_department_id") @db.Uuid
+  destinationDepartment   Department? @relation("ReferralDestinationDepartment", fields: [destinationDepartmentId], references: [id], onDelete: SetNull)
+  destinationClinicianId String?           @map("destination_clinician_id") @db.Uuid
+  destinationClinician   ClinicianProfile? @relation("ReferralDestinationClinician", fields: [destinationClinicianId], references: [id], onDelete: Restrict)
+  receivedByClinicianId String?             @map("received_by_clinician_id") @db.Uuid
+  receivedByClinician   ClinicianProfile?   @relation("ReferralReceivedClinician", fields: [receivedByClinicianId], references: [id], onDelete: Restrict)
+
+  patientConsentId String         @map("patient_consent_id") @db.Uuid
+  patientConsent   PatientConsent @relation(fields: [patientConsentId], references: [id], onDelete: Restrict)
+
+  purpose         String                    @db.VarChar(1000)
+  clinicalSummary String                    @map("clinical_summary") @db.VarChar(4000)
+  priority        DigitalReferralPriority   @default(routine)
+  status          DigitalReferralStatus     @default(draft)
+  expiresAt       DateTime                  @map("expires_at")
+  submittedAt     DateTime?                 @map("submitted_at")
+  receivedAt      DateTime?                 @map("received_at")
+  acceptedAt      DateTime?                 @map("accepted_at")
+  declinedAt      DateTime?                 @map("declined_at")
+  declineReason   String?                   @map("decline_reason") @db.VarChar(500)
+  careStartedAt   DateTime?                 @map("care_started_at")
+  completedAt     DateTime?                 @map("completed_at")
+  cancelledAt     DateTime?                 @map("cancelled_at")
+  cancellationReason String?                @map("cancellation_reason") @db.VarChar(100)
+  outcome         DigitalReferralOutcome?
+
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([patientProfileId, createdAt], map: "digital_referrals_patient_created_idx")
+  @@index([sourceClinicianId, status, createdAt], map: "digital_referrals_source_status_created_idx")
+  @@index([destinationFacilityId, destinationDepartmentId, status, createdAt], map: "digital_referrals_destination_inbox_idx")
+  @@index([destinationClinicianId, status, createdAt], map: "digital_referrals_dest_clin_status_idx")
+  @@index([patientConsentId, status], map: "digital_referrals_consent_status_idx")
+  @@index([status, expiresAt], map: "digital_referrals_status_expires_idx")
+  @@map("digital_referrals")
+}
+
+model DigitalReferralOutcome {
+  id String @id @default(uuid()) @db.Uuid
+
+  referralId String          @unique @map("referral_id") @db.Uuid
+  referral   DigitalReferral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  receivingClinicianId String           @map("receiving_clinician_id") @db.Uuid
+  receivingClinician   ClinicianProfile @relation(fields: [receivingClinicianId], references: [id], onDelete: Restrict)
+
+  status                    DigitalReferralOutcomeStatus
+  followUpRecommendation    String? @map("follow_up_recommendation") @db.VarChar(1000)
+  patientInstructions       String? @map("patient_instructions") @db.VarChar(1000)
+  recordedAt                DateTime @default(now()) @map("recorded_at")
+
+  @@map("digital_referral_outcomes")
 }
 
 // ===========================================================================
