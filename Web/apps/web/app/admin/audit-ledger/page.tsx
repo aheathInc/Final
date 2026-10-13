@@ -5,7 +5,7 @@ import { AuditLedgerPanel } from '@/components/AuditLedgerPanel';
 
 interface AuditEvent {
   seq: string;
-  category: 'consent' | 'verification' | 'break_glass';
+  category: 'consent' | 'verification' | 'break_glass' | 'collaboration' | 'referral';
   event_type: string;
   actor_id: string | null;
   resource_type: string;
@@ -22,7 +22,7 @@ export default async function AuditLedgerPage() {
     <PageShell>
       <PageHeader
         title="Identity and consent audit ledger"
-        lede="Review consent, clinician verification and emergency break-glass events. Verification checks the full internal hash chain."
+        lede="Review consent, clinician verification, collaboration, referral and emergency access events. Verification checks the full internal hash chain."
       />
       <AuditLedgerPanel events={result?.data ?? []} unavailable={!result} />
     </PageShell>

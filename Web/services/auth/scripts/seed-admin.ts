@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { randomInt, randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { prisma } from '@a-health/database';
+import { assertLocalAuthSeedEnvironment } from '../src/config/security.js';
 
 /**
  * Operations seed. Keyed on one marker so re-running removes only what it
@@ -10,7 +11,7 @@ import { prisma } from '@a-health/database';
  */
 const ADMIN_EMAIL = 'msimamizi@dev.local';
 function readSeedPassword(): string {
-  if (process.env.NODE_ENV === 'production') throw new Error('Development seed cannot run in production.');
+  assertLocalAuthSeedEnvironment({ NODE_ENV: process.env.NODE_ENV, DATABASE_URL: process.env.DATABASE_URL });
   const value = process.env.AHP_SEED_ADMIN_PASSWORD;
   if (!value) throw new Error('AHP_SEED_ADMIN_PASSWORD is required to run the admin seed.');
   return value;

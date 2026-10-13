@@ -283,6 +283,66 @@ export interface ProviderClinicalCollaborationMessage {
   created_at: string;
 }
 
+export type DigitalReferralStatus =
+  | 'draft' | 'submitted' | 'received' | 'accepted' | 'declined'
+  | 'in_care' | 'completed' | 'cancelled' | 'expired';
+
+export interface DigitalReferral {
+  id: string;
+  status: DigitalReferralStatus;
+  priority: Urgency;
+  purpose: string;
+  clinical_summary: string | null;
+  consultation_id: string;
+  source: {
+    clinician: { clinician_id: string; full_name: string | null; specialty: string } | null;
+    facility: { id: string; name: string };
+    department: { id: string; name: string } | null;
+  };
+  destination: {
+    facility: { id: string; name: string };
+    department: { id: string; name: string } | null;
+    clinician: { clinician_id: string; full_name: string | null; specialty: string } | null;
+  };
+  received_by: { clinician_id: string; full_name: string | null; specialty: string } | null;
+  created_at: string;
+  updated_at: string;
+  expires_at: string;
+  submitted_at: string | null;
+  received_at: string | null;
+  accepted_at: string | null;
+  declined_at: string | null;
+  decline_reason: string | null;
+  care_started_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  outcome: {
+    id: string;
+    status: 'care_provided' | 'redirected' | 'unable_to_complete';
+    receiving_clinician: { clinician_id: string; full_name: string | null };
+    follow_up_recommendation: string | null;
+    patient_instructions: string | null;
+    recorded_at: string;
+  } | null;
+  version: number;
+}
+
+export interface ReferralCase {
+  consultation_id: string;
+  care_thread_id: string;
+  status: string;
+  priority: Urgency;
+  clinical_summary: string | null;
+  created_at: string;
+}
+
+export interface ReferralAuthorization {
+  consent_id: string;
+  facility_id: string;
+  facility_name: string;
+  expires_at: string | null;
+}
+
 export interface ClinicianDirectoryEntry {
   id: string;
   full_name: string | null;

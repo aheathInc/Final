@@ -20,6 +20,8 @@ Run once from PowerShell in `Web/`:
 
 It creates ignored `.env` files for the services used by the unified launcher and `apps/web/.env.local`. It generates local database, shared JWT, gateway and NextAuth secrets. Each generated env file has a sibling `.env.example` with placeholders. Existing local env files are preserved; if only some exist, the script stops for manual review.
 
+Auth requires an explicit `NODE_ENV`. Its local template separately opts into `AUTH_LOCAL_OTP_MODE=true` and `OTP_ECHO_IN_RESPONSE=true` so developers can receive an OTP through the local response flow. `OTP_LOG_TO_CONSOLE` remains false. Echo and plaintext logging are independent, disabled by default, and accepted only in an explicitly configured development/test process using local `ahealth_dev` or `ahealth_test` on a non-5432 port. Missing or invalid `NODE_ENV` fails Auth startup; it never enables development OTP behavior. Do not copy these settings into production.
+
 Install the locked workspace dependencies:
 
 ```powershell
@@ -61,7 +63,7 @@ docker compose --project-name ahealth-integration -f docker-compose.dev.yml stop
 
 The development and test databases start empty. Apply the existing migrations to both; no migration files are created by this setup:
 
-Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, reject production mode, and do not print them.
+Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, require explicit development/test mode plus a local non-5432 `ahealth_dev` or `ahealth_test` database, and do not print the passwords.
 
 ```powershell
 $line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1
@@ -74,7 +76,7 @@ Remove-Item Env:\DATABASE_URL
 
 Only after confirming the next commands target `ahealth_dev`, run the two existing auth-service development seeds. They create the clinician/admin accounts and related local queue/admin fixtures. Do not run them against the test database. The `AHP_STAFF_DEMO_V1` seed is separate and is not part of this bootstrap.
 
-Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, reject production mode, and do not print them.
+Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, require explicit development/test mode plus a local non-5432 `ahealth_dev` or `ahealth_test` database, and do not print the passwords.
 
 ```powershell
 $line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1
@@ -84,7 +86,7 @@ pnpm --filter @a-health/auth exec tsx scripts/seed-admin.ts
 Remove-Item Env:\DATABASE_URL
 ```
 
-The safe local stubs are explicit in code: AI and transcription use `stub`, mobile money uses `console`, and auth returns development OTPs. No real AI, SMS or payment credentials are needed. External delivery and provider calls are not tested by this setup.
+The safe local stubs are explicit in code: AI and transcription use `stub`, mobile money uses `console`, and Auth returns development OTPs only through the explicit local settings above. OTP verification always compares the issued code; no static development verification bypass exists. No real AI, SMS or payment credentials are needed. External delivery and provider calls are not tested by this setup.
 
 ## Start and stop the unified stack
 

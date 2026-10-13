@@ -3752,6 +3752,326 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
 
+  /referrals:
+    get:
+      tags: [network]
+      summary: List referrals visible to the authenticated patient
+      description: Returns only non-draft referrals for the patient's own profile, including patient-readable outcome details.
+      operationId: listMyReferrals
+      responses:
+        '200':
+          description: Patient's referrals
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [network]
+      summary: Create a draft referral for an involved consultation
+      description: Requires a verified source clinician, current case involvement, an active facility assignment and exact current-thread consent naming the destination facility. Only the submitted summary is shared.
+      operationId: createDigitalReferral
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DigitalReferralCreate' }
+      responses:
+        '201':
+          description: Draft referral created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /referrals/cases:
+    get:
+      tags: [network]
+      summary: List cases the verified clinician is involved in
+      description: Case summaries are limited to assigned or primary clinician cases.
+      operationId: listReferralCases
+      responses:
+        '200':
+          description: Involved cases
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ReferralCase' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /referrals/authorizations:
+    get:
+      tags: [network]
+      summary: List active facility consents for one involved case
+      description: Returns only active, non-break-glass current-thread grants naming an active facility; it does not inherit collaboration consent.
+      operationId: listReferralAuthorizations
+      parameters:
+        - name: consultation_id
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Facility authorizations for this case
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ReferralAuthorization' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /referrals/source:
+    get:
+      tags: [network]
+      summary: List referrals created by the authenticated clinician
+      operationId: listSourceReferrals
+      responses:
+        '200':
+          description: Referrals created by this clinician
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /referrals/inbox:
+    get:
+      tags: [network]
+      summary: List incoming referrals for the clinician's facility assignment
+      description: Facility and department membership are checked server-side; referral summary is returned only while exact consent remains active.
+      operationId: listReferralInbox
+      responses:
+        '200':
+          description: Incoming referrals
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /referrals/{referral_id}:
+    parameters:
+      - name: referral_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [network]
+      summary: Read referral metadata and currently authorized details
+      description: Patient, source clinician and eligible destination clinicians are checked on every read. Clinical summary is omitted after exact consent becomes unavailable.
+      operationId: getDigitalReferral
+      responses:
+        '200':
+          description: Referral details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /referrals/{referral_id}/summary:
+    get:
+      tags: [network]
+      summary: Read the authorized minimum necessary summary
+      operationId: getDigitalReferralSummary
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Referral summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferralSummary' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /referrals/{referral_id}/submit:
+    post:
+      tags: [network]
+      summary: Submit a draft referral
+      operationId: submitDigitalReferral
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Persisted referral status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /referrals/{referral_id}/receive:
+    post:
+      tags: [network]
+      summary: Acknowledge referral receipt at the destination
+      operationId: receiveDigitalReferral
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Receipt recorded; this does not mean acceptance
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /referrals/{referral_id}/accept:
+    post:
+      tags: [network]
+      summary: Accept a received referral
+      operationId: acceptDigitalReferral
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Accepted by the assigned receiving clinician; care has not started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /referrals/{referral_id}/decline:
+    post:
+      tags: [network]
+      summary: Decline a received referral
+      operationId: declineDigitalReferral
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 3, maxLength: 500 }
+      responses:
+        '200':
+          description: Declined referral with recorded reason
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /referrals/{referral_id}/start-care:
+    post:
+      tags: [network]
+      summary: Mark receiving care started
+      operationId: startDigitalReferralCare
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Care-start timestamp recorded by the accepting clinician
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /referrals/{referral_id}/complete:
+    post:
+      tags: [network]
+      summary: Complete an in-care referral with persisted outcome feedback
+      operationId: completeDigitalReferral
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DigitalReferralOutcomeInput' }
+      responses:
+        '200':
+          description: Completion and outcome persisted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /referrals/{referral_id}/cancel:
+    post:
+      tags: [network]
+      summary: Cancel a draft, submitted or received referral
+      description: Only the source clinician or owning patient may cancel. Consent revocation cancels active referrals in the same transaction.
+      operationId: cancelDigitalReferral
+      parameters:
+        - name: referral_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Cancelled referral
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferral' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   # ----------------------------------------------------------------------
   # Health education
   # ----------------------------------------------------------------------
@@ -5001,6 +5321,9 @@ components:
         - COLLABORATION_ALREADY_EXISTS
         - COLLABORATION_EXPIRED
         - COLLABORATION_NOT_ACTIVE
+        - REFERRAL_ALREADY_EXISTS
+        - REFERRAL_CONSENT_REQUIRED
+        - REFERRAL_DESTINATION_INELIGIBLE
         - CONSULTATION_ALREADY_ASSIGNED
         - CARE_THREAD_CLOSED
         - SLOT_UNAVAILABLE
@@ -6492,6 +6815,148 @@ components:
       properties:
         facility_id: { type: [string, 'null'], format: uuid }
         department_id: { type: [string, 'null'], format: uuid }
+
+    ReferralCase:
+      type: object
+      required: [consultation_id, care_thread_id, status, priority, created_at]
+      properties:
+        consultation_id: { type: string, format: uuid }
+        care_thread_id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ConsultationStatus' }
+        priority: { $ref: '#/components/schemas/UrgencyLevel' }
+        clinical_summary: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+
+    ReferralAuthorization:
+      type: object
+      required: [consent_id, facility_id, facility_name, expires_at]
+      properties:
+        consent_id: { type: string, format: uuid }
+        facility_id: { type: string, format: uuid }
+        facility_name: { type: string }
+        expires_at: { type: [string, 'null'], format: date-time }
+
+    DigitalReferralCreate:
+      type: object
+      required: [consultation_id, destination_facility_id, patient_consent_id, purpose, clinical_summary]
+      properties:
+        consultation_id: { type: string, format: uuid }
+        destination_facility_id: { type: string, format: uuid }
+        destination_department_id: { type: string, format: uuid }
+        destination_clinician_id: { type: string, format: uuid }
+        patient_consent_id: { type: string, format: uuid }
+        purpose: { type: string, minLength: 5, maxLength: 1000 }
+        clinical_summary: { type: string, minLength: 5, maxLength: 4000, description: Clinician-reviewed minimum necessary summary; not a longitudinal record. }
+        priority: { $ref: '#/components/schemas/DigitalReferralPriority' }
+
+    DigitalReferralOutcomeInput:
+      type: object
+      required: [outcome_status]
+      properties:
+        outcome_status: { $ref: '#/components/schemas/DigitalReferralOutcomeStatus' }
+        follow_up_recommendation: { type: string, maxLength: 1000 }
+        patient_instructions: { type: string, maxLength: 1000 }
+
+    DigitalReferralOutcome:
+      type: object
+      required: [id, status, receiving_clinician, recorded_at]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/DigitalReferralOutcomeStatus' }
+        receiving_clinician:
+          type: object
+          required: [clinician_id, full_name]
+          properties:
+            clinician_id: { type: string, format: uuid }
+            full_name: { type: [string, 'null'] }
+        follow_up_recommendation: { type: [string, 'null'] }
+        patient_instructions: { type: [string, 'null'] }
+        recorded_at: { type: string, format: date-time }
+
+    DigitalReferral:
+      type: object
+      required: [id, status, priority, purpose, clinical_summary, consultation_id, source, destination, received_by, created_at, updated_at, expires_at, version]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/DigitalReferralStatus' }
+        priority: { $ref: '#/components/schemas/DigitalReferralPriority' }
+        purpose: { type: string }
+        clinical_summary: { type: [string, 'null'], description: Omitted as null when the requesting clinician's exact facility consent is unavailable. }
+        consultation_id: { type: string, format: uuid }
+        source: { $ref: '#/components/schemas/DigitalReferralParty' }
+        destination: { $ref: '#/components/schemas/DigitalReferralDestination' }
+        received_by: { oneOf: [{ $ref: '#/components/schemas/DigitalReferralClinician' }, { type: 'null' }] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        submitted_at: { type: [string, 'null'], format: date-time }
+        received_at: { type: [string, 'null'], format: date-time }
+        accepted_at: { type: [string, 'null'], format: date-time }
+        declined_at: { type: [string, 'null'], format: date-time }
+        decline_reason: { type: [string, 'null'] }
+        care_started_at: { type: [string, 'null'], format: date-time }
+        completed_at: { type: [string, 'null'], format: date-time }
+        cancelled_at: { type: [string, 'null'], format: date-time }
+        outcome: { oneOf: [{ $ref: '#/components/schemas/DigitalReferralOutcome' }, { type: 'null' }] }
+        version: { type: integer }
+
+    DigitalReferralParty:
+      type: object
+      required: [clinician, facility, department]
+      properties:
+        clinician: { oneOf: [{ $ref: '#/components/schemas/DigitalReferralClinician' }, { type: 'null' }] }
+        facility: { $ref: '#/components/schemas/ReferralFacility' }
+        department: { oneOf: [{ $ref: '#/components/schemas/ReferralDepartment' }, { type: 'null' }] }
+
+    DigitalReferralDestination:
+      allOf:
+        - $ref: '#/components/schemas/DigitalReferralParty'
+
+    DigitalReferralClinician:
+      type: object
+      required: [clinician_id, full_name, specialty]
+      properties:
+        clinician_id: { type: string, format: uuid }
+        full_name: { type: [string, 'null'] }
+        specialty: { type: string }
+
+    ReferralFacility:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+
+    ReferralDepartment:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+
+    DigitalReferralSummary:
+      type: object
+      required: [referral_id, purpose, priority, clinical_summary, consultation_id, source, destination]
+      properties:
+        referral_id: { type: string, format: uuid }
+        purpose: { type: string }
+        priority: { $ref: '#/components/schemas/DigitalReferralPriority' }
+        clinical_summary: { type: string }
+        consultation_id: { type: string, format: uuid }
+        source: { $ref: '#/components/schemas/DigitalReferralParty' }
+        destination: { $ref: '#/components/schemas/DigitalReferralDestination' }
+
+    DigitalReferralStatus:
+      type: string
+      enum: [draft, submitted, received, accepted, declined, in_care, completed, cancelled, expired]
+
+    DigitalReferralPriority:
+      type: string
+      enum: [routine, urgent, emergency]
+
+    DigitalReferralOutcomeStatus:
+      type: string
+      enum: [care_provided, redirected, unable_to_complete]
 
     ContentFormat:
       type: string

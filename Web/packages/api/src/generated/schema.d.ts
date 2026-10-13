@@ -2301,6 +2301,268 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List referrals visible to the authenticated patient
+         * @description Returns only non-draft referrals for the patient's own profile, including patient-readable outcome details.
+         */
+        get: operations["listMyReferrals"];
+        put?: never;
+        /**
+         * Create a draft referral for an involved consultation
+         * @description Requires a verified source clinician, current case involvement, an active facility assignment and exact current-thread consent naming the destination facility. Only the submitted summary is shared.
+         */
+        post: operations["createDigitalReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List cases the verified clinician is involved in
+         * @description Case summaries are limited to assigned or primary clinician cases.
+         */
+        get: operations["listReferralCases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/authorizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active facility consents for one involved case
+         * @description Returns only active, non-break-glass current-thread grants naming an active facility; it does not inherit collaboration consent.
+         */
+        get: operations["listReferralAuthorizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List referrals created by the authenticated clinician */
+        get: operations["listSourceReferrals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List incoming referrals for the clinician's facility assignment
+         * @description Facility and department membership are checked server-side; referral summary is returned only while exact consent remains active.
+         */
+        get: operations["listReferralInbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read referral metadata and currently authorized details
+         * @description Patient, source clinician and eligible destination clinicians are checked on every read. Clinical summary is omitted after exact consent becomes unavailable.
+         */
+        get: operations["getDigitalReferral"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authorized minimum necessary summary */
+        get: operations["getDigitalReferralSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft referral */
+        post: operations["submitDigitalReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge referral receipt at the destination */
+        post: operations["receiveDigitalReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a received referral */
+        post: operations["acceptDigitalReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a received referral */
+        post: operations["declineDigitalReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/start-care": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark receiving care started */
+        post: operations["startDigitalReferralCare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete an in-care referral with persisted outcome feedback */
+        post: operations["completeDigitalReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a draft, submitted or received referral
+         * @description Only the source clinician or owning patient may cancel. Consent revocation cancels active referrals in the same transaction.
+         */
+        post: operations["cancelDigitalReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/education/topics": {
         parameters: {
             query?: never;
@@ -2966,7 +3228,7 @@ export interface components {
          *     breaking and requires a new API version.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "REFERRAL_ALREADY_EXISTS" | "REFERRAL_CONSENT_REQUIRED" | "REFERRAL_DESTINATION_INELIGIBLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
         PageMeta: {
             page: number;
             page_size: number;
@@ -4204,6 +4466,137 @@ export interface components {
             /** Format: uuid */
             department_id: string | null;
         };
+        ReferralCase: {
+            /** Format: uuid */
+            consultation_id: string;
+            /** Format: uuid */
+            care_thread_id: string;
+            status: components["schemas"]["ConsultationStatus"];
+            priority: components["schemas"]["UrgencyLevel"];
+            clinical_summary?: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ReferralAuthorization: {
+            /** Format: uuid */
+            consent_id: string;
+            /** Format: uuid */
+            facility_id: string;
+            facility_name: string;
+            /** Format: date-time */
+            expires_at: string | null;
+        };
+        DigitalReferralCreate: {
+            /** Format: uuid */
+            consultation_id: string;
+            /** Format: uuid */
+            destination_facility_id: string;
+            /** Format: uuid */
+            destination_department_id?: string;
+            /** Format: uuid */
+            destination_clinician_id?: string;
+            /** Format: uuid */
+            patient_consent_id: string;
+            purpose: string;
+            /** @description Clinician-reviewed minimum necessary summary; not a longitudinal record. */
+            clinical_summary: string;
+            priority?: components["schemas"]["DigitalReferralPriority"];
+        };
+        DigitalReferralOutcomeInput: {
+            outcome_status: components["schemas"]["DigitalReferralOutcomeStatus"];
+            follow_up_recommendation?: string;
+            patient_instructions?: string;
+        };
+        DigitalReferralOutcome: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["DigitalReferralOutcomeStatus"];
+            receiving_clinician: {
+                /** Format: uuid */
+                clinician_id: string;
+                full_name: string | null;
+            };
+            follow_up_recommendation?: string | null;
+            patient_instructions?: string | null;
+            /** Format: date-time */
+            recorded_at: string;
+        };
+        DigitalReferral: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["DigitalReferralStatus"];
+            priority: components["schemas"]["DigitalReferralPriority"];
+            purpose: string;
+            /** @description Omitted as null when the requesting clinician's exact facility consent is unavailable. */
+            clinical_summary: string | null;
+            /** Format: uuid */
+            consultation_id: string;
+            source: components["schemas"]["DigitalReferralParty"];
+            destination: components["schemas"]["DigitalReferralDestination"];
+            received_by: components["schemas"]["DigitalReferralClinician"] | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            submitted_at?: string | null;
+            /** Format: date-time */
+            received_at?: string | null;
+            /** Format: date-time */
+            accepted_at?: string | null;
+            /** Format: date-time */
+            declined_at?: string | null;
+            decline_reason?: string | null;
+            /** Format: date-time */
+            care_started_at?: string | null;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: date-time */
+            cancelled_at?: string | null;
+            outcome?: components["schemas"]["DigitalReferralOutcome"] | null;
+            version: number;
+        };
+        DigitalReferralParty: {
+            clinician: components["schemas"]["DigitalReferralClinician"] | null;
+            facility: components["schemas"]["ReferralFacility"];
+            department: components["schemas"]["ReferralDepartment"] | null;
+        };
+        DigitalReferralDestination: components["schemas"]["DigitalReferralParty"];
+        DigitalReferralClinician: {
+            /** Format: uuid */
+            clinician_id: string;
+            full_name: string | null;
+            specialty: string;
+        };
+        ReferralFacility: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        ReferralDepartment: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        DigitalReferralSummary: {
+            /** Format: uuid */
+            referral_id: string;
+            purpose: string;
+            priority: components["schemas"]["DigitalReferralPriority"];
+            clinical_summary: string;
+            /** Format: uuid */
+            consultation_id: string;
+            source: components["schemas"]["DigitalReferralParty"];
+            destination: components["schemas"]["DigitalReferralDestination"];
+        };
+        /** @enum {string} */
+        DigitalReferralStatus: "draft" | "submitted" | "received" | "accepted" | "declined" | "in_care" | "completed" | "cancelled" | "expired";
+        /** @enum {string} */
+        DigitalReferralPriority: "routine" | "urgent" | "emergency";
+        /** @enum {string} */
+        DigitalReferralOutcomeStatus: "care_provided" | "redirected" | "unable_to_complete";
         /** @enum {string} */
         ContentFormat: "article" | "audio" | "video" | "interactive" | "sms_series";
         EducationTopic: {
@@ -8421,6 +8814,433 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderClinicalCollaborationMessage"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listMyReferrals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Patient's referrals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DigitalReferral"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createDigitalReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigitalReferralCreate"];
+            };
+        };
+        responses: {
+            /** @description Draft referral created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    listReferralCases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Involved cases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReferralCase"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listReferralAuthorizations: {
+        parameters: {
+            query: {
+                consultation_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Facility authorizations for this case */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReferralAuthorization"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listSourceReferrals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Referrals created by this clinician */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DigitalReferral"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listReferralInbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Incoming referrals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["DigitalReferral"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getDigitalReferral: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Referral details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getDigitalReferralSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Referral summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferralSummary"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    submitDigitalReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted referral status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    receiveDigitalReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Receipt recorded; this does not mean acceptance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    acceptDigitalReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted by the assigned receiving clinician; care has not started */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    declineDigitalReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Declined referral with recorded reason */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    startDigitalReferralCare: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Care-start timestamp recorded by the accepting clinician */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    completeDigitalReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigitalReferralOutcomeInput"];
+            };
+        };
+        responses: {
+            /** @description Completion and outcome persisted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    cancelDigitalReferral: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelled referral */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferral"];
                 };
             };
             403: components["responses"]["Forbidden"];

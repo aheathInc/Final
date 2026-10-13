@@ -47,9 +47,9 @@ async function issueOtp(
     },
   });
 
-  // The notification service owns actual delivery. Until it exists the code is
-  // logged in development only — it must never reach a production log.
-  if (env.NODE_ENV === 'development') {
+  // Console delivery is a separate, explicit local-only capability. Response
+  // echo is independently controlled by OTP_ECHO_IN_RESPONSE.
+  if (env.OTP_LOG_TO_CONSOLE) {
     console.log(`[dev] OTP for ${maskPhone(phoneNumber)} (${purpose}): ${code}`);
   }
 
@@ -268,8 +268,7 @@ export async function verifyOtp(
     throw unauthenticated('OTP_ATTEMPTS_EXCEEDED', 'Too many attempts. Request a new code.');
   }
 
-  const isDevBypass = env.NODE_ENV === 'development' && code === '000000';
-  const matches = isDevBypass || (await bcrypt.compare(code, challenge.codeHash));
+  const matches = await bcrypt.compare(code, challenge.codeHash);
   if (!matches) {
     const updated = await prisma.otpChallenge.update({
       where: { id: challengeId },

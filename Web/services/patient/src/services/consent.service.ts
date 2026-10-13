@@ -1,4 +1,5 @@
 import { prisma } from '@a-health/database';
+import { enqueue } from '@a-health/notification/enqueue';
 import { appendAudit, forbidden, notFound } from '@a-health/http';
 import type { GrantConsentInput } from '../types/patient.types.js';
 import type { Caller, Meta } from './profile.service.js';
@@ -93,7 +94,7 @@ export async function grantConsent(
 export async function revokeConsent(profileId: string, consentId: string, caller: Caller, meta: Meta) {
   await assertOwner(profileId, caller);
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Collaboration reads and grants lock consent before locking collaboration
     // rows. Keep the same order here so revocation cannot deadlock with an
     // in-flight case access or request, and so it cannot miss a new grant.
@@ -129,6 +130,38 @@ export async function revokeConsent(profileId: string, consentId: string, caller
       }
     }
 
+    const affectedReferrals = await tx.digitalReferral.findMany({
+      where: { patientConsentId: consentId, status: { in: ['draft', 'submitted', 'received', 'accepted', 'in_care'] } },
+      include: {
+        sourceClinician: { select: { userId: true } },
+        destinationClinician: { select: { userId: true } },
+        receivedByClinician: { select: { userId: true } },
+        patient: { select: { userId: true, guardianUserId: true } },
+      },
+    });
+    for (const referral of affectedReferrals) {
+      const changed = await tx.digitalReferral.updateMany({
+        where: { id: referral.id, status: referral.status, version: referral.version },
+        data: {
+          status: 'cancelled',
+          cancelledAt: new Date(),
+          cancellationReason: 'patient_consent_revoked',
+          version: { increment: 1 },
+        },
+      });
+      if (changed.count === 1) {
+        await appendAudit({
+          actorUserId: caller.sub,
+          action: 'referral.cancelled',
+          entityType: 'digital_referrals',
+          entityId: referral.id,
+          metadata: { reason: 'patient_consent_revoked' },
+          ipAddress: meta.ip,
+          requestId: meta.requestId,
+        }, tx);
+      }
+    }
+
     const updated = await tx.patientConsent.update({
       where: { id: consentId },
       data: { allowed: false, revokedAt: new Date(), version: { increment: 1 } },
@@ -141,8 +174,21 @@ export async function revokeConsent(profileId: string, consentId: string, caller
       ipAddress: meta.ip, requestId: meta.requestId,
     }, tx);
 
-    return serialise(updated);
+    return {
+      consent: updated,
+      recipients: affectedReferrals.flatMap((referral) => [
+        referral.patient.userId ?? referral.patient.guardianUserId,
+        referral.sourceClinician.userId,
+        referral.destinationClinician?.userId ?? null,
+        referral.receivedByClinician?.userId ?? null,
+      ]).filter((id): id is string => Boolean(id)),
+    };
   });
+  await Promise.allSettled([...new Set(result.recipients)].map((userId) => enqueue({
+    userId,
+    templateKey: 'referral.update',
+  })));
+  return serialise(result.consent);
 }
 
 /** A patient or guardian may see only their own safe consent/access events. */

@@ -7,7 +7,7 @@ import { useState } from 'react';
 import {
   Activity, Siren, BadgeCheck, BookOpen, Building2, CalendarDays, CreditCard,
   Database, FlaskConical, HeartPulse, Home, Inbox, LayoutDashboard, LogOut, MessagesSquare, Pill,
-  Radio, Settings, ShieldAlert, Sparkles, Stethoscope, Users2, UserRound, History,
+  Radio, Settings, ShieldAlert, Sparkles, Stethoscope, Users2, UserRound, History, Send,
 } from 'lucide-react';
 
 const HIDE_ON = ['/login'];
@@ -23,6 +23,7 @@ const DOCTOR = [
   { icon: Users2, label: 'Families', href: '/doctor/families' },
   { icon: MessagesSquare, label: 'Network', href: '/doctor/network' },
   { icon: MessagesSquare, label: 'Clinical collaboration', href: '/doctor/clinical-collaboration' },
+  { icon: Send, label: 'Digital referrals', href: '/doctor/referrals' },
   { icon: BadgeCheck, label: 'Second opinions', href: '/doctor/second-opinions' },
   { icon: Sparkles, label: 'Assistant', href: '/doctor/assistant' },
   { icon: Pill, label: 'Pharmacy', href: '/doctor/pharmacy' },

@@ -3,6 +3,7 @@ import { pathParam } from '@a-health/http';
 import * as discussions from '../services/discussion.service.js';
 import * as opinions from '../services/secondOpinion.service.js';
 import * as collaborations from '../services/collaboration.service.js';
+import * as referrals from '../services/referral.service.js';
 import {
   answerSchema, createDiscussionSchema, listDiscussionsQuery, listSecondOpinionsQuery,
   replySchema, requestSecondOpinionSchema,
@@ -11,8 +12,16 @@ import {
   collaborationMessageSchema, consultationIdQuery, listCollaborationsQuery,
   listMessagesQuery, requestCollaborationSchema,
 } from '../types/collaboration.types.js';
+import {
+  completeReferralSchema, createReferralSchema, declineReferralSchema, referralAuthorizationsQuery,
+} from '../types/referral.types.js';
 
-const caller = (req: Request) => ({ sub: req.auth!.sub, role: req.auth!.role, cpid: req.auth!.cpid });
+const caller = (req: Request) => ({
+  sub: req.auth!.sub,
+  role: req.auth!.role,
+  cpid: req.auth!.cpid,
+  ppid: req.auth!.ppid,
+});
 const meta = (req: Request, res: Response) => ({
   ip: req.ip ?? null, requestId: (res.locals.requestId as string) ?? null,
 });
@@ -91,3 +100,32 @@ export const createCollaborationMessage = handle((req, res) => {
   const input = collaborationMessageSchema.parse(req.body);
   return collaborations.createCollaborationMessage(pathParam(req, 'collaboration_id'), caller(req), input.body, meta(req, res));
 }, 201);
+
+export const listReferralCases = handle((req) => referrals.listReferralCases(caller(req)));
+export const listReferralAuthorizations = handle((req) =>
+  referrals.listReferralAuthorizations(referralAuthorizationsQuery.parse(req.query).consultation_id, caller(req)));
+export const listPatientReferrals = handle((req) => referrals.listPatientReferrals(caller(req)));
+export const listSourceReferrals = handle((req) => referrals.listSourceReferrals(caller(req)));
+export const listInboxReferrals = handle((req) => referrals.listInboxReferrals(caller(req)));
+export const createReferral = handle((req, res) =>
+  referrals.createReferral(caller(req), createReferralSchema.parse(req.body), meta(req, res)), 201);
+export const getReferral = handle((req, res) =>
+  referrals.getReferral(pathParam(req, 'referral_id'), caller(req), meta(req, res)));
+export const getReferralSummary = handle((req, res) =>
+  referrals.getReferralSummary(pathParam(req, 'referral_id'), caller(req), meta(req, res)));
+export const submitReferral = handle((req, res) =>
+  referrals.submitReferral(pathParam(req, 'referral_id'), caller(req), meta(req, res)));
+export const receiveReferral = handle((req, res) =>
+  referrals.receiveReferral(pathParam(req, 'referral_id'), caller(req), meta(req, res)));
+export const acceptReferral = handle((req, res) =>
+  referrals.acceptReferral(pathParam(req, 'referral_id'), caller(req), meta(req, res)));
+export const declineReferral = handle((req, res) => {
+  const input = declineReferralSchema.parse(req.body);
+  return referrals.declineReferral(pathParam(req, 'referral_id'), caller(req), input.reason, meta(req, res));
+});
+export const startReferralCare = handle((req, res) =>
+  referrals.startReferralCare(pathParam(req, 'referral_id'), caller(req), meta(req, res)));
+export const completeReferral = handle((req, res) =>
+  referrals.completeReferral(pathParam(req, 'referral_id'), caller(req), completeReferralSchema.parse(req.body), meta(req, res)));
+export const cancelReferral = handle((req, res) =>
+  referrals.cancelReferral(pathParam(req, 'referral_id'), caller(req), meta(req, res)));
