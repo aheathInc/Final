@@ -7,9 +7,9 @@ import { Button, Field, Notice, areaClass, inputClass } from './ui';
 
 interface Item {
   medication_name: string; dosage: string;
-  frequency_per_day: number; duration_days: number; instructions: string;
+  frequency_per_day: number; duration_days: number; instructions: string; quantity_prescribed: number | '';
 }
-const EMPTY: Item = { medication_name: '', dosage: '', frequency_per_day: 2, duration_days: 5, instructions: '' };
+const EMPTY: Item = { medication_name: '', dosage: '', frequency_per_day: 2, duration_days: 5, instructions: '', quantity_prescribed: '' };
 
 /**
  * One form, one submit. The backend writes the note, the prescription and the
@@ -24,6 +24,7 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
   const [redFlags, setRedFlags] = useState('');
   const [prescribing, setPrescribing] = useState(false);
   const [items, setItems] = useState<Item[]>([{ ...EMPTY }]);
+  const [validUntil, setValidUntil] = useState('');
   const [scheduling, setScheduling] = useState(false);
   const [frequency, setFrequency] = useState<'daily' | 'twice_daily' | 'weekly'>('daily');
   const [days, setDays] = useState(7);
@@ -42,6 +43,10 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
       setError('Umechagua kuandika dawa lakini hujajaza dawa yoyote.');
       return;
     }
+    if (prescribing && (!validUntil || usable.some((item) => item.quantity_prescribed === '' || item.quantity_prescribed < 1))) {
+      setError('Weka kiasi halisi cha kila dawa na tarehe ya mwisho iliyoamuliwa kitabibu. Mfumo hautakisia kiasi au muda wa uhalali.');
+      return;
+    }
     setBusy(true);
     try {
       await api.post(`/consultations/${consultationId}/complete`, {
@@ -50,7 +55,7 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
           advice_text: advice,
           red_flags_discussed: redFlags.split('\n').map((s) => s.trim()).filter(Boolean),
         },
-        ...(prescribing ? { prescription: { items: usable } } : {}),
+        ...(prescribing ? { prescription: { items: usable, valid_until: validUntil } } : {}),
         ...(scheduling ? { follow_up_cycle: { frequency, duration_days: days } } : {}),
         close_care_thread: closeThread,
       }, idem());
@@ -95,6 +100,10 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
         </label>
         {prescribing && (
           <div className="mt-3 flex flex-col gap-4">
+            <Field label="Prescription valid through" htmlFor="prescription-valid-until" hint="Choose the date based on clinical judgment; no default period is assumed.">
+              <input id="prescription-valid-until" type="date" required value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)} className={inputClass} />
+            </Field>
             {items.map((it, i) => (
               <div key={i} className="border border-line bg-white p-3">
                 <input value={it.medication_name} onChange={(e) => patch(i, { medication_name: e.target.value })}
@@ -109,6 +118,12 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
                     onChange={(e) => patch(i, { duration_days: Number(e.target.value) })}
                     aria-label="Idadi ya siku" className={`${inputClass} w-24`} />
                 </div>
+                <Field label="Quantity prescribed (units as written)" htmlFor={`quantity-prescribed-${i}`} hint="Enter the clinician-selected dispensing unit quantity; the platform does not infer it from frequency.">
+                  <input id={`quantity-prescribed-${i}`} type="number" min={1} max={100000} required
+                    value={it.quantity_prescribed}
+                    onChange={(e) => patch(i, { quantity_prescribed: e.target.value ? Number(e.target.value) : '' })}
+                    className={`${inputClass} mt-1 max-w-56`} />
+                </Field>
                 <input value={it.instructions} onChange={(e) => patch(i, { instructions: e.target.value })}
                   placeholder="Maelekezo (baada ya chakula)" className={`${inputClass} mt-2`} />
                 {/* This is literally how many reminder rows the backend creates. */}

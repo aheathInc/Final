@@ -6,6 +6,7 @@ import type { AppError } from '@a-health/http';
 import { acceptConsultation, declineConsultation, offerConsultation } from '../services/consultation.service.js';
 import { getQueue } from '../services/queue.service.js';
 import { tick } from '../workers/sla.worker.js';
+import { bus } from '../events.js';
 
 const databaseUrl = process.env.DATABASE_URL ?? '';
 let databaseName = '';
@@ -67,6 +68,7 @@ after(async () => {
     await Promise.all(marketplaceProfiles.map((profile) =>
       prisma.clinicianProfile.update({ where: { id: profile.id }, data: { isAvailable: profile.isAvailable } }),
     ));
+    await bus.close();
     await prisma.$disconnect();
   }
 });

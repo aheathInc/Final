@@ -13,6 +13,12 @@ typedef PatientDurablePost = Future<dynamic> Function({
   required Map<String, dynamic> body,
 });
 
+typedef PatientPost = Future<dynamic> Function(
+  String path,
+  Map<String, dynamic> body, {
+  String? idempotencyKey,
+});
+
 class ConsultationRecord {
   const ConsultationRecord(this.data);
 
@@ -123,12 +129,14 @@ Map<String, dynamic> profileClinicalUpdateBody({
     };
 
 class PatientCareRepository {
-  PatientCareRepository({PatientGet? get, PatientDurablePost? durablePost})
+  PatientCareRepository({PatientGet? get, PatientDurablePost? durablePost, PatientPost? post})
       : _get = get ?? Api.get,
-        _durablePost = durablePost ?? Api.postDurable;
+        _durablePost = durablePost ?? Api.postDurable,
+        _post = post ?? Api.post;
 
   final PatientGet _get;
   final PatientDurablePost _durablePost;
+  final PatientPost _post;
 
   Future<ConsultationRecord> createConsultation({
     required String opId,
@@ -165,6 +173,32 @@ class PatientCareRepository {
       query: {'limit': 50},
     );
     return patientCareRows(response);
+  }
+
+  Future<Map<String, dynamic>> prescriptionFulfillment(String prescriptionId) async {
+    final response = await _get('/prescriptions/$prescriptionId/fulfillment');
+    return patientCareRecord(response, 'Prescription fulfilment response is invalid.');
+  }
+
+  /// The opaque reference is held in screen memory only; it is never cached offline.
+  Future<Map<String, dynamic>> createPrescriptionHandoff(String prescriptionId) async {
+    final key = 'handoff-${DateTime.now().microsecondsSinceEpoch}';
+    final response = await _post(
+      '/prescriptions/$prescriptionId/dispense-code',
+      const <String, dynamic>{},
+      idempotencyKey: key,
+    );
+    return patientCareRecord(response, 'Prescription handoff response is invalid.');
+  }
+
+  Future<Map<String, dynamic>> revokePrescriptionHandoff(String prescriptionId) async {
+    final key = 'revoke-${DateTime.now().microsecondsSinceEpoch}';
+    final response = await _post(
+      '/prescriptions/$prescriptionId/dispense-code/revoke',
+      const <String, dynamic>{},
+      idempotencyKey: key,
+    );
+    return patientCareRecord(response, 'Prescription handoff response is invalid.');
   }
 
   Future<List<Map<String, dynamic>>> appointments() async {
@@ -243,6 +277,7 @@ class PatientCareRepository {
     required double latitude,
     required double longitude,
     double radiusKm = 15,
+    int? requiredQuantity,
   }) async {
     final response = await _get(
       '/pharmacies/medication-search',
@@ -251,6 +286,7 @@ class PatientCareRepository {
         'lat': latitude,
         'lng': longitude,
         'radius_km': radiusKm,
+        if (requiredQuantity != null) 'required_quantity': requiredQuantity,
       },
     );
     return patientCareRows(response);

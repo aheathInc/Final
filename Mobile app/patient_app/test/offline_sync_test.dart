@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -13,6 +14,7 @@ import 'package:a_health_patient/core/outbox.dart';
 import 'package:a_health_patient/core/session.dart';
 import 'package:a_health_patient/screens/emergency_screen.dart';
 import 'package:a_health_patient/screens/medications_screen.dart';
+import 'package:a_health_patient/screens/patient_care_medicines_screen.dart';
 
 class _MemoryDatabase implements Database {
   final Map<String, List<Map<String, Object?>>> tables = {};
@@ -208,6 +210,26 @@ class _StubAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+class _AsyncStubAdapter implements HttpClientAdapter {
+  _AsyncStubAdapter(this.respond);
+
+  final Future<ResponseBody> Function(RequestOptions options) respond;
+  final requests = <RequestOptions>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    return respond(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 ResponseBody _jsonResponse(Object body, int status) => ResponseBody.fromString(
       jsonEncode(body),
       status,
@@ -300,6 +322,191 @@ void main() {
     expect((await Db.medicationSchedule('patient-b')).single['id'], 'dose-b');
     expect(
         await Db.cacheSyncedAt('consultation_notes', 'patient-a'), isNotNull);
+  });
+
+  testWidgets(
+      'Patient A pharmacy state and late responses do not cross into Patient B',
+      (tester) async {
+    final delayedAvailability = Completer<ResponseBody>();
+
+    Map<String, dynamic> prescription({required bool patientA}) => {
+          'data': patientA
+              ? [
+                  {
+                    'id': 'prescription-a',
+                    'status': 'active',
+                    'created_at': '2026-10-13T08:00:00Z',
+                    'valid_until': '2027-10-13T08:00:00Z',
+                    'items': [
+                      {
+                        'id': 'item-a',
+                        'medication_name': 'A_SYNTHETIC_MEDICINE',
+                        'dosage': 'synthetic dose',
+                        'frequency_per_day': 1,
+                        'duration_days': 1,
+                      },
+                    ],
+                  },
+                ]
+              : <Map<String, dynamic>>[],
+        };
+
+    final adapter = _AsyncStubAdapter((options) async {
+      final path = options.uri.path;
+      final authorization = options.headers['Authorization'] as String?;
+      final isPatientA = authorization == 'Bearer test-access-a';
+      if (path.endsWith('/patient-profiles/me')) {
+        return _jsonResponse({
+          'id': isPatientA ? 'profile-a' : 'profile-b',
+          'default_location': {'lat': -6.8, 'lng': 39.2},
+        }, 200);
+      }
+      if (path.endsWith('/patient-profiles/profile-a/prescriptions')) {
+        return _jsonResponse(prescription(patientA: true), 200);
+      }
+      if (path.endsWith('/patient-profiles/profile-b/prescriptions')) {
+        return _jsonResponse(prescription(patientA: false), 200);
+      }
+      if (path.endsWith('/adherence-logs')) {
+        return _jsonResponse({
+          'data': isPatientA
+              ? [
+                  {
+                    'id': 'dose-a',
+                    'prescription_id': 'prescription-a',
+                    'medication_name': 'A_SYNTHETIC_MEDICINE',
+                    'dosage': 'synthetic dose',
+                    'scheduled_at': '2026-10-13T09:00:00Z',
+                    'reported_status': 'unreported',
+                  },
+                ]
+              : <Map<String, dynamic>>[],
+        }, 200);
+      }
+      if (path.endsWith('/prescriptions/prescription-a/fulfillment')) {
+        return _jsonResponse({
+          'fulfilment_status': 'partial',
+          'items': [
+            {
+              'id': 'item-a',
+              'quantity_prescribed': 2,
+              'quantity_dispensed': 1,
+              'quantity_remaining': 1,
+            },
+          ],
+          'facility_pharmacy': {
+            'name': 'A_SYNTHETIC_PHARMACY',
+            'items': [
+              {
+                'medication_name': 'A_SYNTHETIC_MEDICINE',
+                'availability': 'in_stock',
+                'quantity_on_hand': 2,
+              },
+            ],
+          },
+          'dispensing_history': [
+            {
+              'pharmacy': {'name': 'A_SYNTHETIC_PHARMACY'},
+              'dispensed_at': '2026-10-13T08:30:00Z',
+              'items': [
+                {
+                  'medication_name': 'A_SYNTHETIC_MEDICINE',
+                  'quantity_dispensed': 1,
+                },
+              ],
+            },
+          ],
+        }, 200);
+      }
+      if (path.endsWith('/prescriptions/prescription-a/dispense-code')) {
+        return _jsonResponse({'reference': 'A' * 43}, 200);
+      }
+      if (path.endsWith('/prescriptions/prescription-a/dispense-code/revoke')) {
+        return _jsonResponse({'revoked': true}, 200);
+      }
+      if (path.endsWith('/pharmacies/medication-search')) {
+        if (isPatientA) return delayedAvailability.future;
+        return _jsonResponse({'data': []}, 200);
+      }
+      throw StateError('Unexpected account-isolation test request.');
+    });
+
+    Api.connectivityProbeForTesting = () async => true;
+    Api.useDioForTesting(
+      Dio(BaseOptions(validateStatus: (_) => true))
+        ..httpClientAdapter = adapter,
+    );
+    await Session.save(
+      accessToken: 'test-access-a',
+      refreshToken: 'test-refresh-a',
+      user: {'id': 'patient-a'},
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(home: PatientCareMedicinesScreen()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('A_SYNTHETIC_MEDICINE'), findsWidgets);
+    expect(find.textContaining('A_SYNTHETIC_PHARMACY'), findsWidgets);
+    expect(find.text('Historia ya utoaji'), findsOneWidget);
+    expect((await Db.medicationSchedule('patient-a')).single['id'], 'dose-a');
+
+    await tester.tap(find.text('Pata reference salama ya pharmacy'));
+    await tester.pumpAndSettle();
+    expect(find.text('A' * 43), findsOneWidget);
+    final remainingSearch = find.text('Tafuta pharmacy kwa kiasi kilichobaki');
+    await tester.ensureVisible(remainingSearch);
+    await tester.tap(remainingSearch);
+    await tester.pump();
+
+    await Session.clear();
+    await Session.save(
+      accessToken: 'test-access-b',
+      refreshToken: 'test-refresh-b',
+      user: {'id': 'patient-b'},
+    );
+    final refresh = tester
+        .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+        .onRefresh;
+    final refreshFuture = refresh!();
+    for (var attempt = 0;
+        attempt < 10 &&
+            !adapter.requests.any((request) =>
+                request.uri.path.endsWith('/patient-profiles/me') &&
+                request.headers['Authorization'] == 'Bearer test-access-b');
+        attempt++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    await refreshFuture;
+    await tester.pump();
+
+    expect(await Session.userId(), 'patient-b');
+    expect(find.text('Hakuna agizo la dawa lililopo kwenye rekodi zako.'),
+        findsOneWidget);
+    expect(find.textContaining('A_SYNTHETIC_MEDICINE'), findsNothing);
+    expect(find.textContaining('A_SYNTHETIC_PHARMACY'), findsNothing);
+    expect(find.text('Historia ya utoaji'), findsNothing);
+    expect(find.text('A' * 43), findsNothing);
+    expect(await Db.medicationSchedule('patient-b'), isEmpty);
+    expect((await Db.medicationSchedule('patient-a')).single['id'], 'dose-a');
+
+    delayedAvailability.complete(_jsonResponse({
+      'data': [
+        {
+          'stock_status': 'in_stock',
+          'pharmacy': {'name': 'A_SYNTHETIC_PHARMACY'},
+          'medication_name': 'A_SYNTHETIC_MEDICINE',
+        },
+      ],
+    }, 200));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('A_SYNTHETIC_MEDICINE'), findsNothing);
+    expect(find.textContaining('A_SYNTHETIC_PHARMACY'), findsNothing);
+    expect(find.text('Historia ya utoaji'), findsNothing);
+    expect(find.text('A' * 43), findsNothing);
+    expect(find.text('Hakuna agizo la dawa lililopo kwenye rekodi zako.'),
+        findsOneWidget);
   });
 
   test(

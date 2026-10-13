@@ -66,13 +66,15 @@ export async function listPharmacies(query: {
  * status visible before the patient travels, rather than after.
  */
 export async function searchMedication(input: {
-  medication_name: string; lat: number; lng: number; radius_km?: number;
+  medication_name: string; lat?: number; lng?: number; radius_km?: number; required_quantity?: number;
 }) {
   const radius = input.radius_km ?? 15;
+  const hasLocation = input.lat !== undefined && input.lng !== undefined;
 
   const stock = await prisma.pharmacyStock.findMany({
     where: {
       medicationName: { contains: input.medication_name, mode: 'insensitive' },
+      stockStatus: { not: 'out_of_stock' },
       pharmacy: { isVerified: true, isActive: true },
     },
     include: { pharmacy: true },
@@ -83,18 +85,28 @@ export async function searchMedication(input: {
     .map((s) => ({
       stock: s,
       distance:
-        s.pharmacy.lat != null && s.pharmacy.lng != null
-          ? haversineKm(input.lat, input.lng, s.pharmacy.lat, s.pharmacy.lng)
+        hasLocation && s.pharmacy.lat != null && s.pharmacy.lng != null
+          ? haversineKm(input.lat!, input.lng!, s.pharmacy.lat, s.pharmacy.lng)
           : undefined,
     }))
-    .filter((x) => x.distance !== undefined && x.distance <= radius)
-    .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+    .filter((x) => !hasLocation || (x.distance !== undefined && x.distance <= radius))
+    .sort((a, b) => hasLocation
+      ? (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY)
+      : a.stock.pharmacy.name.localeCompare(b.stock.pharmacy.name));
 
   return {
     data: withDistance.map(({ stock: s, distance }) => ({
       pharmacy: serialisePharmacy(s.pharmacy, distance),
       medication_name: s.medicationName,
       stock_status: s.stockStatus,
+      quantity_on_hand: s.quantityOnHand,
+      fulfillment_status: s.quantityOnHand == null
+        ? 'unknown'
+        : s.quantityOnHand <= 0
+          ? 'unavailable'
+          : input.required_quantity == null || s.quantityOnHand >= input.required_quantity
+            ? 'available'
+            : 'partially_available',
       unit_price: s.unitPrice ? Number(s.unitPrice) : null,
       currency: s.currency,
       // Stock data ages fast. A stale figure sends someone on a journey for

@@ -245,12 +245,14 @@ void main() {
         name: 'AHP_SYNTHETIC_TEST_MEDICATION',
         latitude: 12.345,
         longitude: 45.678,
+        requiredQuantity: 6,
       );
       expect(sentQuery, {
         'medication_name': 'AHP_SYNTHETIC_TEST_MEDICATION',
         'lat': 12.345,
         'lng': 45.678,
         'radius_km': 15,
+        'required_quantity': 6,
       });
       expect(rows.single['stock_status'], 'in_stock');
       expect(rows.single['pharmacy']['name'], 'AHP Synthetic Test Pharmacy');
@@ -318,6 +320,8 @@ void main() {
                 {
                   'medication_name': 'AHP_SYNTHETIC_TEST_MEDICATION',
                   'stock_status': 'in_stock',
+                  'fulfillment_status': 'available',
+                  'quantity_on_hand': 8,
                   'last_reported_at': '2026-10-01T12:00:00.000Z',
                   'pharmacy': {
                     'name': 'AHP Synthetic Test Pharmacy',
@@ -336,9 +340,58 @@ void main() {
           find.textContaining('AHP_SYNTHETIC_TEST_MEDICATION'), findsOneWidget);
       expect(
           find.textContaining('AHP Synthetic Test Pharmacy'), findsOneWidget);
-      expect(find.textContaining('in_stock'), findsOneWidget);
+      expect(find.textContaining('available'), findsOneWidget);
+      expect(find.textContaining('hazijahifadhiwa'), findsOneWidget);
     });
 
+    testWidgets('searches nearby pharmacies for the remaining prescribed quantity', (tester) async {
+      String? searchedMedicine;
+      int? searchedQuantity;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MedicationPrescriptionCards(
+              prescriptions: const [
+                {
+                  'id': 'rx-1',
+                  'status': 'active',
+                  'items': [
+                    {
+                      'id': 'item-1',
+                      'medication_name': 'AHP_SYNTHETIC_TEST_MEDICATION',
+                      'dosage': 'TEST DATA ONLY',
+                    },
+                  ],
+                },
+              ],
+              fulfillmentByPrescription: const {
+                'rx-1': {
+                  'items': [
+                    {
+                      'id': 'item-1',
+                      'quantity_prescribed': 10,
+                      'quantity_dispensed': 4,
+                      'quantity_remaining': 6,
+                    },
+                  ],
+                },
+              },
+              formatDate: (_) => 'test time',
+              onSearchNearbyMedication: (name, quantity) async {
+                searchedMedicine = name;
+                searchedQuantity = quantity;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Tafuta pharmacy kwa kiasi kilichobaki'));
+      await tester.pump();
+
+      expect(searchedMedicine, 'AHP_SYNTHETIC_TEST_MEDICATION');
+      expect(searchedQuantity, 6);
+    });
     testWidgets('shows service errors instead of an empty result',
         (tester) async {
       await tester.pumpWidget(

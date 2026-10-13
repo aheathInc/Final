@@ -102,6 +102,19 @@ class Config {
       return 'http://$_devHost:4014';
     }
 
+    final segments = path.split('/');
+    final pharmacyPrescriptionRoute = segments.length == 4 &&
+        segments[1] == 'prescriptions' &&
+        segments[2].isNotEmpty &&
+        (segments[3] == 'fulfillment' || segments[3] == 'dispense-code');
+    final pharmacyPrescriptionRevokeRoute = segments.length == 5 &&
+        segments[1] == 'prescriptions' &&
+        segments[2].isNotEmpty &&
+        segments[3] == 'dispense-code' &&
+        segments[4] == 'revoke';
+    if (pharmacyPrescriptionRoute || pharmacyPrescriptionRevokeRoute) {
+      return 'http://$_devHost:4011';
+    }
     // Identity reads live in auth, while guardian-managed dependent profiles
     // are owned by the patient service.
     if (path == '/users/me/dependents' ||

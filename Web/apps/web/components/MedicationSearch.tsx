@@ -9,6 +9,8 @@ interface Result {
   pharmacy: { id: string; name: string; distance_km: number | null };
   medication_name: string;
   stock_status: string;
+  quantity_on_hand: number | null;
+  fulfillment_status: string;
   unit_price: number | null;
   currency: string | null;
   last_reported_at: string;
@@ -16,6 +18,8 @@ interface Result {
 
 export function MedicationSearch() {
   const [name, setName] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [results, setResults] = useState<Result[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +28,16 @@ export function MedicationSearch() {
     e.preventDefault();
     setBusy(true); setError(null);
     try {
-      // Dar es Salaam centre as a default origin; a real deployment would use
-      // the clinician's facility or the patient's region.
+      const lat = latitude.trim() ? Number(latitude) : undefined;
+      const lng = longitude.trim() ? Number(longitude) : undefined;
+      if ((lat === undefined) !== (lng === undefined) ||
+          (lat !== undefined && (Number.isNaN(lat) || Math.abs(lat) > 90)) ||
+          (lng !== undefined && (Number.isNaN(lng) || Math.abs(lng) > 180))) {
+        setError('Enter both valid coordinates to rank by distance, or leave both blank for an unranked list.');
+        return;
+      }
       const res = await api.get<{ data: Result[] }>('/pharmacies/medication-search', {
-        params: { medication_name: name, lat: -6.8, lng: 39.28, radius_km: 20 },
+        params: { medication_name: name, ...(lat !== undefined ? { lat, lng } : {}) },
       });
       setResults(res.data.data ?? []);
     } catch (e) {
@@ -46,6 +56,10 @@ export function MedicationSearch() {
         </div>
         <Button type="submit" disabled={busy || !name.trim()}>{busy ? 'Searching...' : 'Search'}</Button>
       </form>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Field label="Latitude (optional)" htmlFor="pharmacy-latitude"><input id="pharmacy-latitude" inputMode="decimal" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="Use an explicitly supplied location" className={inputClass} /></Field>
+        <Field label="Longitude (optional)" htmlFor="pharmacy-longitude"><input id="pharmacy-longitude" inputMode="decimal" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="Leave both blank to skip distance ranking" className={inputClass} /></Field>
+      </div>
 
       {error && <div className="mt-4"><Notice>{error}</Notice></div>}
 
@@ -64,13 +78,13 @@ export function MedicationSearch() {
                     )}
                   </div>
                   <p className="mt-1 text-[0.95rem]">
-                    {r.medication_name} · {r.stock_status.replace(/_/g, ' ')}
+                    {r.medication_name} · {r.fulfillment_status.replace(/_/g, ' ')} · {r.quantity_on_hand === null ? 'quantity unknown' : `${r.quantity_on_hand} on hand`}
                     {r.unit_price ? ` · ${r.unit_price} ${r.currency ?? ''}` : ''}
                   </p>
                   {/* Stock data ages fast; a stale figure sends someone on a
                       journey for nothing, so the age travels with the answer. */}
                   <p className="mt-1 text-xs text-ink-soft">
-                    Reported {dateTime(r.last_reported_at)}
+                    Reported {dateTime(r.last_reported_at)}. Availability is time-sensitive and is not a reservation.
                   </p>
                 </Card>
               </li>

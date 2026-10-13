@@ -121,7 +121,10 @@ async function appendAuditInTransaction(input: AuditInput, tx: AuditTransaction)
  */
 export async function appendAudit(input: AuditInput, transaction?: AuditTransaction): Promise<void> {
   if (transaction) return appendAuditInTransaction(input, transaction);
-  await prisma.$transaction((tx) => appendAuditInTransaction(input, tx));
+  await prisma.$transaction((tx) => appendAuditInTransaction(input, tx), {
+    maxWait: 10_000,
+    timeout: 10_000,
+  });
 }
 
 /** Replays every committed row from a consistent snapshot. */

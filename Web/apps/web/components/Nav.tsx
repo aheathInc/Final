@@ -50,6 +50,7 @@ const ANALYTICS = [
 ];
 
 function itemsFor(role?: string) {
+  if (role === 'pharmacist') return [{ label: 'Pharmacy', items: [{ icon: Pill, label: 'Prescription handoff', href: '/pharmacy' }] }];
   if (role === 'clinician') return [{ label: 'Clinician', items: DOCTOR }];
   if (role === 'platform_admin') return [{ label: 'Operations', items: ADMIN }, { label: 'Analytics', items: ANALYTICS }];
   if (role === 'researcher') return [{ label: 'Analytics', items: ANALYTICS }];
@@ -59,6 +60,7 @@ function itemsFor(role?: string) {
 }
 
 function roleFromPath(pathname: string) {
+  if (pathname.startsWith('/pharmacy')) return 'pharmacist';
   if (pathname.startsWith('/doctor')) return 'clinician';
   if (pathname.startsWith('/admin')) return 'platform_admin';
   if (pathname.startsWith('/analytics')) return 'platform_admin';

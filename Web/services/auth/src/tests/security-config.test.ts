@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertLocalAuthSeedEnvironment, isLocalAhealthDatabase, resolveAuthSecuritySettings } from '../config/security.js';
+import { assertLocalAuthSeedEnvironment, assertLocalPharmacyFixtureTarget, isLocalAhealthDatabase, resolveAuthSecuritySettings } from '../config/security.js';
 
 const localDevDatabase = 'postgresql://localhost:55432/ahealth_dev?schema=public';
 const localTestDatabase = 'postgresql://localhost:55437/ahealth_test?schema=public';
@@ -97,5 +97,21 @@ describe('fail-closed Auth OTP configuration', () => {
       NODE_ENV: 'development',
       DATABASE_URL: localDevDatabase,
     }));
+  });
+
+  it('requires the connected pharmacy fixture database, port, and address to match the local URL', () => {
+    const target = {
+      NODE_ENV: 'development',
+      DATABASE_URL: localDevDatabase,
+      currentDatabase: 'ahealth_dev',
+      serverAddress: '127.0.0.1',
+      serverPort: 55432,
+    };
+    assert.doesNotThrow(() => assertLocalPharmacyFixtureTarget(target));
+    assert.doesNotThrow(() => assertLocalPharmacyFixtureTarget({ ...target, serverAddress: '127.0.0.1/32' }));
+    assert.throws(() => assertLocalPharmacyFixtureTarget({ ...target, currentDatabase: 'ahealth_test' }));
+    assert.throws(() => assertLocalPharmacyFixtureTarget({ ...target, serverPort: 5432 }));
+    assert.throws(() => assertLocalPharmacyFixtureTarget({ ...target, serverAddress: '0.0.0.0' }));
+    assert.throws(() => assertLocalPharmacyFixtureTarget({ ...target, NODE_ENV: 'production' }));
   });
 });
