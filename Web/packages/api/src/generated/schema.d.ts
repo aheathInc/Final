@@ -3215,10 +3215,329 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/interop/systems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List registered external systems */
+        get: operations["listExternalHealthSystems"];
+        put?: never;
+        /** Register a pending external system */
+        post: operations["registerExternalHealthSystem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/systems/{system_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a registered external system */
+        post: operations["activateExternalHealthSystem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/systems/{system_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend an external system */
+        post: operations["suspendExternalHealthSystem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/identities/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List pending identity candidates without external identifiers or demographics */
+        get: operations["listPendingExternalIdentities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/identities/{identity_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an externally verified identity mapping */
+        post: operations["confirmExternalIdentity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/identities/{identity_id}/mark-ambiguous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record an ambiguous identity review */
+        post: operations["markExternalIdentityAmbiguous"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/identities/{identity_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject an incorrect external identity candidate */
+        post: operations["rejectExternalIdentity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/fhir/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import one supported FHIR R4 subset resource from an active trusted source
+         * @description This endpoint accepts only listed profiles, one resource per call, and
+         *     source-scoped references. It is not a full FHIR server. Authenticate
+         *     using the source-specific bearer token configured outside the database
+         *     and X-Integration-System system key.
+         */
+        post: operations["importFhirSubsetResource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/my-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authenticated patient's own longitudinal history */
+        get: operations["getMyLongitudinalHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/patients/{patient_profile_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read patient history under active exact clinician or facility consent */
+        get: operations["getAuthorizedPatientTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/interop/records/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read an imported record and its provenance under patient or clinician authorization */
+        get: operations["getImportedRecordWithProvenance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        RegisterExternalHealthSystem: {
+            system_key: string;
+            name: string;
+            identifier: string;
+            /** Format: uuid */
+            facility_id: string;
+            supported_types: components["schemas"]["SupportedFhirResourceType"][];
+        };
+        ExternalHealthSystem: {
+            /** Format: uuid */
+            id: string;
+            system_key: string;
+            name: string;
+            identifier: string;
+            facility: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+            };
+            /** @enum {string} */
+            status: "pending" | "active" | "suspended";
+            supported_types: components["schemas"]["SupportedFhirResourceType"][];
+            /** @description Environment or secret-manager reference only; never a credential value. */
+            authentication_configuration_reference: string;
+            /** Format: date-time */
+            activated_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ExternalHealthSystemList: {
+            data: components["schemas"]["ExternalHealthSystem"][];
+        };
+        /** @enum {string} */
+        SupportedFhirResourceType: "Patient" | "Organization" | "Practitioner" | "Encounter" | "Condition" | "Observation" | "DiagnosticReport" | "MedicationRequest" | "AllergyIntolerance" | "Provenance";
+        /**
+         * @description Restricted FHIR R4 subset. The service validates a resource-specific
+         *     allow-list and rejects unsupported fields and references. This is not
+         *     a claim of full FHIR R4 server conformance.
+         */
+        SupportedFhirResource: {
+            resourceType: components["schemas"]["SupportedFhirResourceType"];
+            id: string;
+            meta: {
+                versionId?: string;
+                /** Format: date-time */
+                lastUpdated: string;
+                profile?: string[];
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        FhirImportResult: {
+            /** Format: uuid */
+            id: string;
+            resource_type: components["schemas"]["SupportedFhirResourceType"];
+            source_resource_id: string;
+            source_version?: string | null;
+            /** @enum {string} */
+            validation_status: "accepted" | "quarantined";
+            payload_hash: string;
+            /** Format: date-time */
+            clinical_event_at?: string | null;
+            /** Format: date-time */
+            imported_at: string;
+            duplicate: boolean;
+        };
+        PendingExternalIdentity: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "ambiguous" | "unmatched";
+            source_system: {
+                name: string;
+                system_key: string;
+            };
+            imported_resource_count: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PendingExternalIdentityList: {
+            data: components["schemas"]["PendingExternalIdentity"][];
+        };
+        ConfirmExternalIdentity: {
+            /** Format: uuid */
+            patient_profile_id: string;
+            evidence_reference: string;
+        };
+        AmbiguousExternalIdentity: {
+            candidate_patient_profile_ids: string[];
+            evidence_reference: string;
+        };
+        RejectExternalIdentity: {
+            evidence_reference: string;
+        };
+        LongitudinalTimeline: {
+            /** Format: uuid */
+            patient_profile_id: string;
+            data: {
+                /** Format: uuid */
+                id: string;
+                category: string;
+                /** Format: date-time */
+                occurred_at: string;
+                source: {
+                    /** @enum {string} */
+                    type: "ahp" | "external";
+                    name: string;
+                    facility_name?: string | null;
+                    record_id: string;
+                };
+                status: string;
+                verification_state: string;
+                summary: string;
+                detail: {
+                    [key: string]: unknown;
+                };
+                provenance?: {
+                    [key: string]: unknown;
+                };
+            }[];
+        };
         PatientAuditHistory: {
             data: {
                 /** @enum {string} */
@@ -5136,6 +5455,8 @@ export interface components {
         Limit: number;
         Page: number;
         PageSize: number;
+        HistoryCategory: "consultation" | "referral" | "diagnostic" | "medication" | "dispensing" | "medical_record" | "encounter" | "condition" | "allergy";
+        HistorySource: "ahp" | "external";
     };
     requestBodies: never;
     headers: never;
@@ -10424,6 +10745,333 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Unauthenticated"];
+        };
+    };
+    listExternalHealthSystems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registered systems; only administrators can view integration configuration references. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalHealthSystemList"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    registerExternalHealthSystem: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterExternalHealthSystem"];
+            };
+        };
+        responses: {
+            /** @description System registered pending explicit activation. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalHealthSystem"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    activateExternalHealthSystem: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                system_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description System activated and audited. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    suspendExternalHealthSystem: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                system_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description System suspended and audited. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listPendingExternalIdentities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Opaque review candidates. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingExternalIdentityList"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    confirmExternalIdentity: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                identity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmExternalIdentity"];
+            };
+        };
+        responses: {
+            /** @description Identity confirmed; quarantined records become eligible under access controls. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    markExternalIdentityAmbiguous: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                identity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AmbiguousExternalIdentity"];
+            };
+        };
+        responses: {
+            /** @description Candidate remains unattached and quarantined. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    rejectExternalIdentity: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                identity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectExternalIdentity"];
+            };
+        };
+        responses: {
+            /** @description Candidate is rejected and remains quarantined. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    importFhirSubsetResource: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Integration-System": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/fhir+json": components["schemas"]["SupportedFhirResource"];
+            };
+        };
+        responses: {
+            /** @description Resource accepted or quarantined pending identity reconciliation. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FhirImportResult"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getMyLongitudinalHistory: {
+        parameters: {
+            query?: {
+                category?: components["parameters"]["HistoryCategory"];
+                source?: components["parameters"]["HistorySource"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AHP-native and authorized imported history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongitudinalTimeline"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getAuthorizedPatientTimeline: {
+        parameters: {
+            query?: {
+                category?: components["parameters"]["HistoryCategory"];
+                source?: components["parameters"]["HistorySource"];
+            };
+            header?: never;
+            path: {
+                patient_profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consent-scoped patient history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LongitudinalTimeline"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getImportedRecordWithProvenance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized imported details and source provenance. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

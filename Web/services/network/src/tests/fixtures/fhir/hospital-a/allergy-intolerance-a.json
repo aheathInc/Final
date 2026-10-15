@@ -1,0 +1,14 @@
+{
+  "resourceType": "AllergyIntolerance",
+  "id": "allergy-a",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-01T09:25:00Z" },
+  "clinicalStatus": { "text": "active" },
+  "verificationStatus": { "text": "unconfirmed" },
+  "type": "allergy",
+  "category": ["medication"],
+  "criticality": "unable-to-assess",
+  "code": { "text": "SYNTHETIC FIXTURE ALLERGEN — NOT CLINICAL" },
+  "patient": { "reference": "Patient/patient-a" },
+  "encounter": { "reference": "Encounter/encounter-a" },
+  "recordedDate": "2026-10-01T08:42:00Z"
+}

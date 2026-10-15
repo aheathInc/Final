@@ -52,6 +52,7 @@ const ROUTES: Route[] = [
   { pattern: '/families', env: 'FAMILIES_SERVICE_URL', port: 4015 },
   { pattern: '/education', env: 'EDUCATION_SERVICE_URL', port: 4016 },
   { pattern: '/network', env: 'NETWORK_SERVICE_URL', port: 4017 },
+  { pattern: '/interop', env: 'NETWORK_SERVICE_URL', port: 4017 },
   { pattern: '/referrals', env: 'NETWORK_SERVICE_URL', port: 4017 },
   { pattern: '/insurance', env: 'INSURANCE_SERVICE_URL', port: 4018 },
   { pattern: '/research', env: 'RESEARCH_SERVICE_URL', port: 4019 },

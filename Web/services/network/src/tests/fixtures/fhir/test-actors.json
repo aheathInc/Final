@@ -1,0 +1,13 @@
+{
+  "data_classification": "TEST DATA ONLY — NOT FOR CLINICAL USE",
+  "systems": ["hospital-a-ehr", "hospital-b-ehr"],
+  "patients": [
+    { "scenario": "Patient A", "identity_state": "confirmed" },
+    { "scenario": "Patient B", "identity_state": "unmatched" }
+  ],
+  "identity_scenarios": ["confirmed", "ambiguous", "unmatched"],
+  "clinicians": [
+    { "scenario": "authorized clinician", "care_scope": "active exact PatientConsent" },
+    { "scenario": "unrelated clinician", "care_scope": "none" }
+  ]
+}

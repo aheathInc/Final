@@ -90,6 +90,7 @@ class Config {
     '/screening-invitations': 4024,
     '/facilities': 4025,
     '/referrals': 4017,
+    '/interop': 4017,
   };
 
   /// Longest prefix wins: `/care-threads/x/messages` belongs to messaging even

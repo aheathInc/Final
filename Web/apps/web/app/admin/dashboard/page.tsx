@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { Badge, PageHeader, Card, PageShell } from '@/components/ui';
 import { serverGet } from '@/lib/serverToken';
 import type { ClinicianDirectoryEntry, Device, EmergencyRequest, Facility, IncidentReport, Page, Payment } from '@/lib/api';
@@ -13,13 +15,14 @@ function Stat({ label, value, href }: { label: string; value: number | string; h
 }
 
 export default async function AdminDashboard() {
-  const [emergencies, verifications, payments, devices, facilities, incidents] = await Promise.all([
+  const [emergencies, verifications, payments, devices, facilities, incidents, session] = await Promise.all([
     serverGet<Page<EmergencyRequest>>('/emergency-requests?limit=20'),
     serverGet<Page<ClinicianDirectoryEntry>>('/clinicians?verification_status=pending&limit=20'),
     serverGet<Page<Payment>>('/payments?limit=20'),
     serverGet<{ data: Device[] }>('/devices'),
     serverGet<Page<Facility>>('/facilities?limit=20'),
     serverGet<Page<IncidentReport>>('/incident-reports?limit=20'),
+    getServerSession(authOptions),
   ]);
 
   const openEmergencies = emergencies?.data?.filter((e) => e.status !== 'resolved' && e.status !== 'cancelled').length ?? 0;
@@ -62,6 +65,11 @@ export default async function AdminDashboard() {
           </p>
         </Card>
       </section>
+      {session?.user?.role === 'platform_admin' && (
+        <section className="mt-6">
+          <Stat label="External health systems" value="Registry & identity review" href="/admin/interoperability" />
+        </section>
+      )}
     </PageShell>
   );
 }

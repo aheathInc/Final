@@ -1,0 +1,11 @@
+{
+  "resourceType": "Encounter",
+  "id": "encounter-a",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-01T09:00:00Z" },
+  "identifier": [{ "system": "urn:synthetic:hospital-a", "value": "TEST-ENC-A" }],
+  "status": "finished",
+  "class": { "system": "urn:synthetic:class", "code": "TEST" },
+  "subject": { "reference": "Patient/patient-a" },
+  "period": { "start": "2026-10-01T08:30:00Z", "end": "2026-10-01T08:45:00Z" },
+  "serviceProvider": { "reference": "Organization/hospital-a" }
+}

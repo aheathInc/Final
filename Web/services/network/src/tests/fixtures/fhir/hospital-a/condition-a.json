@@ -1,0 +1,12 @@
+{
+  "resourceType": "Condition",
+  "id": "condition-a",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-01T09:05:00Z" },
+  "clinicalStatus": { "text": "active" },
+  "verificationStatus": { "text": "unconfirmed" },
+  "code": { "text": "SYNTHETIC CONDITION — NOT CLINICAL" },
+  "subject": { "reference": "Patient/patient-a" },
+  "encounter": { "reference": "Encounter/encounter-a" },
+  "onsetDateTime": "2026-10-01T08:40:00Z",
+  "recordedDate": "2026-10-01T09:05:00Z"
+}
