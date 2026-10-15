@@ -262,6 +262,24 @@ enum RecordType {
   other
 }
 
+enum ExternalHealthSystemStatus {
+  pending
+  active
+  suspended
+}
+
+enum ExternalIdentityStatus {
+  confirmed
+  ambiguous
+  unmatched
+  rejected
+}
+
+enum ExternalResourceValidationStatus {
+  accepted
+  quarantined
+}
+
 enum NotificationStatus {
   queued
   sent
@@ -312,6 +330,9 @@ model User {
   emergencyReports EmergencyRequest[] @relation("EmergencyReporter")
   realtimeTickets  RealtimeTicket[]
   paymentsMade     PaymentIntent[]    @relation("Payer")
+  createdInteropSystems ExternalHealthSystem[] @relation("InteropSystemCreatedBy")
+  activatedInteropSystems ExternalHealthSystem[] @relation("InteropSystemActivatedBy")
+  reviewedInteropIdentities ExternalPatientIdentity[] @relation("InteropIdentityReviewedBy")
 
   @@index([status, role])
   @@index([updatedAt])
@@ -351,6 +372,8 @@ model PatientProfile {
   consents       PatientConsent[]
   medicalRecords MedicalRecord[]
   digitalReferrals DigitalReferral[]
+  externalIdentities ExternalPatientIdentity[]
+  externalFhirResources ExternalFhirResource[]
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -460,6 +483,7 @@ model Facility {
   pharmacies     Pharmacy[]
   consents       PatientConsent[]
   sourcedRecords MedicalRecord[]    @relation("RecordSource")
+  externalHealthSystems ExternalHealthSystem[]
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -1061,6 +1085,90 @@ model MedicalRecord {
   @@index([isCritical, acknowledgedAt])
   @@index([updatedAt])
   @@map("medical_records")
+}
+
+// External sources are explicitly registered and activated by a platform
+// administrator. Authentication material is referenced by environment/secret
+// manager key only; it is never stored in this database.
+model ExternalHealthSystem {
+  id                String                     @id @default(uuid()) @db.Uuid
+  systemKey         String                     @unique @map("system_key") @db.VarChar(60)
+  name              String                     @db.VarChar(160)
+  identifier        String                     @unique @db.VarChar(255)
+  facilityId        String                     @map("facility_id") @db.Uuid
+  facility          Facility                   @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  status            ExternalHealthSystemStatus @default(pending)
+  supportedTypes    String[]                   @default([]) @map("supported_types")
+  authConfigRef     String                     @map("auth_config_ref") @db.VarChar(120)
+  createdByUserId   String                     @map("created_by_user_id") @db.Uuid
+  createdBy         User                       @relation("InteropSystemCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  activatedByUserId String?                    @map("activated_by_user_id") @db.Uuid
+  activatedBy       User?                      @relation("InteropSystemActivatedBy", fields: [activatedByUserId], references: [id], onDelete: SetNull)
+  activatedAt       DateTime?                  @map("activated_at")
+  identities        ExternalPatientIdentity[]
+  resources         ExternalFhirResource[]
+  version           Int                        @default(1)
+  createdAt         DateTime                   @default(now()) @map("created_at")
+  updatedAt         DateTime                   @updatedAt @map("updated_at")
+
+  @@index([facilityId, status])
+  @@map("external_health_systems")
+}
+
+// This is a source-scoped identity link, not a patient merge. No demographic
+// matching is performed automatically. Unmatched and ambiguous records stay
+// unattached until a restricted, audited reconciliation is completed.
+model ExternalPatientIdentity {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  externalSystemId    String                 @map("external_system_id") @db.Uuid
+  externalSystem      ExternalHealthSystem   @relation(fields: [externalSystemId], references: [id], onDelete: Restrict)
+  externalPatientId   String                 @map("external_patient_id") @db.VarChar(180)
+  status              ExternalIdentityStatus @default(unmatched)
+  patientProfileId    String?                @map("patient_profile_id") @db.Uuid
+  patient              PatientProfile?       @relation(fields: [patientProfileId], references: [id], onDelete: SetNull)
+  candidateProfileIds String[]               @default([]) @map("candidate_profile_ids")
+  reviewedByUserId    String?                @map("reviewed_by_user_id") @db.Uuid
+  reviewedBy          User?                  @relation("InteropIdentityReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedAt          DateTime?              @map("reviewed_at")
+  evidenceReference   String?                @map("evidence_reference") @db.VarChar(120)
+  resources           ExternalFhirResource[]
+  version             Int                    @default(1)
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+
+  @@unique([externalSystemId, externalPatientId], map: "external_patient_identities_external_system_id_external_patient")
+  @@unique([externalSystemId, patientProfileId], map: "external_patient_identities_system_patient_key")
+  @@index([status, createdAt])
+  @@index([patientProfileId, status])
+  @@map("external_patient_identities")
+}
+
+// Immutable source versions are retained. The payload is available only after
+// server-side authorization; only hashes and non-clinical metadata go to Audit.
+model ExternalFhirResource {
+  id                    String                            @id @default(uuid()) @db.Uuid
+  externalSystemId      String                            @map("external_system_id") @db.Uuid
+  externalSystem        ExternalHealthSystem              @relation(fields: [externalSystemId], references: [id], onDelete: Restrict)
+  identityId            String?                           @map("identity_id") @db.Uuid
+  identity              ExternalPatientIdentity?          @relation(fields: [identityId], references: [id], onDelete: Restrict)
+  patientProfileId      String?                           @map("patient_profile_id") @db.Uuid
+  patient               PatientProfile?                  @relation(fields: [patientProfileId], references: [id], onDelete: SetNull)
+  resourceType          String                            @map("resource_type") @db.VarChar(40)
+  externalResourceId    String                            @map("external_resource_id") @db.VarChar(180)
+  resourceVersion       String?                           @map("resource_version") @db.VarChar(80)
+  sourceLastUpdated     DateTime?                         @map("source_last_updated")
+  clinicalEventAt       DateTime?                         @map("clinical_event_at")
+  validationStatus      ExternalResourceValidationStatus @default(quarantined) @map("validation_status")
+  resourcePayload       Json                              @map("resource_payload")
+  payloadHash           String                            @map("payload_hash") @db.Char(64)
+  transformationVersion String                            @default("fhir-r4-subset-v1") @map("transformation_version") @db.VarChar(40)
+  importedAt            DateTime                          @default(now()) @map("imported_at")
+  createdAt             DateTime                          @default(now()) @map("created_at")
+
+  @@index([patientProfileId, clinicalEventAt], map: "external_fhir_resources_patient_profile_id_clinical_event_at_id")
+  @@index([externalSystemId, resourceType, externalResourceId, importedAt], map: "external_fhir_resources_external_system_id_resource_type_extern")
+  @@index([identityId, validationStatus])
+  @@map("external_fhir_resources")
 }
 
 // ---------------------------------------------------------------------------
@@ -2185,6 +2293,7 @@ model DispenseCode {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([prescriptionId])
+  @@index([prescriptionId, revokedAt])
   @@index([expiresAt])
   @@map("dispense_codes")
 }
@@ -2236,6 +2345,7 @@ model DispensingRecord {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([prescriptionId])
+  @@index([handoffId])
   @@index([pharmacyId, dispensedAt])
   @@index([updatedAt])
   @@map("dispensing_records")

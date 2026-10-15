@@ -1,0 +1,13 @@
+{
+  "resourceType": "MedicationRequest",
+  "id": "medication-request-a",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-01T09:20:00Z" },
+  "status": "completed",
+  "intent": "order",
+  "medicationCodeableConcept": { "text": "SYNTHETIC ITEM — NOT FOR USE" },
+  "subject": { "reference": "Patient/patient-a" },
+  "encounter": { "reference": "Encounter/encounter-a" },
+  "authoredOn": "2026-10-01T08:42:00Z",
+  "requester": { "reference": "Practitioner/practitioner-a" },
+  "dosageInstruction": [{ "text": "Synthetic test fixture only" }]
+}

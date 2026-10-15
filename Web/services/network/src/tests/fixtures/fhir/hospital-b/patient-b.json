@@ -1,0 +1,10 @@
+{
+  "resourceType": "Patient",
+  "id": "patient-b",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-02T08:10:00Z" },
+  "identifier": [{ "system": "urn:synthetic:hospital-b", "value": "TEST-PATIENT-B" }],
+  "active": true,
+  "name": [{ "text": "Synthetic Patient B — NOT REAL" }],
+  "gender": "unknown",
+  "birthDate": "1990-01-01"
+}

@@ -17,6 +17,13 @@ interface Prescription {
   id: string; status: string; created_at: string;
   items: { id: string; medication_name: string; dosage: string; frequency_per_day: number; duration_days: number }[];
 }
+interface TimelineEntry {
+  id: string; category: string; occurred_at: string; status: string;
+  verification_state: string; summary: string;
+  source: { type: 'ahp' | 'external'; name: string; facility_name: string | null; record_id: string };
+  detail: Record<string, unknown>;
+  provenance?: { source_version: string | null; imported_at: string; transformation_version: string; payload_hash: string };
+}
 
 const BAND_STYLE: Record<string, string> = {
   very_high: 'text-clay font-semibold',
@@ -30,10 +37,11 @@ export default async function PatientPage({ params }: { params: { patient_profil
   if (!session) redirect('/login');
 
   const id = params.patient_profile_id;
-  const [risk, vaccinations, prescriptions] = await Promise.all([
+  const [risk, vaccinations, prescriptions, history] = await Promise.all([
     serverGet<{ data: RiskScore[] }>(`/patient-profiles/${id}/risk-scores`),
     serverGet<{ data: Vaccination[] }>(`/patient-profiles/${id}/vaccinations`),
     serverGet<Page<Prescription>>(`/patient-profiles/${id}/prescriptions?limit=20`),
+    serverGet<{ data: TimelineEntry[] }>(`/interop/patients/${id}/timeline`),
   ]);
 
   return (
@@ -84,6 +92,31 @@ export default async function PatientPage({ params }: { params: { patient_profil
               <li key={v.id} className="border border-line bg-white p-3 text-[0.95rem]">
                 {v.vaccine_code} · dozi {v.dose_number} · {v.status}
                 {v.administered_at ? ` · ${dateOnly(v.administered_at)}` : ''}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">Historia ya muda ya afya</h2>
+        <p className="mt-1 text-xs text-ink-soft">Rekodi za nje zimewekewa alama kama zilizoingizwa; si uthibitisho wa utambuzi wa AHP.</p>
+        {(history?.data ?? []).length === 0 ? (
+          <Empty>Hakuna rekodi za historia zinazoweza kuonyeshwa kwa ruhusa ya sasa.</Empty>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-3">
+            {(history?.data ?? []).map((entry) => (
+              <li key={`${entry.source.type}-${entry.id}`} className="border border-line bg-white p-3">
+                <div className="flex flex-wrap justify-between gap-2">
+                  <span className="font-medium">{entry.summary}</span>
+                  <span className="text-xs text-ink-soft">{new Date(entry.occurred_at).toLocaleString()}</span>
+                </div>
+                <p className="mt-1 text-sm text-ink-soft">{entry.category.replace(/_/g, ' ')} · {entry.status} · {entry.source.name}{entry.source.facility_name ? ` / ${entry.source.facility_name}` : ''}</p>
+                {entry.source.type === 'external' && <p className="mt-1 text-xs font-medium text-amber">Imported — clinician verification not recorded</p>}
+                {Object.keys(entry.detail).length > 0 && <dl className="mt-2 grid gap-1 text-sm">{Object.entries(entry.detail).map(([key, value]) => (
+                  <div key={key}><dt className="inline font-medium">{key.replace(/_/g, ' ')}: </dt><dd className="inline text-ink-soft">{typeof value === 'string' ? value : JSON.stringify(value)}</dd></div>
+                ))}</dl>}
+                {entry.provenance && <p className="mt-1 break-all text-xs text-ink-soft">Provenance: v{entry.provenance.source_version ?? 'unknown'} · {entry.provenance.transformation_version} · {entry.provenance.payload_hash}</p>}
               </li>
             ))}
           </ul>

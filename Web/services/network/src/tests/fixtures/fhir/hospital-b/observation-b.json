@@ -1,0 +1,10 @@
+{
+  "resourceType": "Observation",
+  "id": "observation-b",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-02T09:10:00Z" },
+  "status": "final",
+  "code": { "text": "TEST-OBSERVATION-B" },
+  "subject": { "reference": "Patient/patient-b" },
+  "effectiveDateTime": "2026-10-02T08:40:00Z",
+  "valueString": "Synthetic fixture value only"
+}

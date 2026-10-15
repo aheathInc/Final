@@ -1,0 +1,8 @@
+{
+  "resourceType": "Practitioner",
+  "id": "practitioner-a",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-01T08:00:00Z" },
+  "identifier": [{ "system": "urn:synthetic:hospital-a", "value": "TEST-PRACT-A" }],
+  "active": true,
+  "name": [{ "text": "Synthetic Practitioner A" }]
+}

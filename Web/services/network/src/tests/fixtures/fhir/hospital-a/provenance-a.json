@@ -1,0 +1,8 @@
+{
+  "resourceType": "Provenance",
+  "id": "provenance-a",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-01T09:30:00Z" },
+  "target": [{ "reference": "Observation/observation-a" }],
+  "recorded": "2026-10-01T09:30:00Z",
+  "agent": [{ "who": { "reference": "Practitioner/practitioner-a" } }]
+}

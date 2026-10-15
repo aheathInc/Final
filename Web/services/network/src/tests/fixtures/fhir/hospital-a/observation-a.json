@@ -1,0 +1,12 @@
+{
+  "resourceType": "Observation",
+  "id": "observation-a",
+  "meta": { "versionId": "1", "lastUpdated": "2026-10-01T09:10:00Z" },
+  "status": "final",
+  "category": [{ "text": "synthetic-test" }],
+  "code": { "text": "TEST-OBSERVATION-A" },
+  "subject": { "reference": "Patient/patient-a" },
+  "encounter": { "reference": "Encounter/encounter-a" },
+  "effectiveDateTime": "2026-10-01T08:40:00Z",
+  "valueQuantity": { "value": 12, "unit": "synthetic-units", "system": "urn:synthetic:units", "code": "SYN" }
+}

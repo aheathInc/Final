@@ -30,6 +30,7 @@ import 'feedback_screen.dart';
 import 'insurance_payments_screen.dart';
 import 'assistant_screen.dart';
 import 'referrals_screen.dart';
+import 'health_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -350,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
               'Elimu ya afya',
               const EducationScreen(),
             ),
+            _tile(Icons.history, 'Historia Yangu ya Afya', const HealthHistoryScreen()),
             _tile(
               Icons.privacy_tip_outlined,
               'Faragha na ruhusa',
