@@ -148,7 +148,7 @@ echo
 echo "-------------------------------------------------------------"
 if [ $RUN_DOCTOR -eq 1 ]; then
   start_app doctor-dashboard 3100 doctor-dashboard
-  echo "  Clinician    http://localhost:3100   daktari@dev.local / Daktari#2026"
+  echo "  Clinician    http://localhost:3100   Credentials come from the local clinician seed configuration."
 fi
 if [ $RUN_WEB -eq 1 ]; then
   start_app a-health-web 3000 unified-web
@@ -156,11 +156,11 @@ if [ $RUN_WEB -eq 1 ]; then
 fi
 if [ $RUN_ADMIN -eq 1 ]; then
   start_app admin-console 3200 admin-console
-  echo "  Operations   http://localhost:3200   msimamizi@dev.local / Msimamizi#2026"
+  echo "  Operations   http://localhost:3200   Credentials come from the local admin seed configuration."
 fi
 if [ $RUN_ANALYTICS -eq 1 ]; then
   start_app analytics-portal 3300 analytics-portal
-  echo "  Analytics    http://localhost:3300   msimamizi@dev.local / Msimamizi#2026"
+  echo "  Analytics    http://localhost:3300   Credentials come from the local admin seed configuration."
 fi
 echo
 echo "  Ctrl+C stops everything."

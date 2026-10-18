@@ -107,7 +107,7 @@ start "@a-health/messaging" 4006 messaging
 echo
 echo "-------------------------------------------------------------"
 echo "  Dashboard:  http://localhost:3100"
-echo "  Sign in:    daktari@dev.local  /  Daktari#2026"
+echo "  Sign in:    Clinician credentials come from the local seed configuration."
 echo
 echo "  Ctrl+C stops everything."
 echo "-------------------------------------------------------------"

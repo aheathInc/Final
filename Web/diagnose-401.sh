@@ -9,13 +9,17 @@
 # This walks the same path a browser request takes, one hop at a time.
 #
 # Run from the repo root:
-#   bash diagnose-401.sh
+#   Set AHP_DIAGNOSE_PASSWORD in your local shell, then run bash diagnose-401.sh [email]
 #
 set -uo pipefail
 
 ROOT="$(pwd)"
 EMAIL="${1:-daktari@dev.local}"
-PASSWORD="${2:-Daktari#2026}"
+PASSWORD="${AHP_DIAGNOSE_PASSWORD:-}"
+if [ -z "$PASSWORD" ]; then
+  echo "Set AHP_DIAGNOSE_PASSWORD in the local shell environment."
+  exit 2
+fi
 
 echo "── 1. Does the auth service accept these credentials?"
 LOGIN=$(curl -s -X POST http://localhost:4001/auth/login \
