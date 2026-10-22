@@ -1,0 +1,74 @@
+{
+  "reported_base_commit": "901dc9366f2eeb524fb04329eb95e7576e60201b",
+  "package_manager": "pnpm@10.34.4",
+  "lockfile_lf_sha256": "19165fcf603ffa1b1b39e75785eaa339c833035ae6e4c567b8514956e28cf22b",
+  "source_lf_sha256": {
+    "packages/database/prisma/migrations/20261021130000_care_continuity/migration.sql": "3aaa547e788d62ecbbca54b0da5c14561ba1375ea96fa5b617402fde67e76c51",
+    "packages/database/prisma/schema.prisma": "22e01e9b67a925b9463bcc270f524d63eb610ef64dbbf002f76018268972e11a",
+    "services/consultation/src/front-desk/domain.ts": "32cce2a72a9745eccef9eaf300378f527cab0a1a3995aabec6caf52401f5aaeb",
+    "services/consultation/src/front-desk/service.ts": "885ecfb9f206f7a4b282dcb78885c84f0443f602fb282101430ede0e84641bd0",
+    "services/consultation/src/services/consultation.service.ts": "e5b448450cf5cf3c80ad2700fb243ba911d7243d4544673b9e70d91b54c6a73a",
+    "services/consultation/src/tests/front-desk.database.test.ts": "556dc3da800e1ff4ed861146a78481f1c78495599e964d951264a1bc1d790246",
+    "services/consultation/src/tests/safety-test-target.ts": "470e0bcb944b6a58c0dc8248837fad12f5e1a06f388e3c94a65070fbfa528d0d",
+    "services/consultation/src/tests/thread-integrity.test.ts": "f4b142cf0dcb3b981b46d7f0a315efbf7934996679663b7bf1d7c0f46eb8153a",
+    "services/followup/src/config/env.ts": "a72a39bafebcb82c004923a9d060fc483988625917bbe1caf0ec64fbf5b76a2d",
+    "services/followup/src/continuity/reminder.worker.ts": "09c002df7a3d019d13c04566277bfd3f90e55c4ba1bff4198daaf9491438804c",
+    "services/followup/src/continuity/routes.ts": "de5331caee1ee1b0e65cfe6da3684833d5dab0c000abe76551ace6369d16218d",
+    "services/followup/src/continuity/schedule.ts": "05a05fc60b8d79d0c45e078da6b78d0dbc0a11ddf3456f4414440b807e671800",
+    "services/followup/src/continuity/service.ts": "34b201e2c1c2572e35f71dca2301a0183adfe78bdc1c5df0cebe6495adcd4b22",
+    "services/followup/src/continuity/types.ts": "f83b6c67f71c629e71bd280f47e9b7bc3203ccb2f6042892d79bf74b11eab1c7",
+    "services/followup/src/index.ts": "11bb1ad60bef6e8b6e9ba330a6ad775f4896fc5ff299755046661567db4c3ca9",
+    "services/followup/src/services/adherence.service.ts": "b32829faa161de25b610ab59717778020bff7c1a78ae0caac2f1a49599986f58",
+    "services/followup/src/services/checkin.service.ts": "607ca8fc1cfad6d2aa16b69a7c6ea122463ac838774ed5f2cf699f4642b2ffde",
+    "services/followup/src/tests/followup.test.ts": "9d2efcde14bac82fdebec820ce94a6f834e5720f0613d304c5fbcd5498e31994",
+    "services/followup/src/types/followup.types.ts": "f5f48aef554096fa8ba3d1c1ac9336b7d7aff5e8968ccdede95478f9f8e79db4",
+    "services/followup/src/workers/scheduler.worker.ts": "e610eb25c03bfac31e40cd16e61eb31e3162d67251b7fe81a3cf0874a20fa792",
+    "services/notification/src/config/env.ts": "de9c5af2e53b52c6f17644016e79c9897bae4b68271c9c5daf7f6ea343d4e152",
+    "services/notification/src/providers/index.ts": "88ba5de9fd960eb377a8fa47f0ef2b4030f80397f734cd3622d71f8a96a37cd6",
+    "services/notification/src/services/care-delivery.ts": "5c79f12e82d28efb3a11b1ee5b9cacd2b7a3a8a1d76ab83e0f61e1bb79fc7e7e",
+    "services/notification/src/services/templates.ts": "88c358df3c9369c8a8e4399ddcf877a37cb9033fe955af9799b3a6d96c74e615",
+    "services/notification/src/tests/dispatch.test.ts": "e986971726e5ae6281c4b4e40fc595516de73d52dd5743a15df28c6b602cdd10",
+    "services/notification/src/workers/dispatch.worker.ts": "b2ab79841b82d0885ee5b3ae84bb9a874a414a15bc77f8511e92f69760ee0d07"
+  },
+  "tools": {
+    "typescript": {
+      "context": "package.json",
+      "version": "5.9.3",
+      "entry": "typescript/bin/tsc"
+    },
+    "tsx": {
+      "context": "package.json",
+      "version": "4.23.5",
+      "entry": "tsx"
+    },
+    "@prisma/client": {
+      "context": "packages/database/package.json",
+      "version": "6.19.3"
+    }
+  },
+  "migrations": [
+    "20260812114735_init",
+    "20260815161557_login_lockout",
+    "20260817064043_harden_foreign_keys",
+    "20260817155319_expand_full_domain",
+    "20260818062410_care_thread_active_cycle",
+    "20260818063553_realtime_tickets",
+    "20260818065515_notification_deliver_after",
+    "20260818125838_notification_deliver_after",
+    "20260819060201_ai_conversation_patient",
+    "20260821024253_add_payment",
+    "20260824074212_add_ussd_session",
+    "20260904154645_add_triage_rulesets",
+    "20260914120000_add_emergency_contact",
+    "20261006120000_harden_audit_ledger",
+    "20261012090000_provider_clinical_collaboration",
+    "20261012100000_align_provider_collaboration_constraint_names",
+    "20261012110000_digital_referral_network",
+    "20261013100000_smart_pharmacy_prescription_handoff",
+    "20261013130000_health_interoperability_longitudinal_record",
+    "20261014150000_interop_identity_rejection",
+    "20261021090000_digital_front_desk",
+    "20261021130000_care_continuity"
+  ],
+  "candidate": "006 cumulative source + care continuity; scoped runner covers consultation/followup/notification safety only, not complete frontend/HTTP/Flutter acceptance"
+}

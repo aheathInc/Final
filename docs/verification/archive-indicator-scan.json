@@ -1,0 +1,13 @@
+{
+  "result": "NO_HIGH_CONFIDENCE_MATCHES",
+  "text_files_scanned": 958,
+  "patterns": [
+    "private_key",
+    "github_token",
+    "aws_access_id",
+    "jwt_literal",
+    "live_payment_key"
+  ],
+  "findings": [],
+  "limits": "Indicator scan only, not semantic PHI/privacy/clinical certification. Original baseline was sanitized by uploader. No secrets intentionally added."
+}

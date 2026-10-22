@@ -1,0 +1,9 @@
+{
+  "kind": "Source files embedded/transpiled in standalone preview; synthetic transport is not the production API",
+  "sha256": {
+    "apps/staff-web/components/CareContinuityWorkspace.tsx": "1f2a19ccb0e7f68fb05690dd11e7282418aef7c131d72266691310fc1bbc9b76",
+    "apps/staff-web/components/MedicationTimingWorkspace.tsx": "5c2cbdb55581799b8733aa096fd1b46852b8a3bfd290553f01c987561af2038a",
+    "apps/staff-web/app/care-continuity.css": "26cd0438a4b04e2f763e4663b510d994227567fcb6cccc7b5584a15a60d7fb48"
+  },
+  "preview_sha256": "406e6c76d6ded2b3b57af91d1fcc51f4c1f8a7c74fe310c83b05c8facbd95173"
+}

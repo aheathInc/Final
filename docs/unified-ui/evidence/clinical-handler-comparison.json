@@ -1,0 +1,105 @@
+{
+  "scope": "Normalized AST comparison of existing request/clinical action handlers. Does not execute the backend.",
+  "results": [
+    {
+      "file": "components/DigitalReferralWorkspace.tsx",
+      "method": "chooseCase",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/DigitalReferralWorkspace.tsx",
+      "method": "selectAuthorization",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/DigitalReferralWorkspace.tsx",
+      "method": "submitNewReferral",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/DigitalReferralWorkspace.tsx",
+      "method": "act",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/PharmacistWorkspace.tsx",
+      "method": "verify",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/PharmacistWorkspace.tsx",
+      "method": "dispense",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/QueueView.tsx",
+      "method": "accept",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/QueueView.tsx",
+      "method": "decline",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "load",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "open",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "write",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "schedule",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "contact",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "review",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "renderReview",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "renderSchedules",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/CareContinuityWorkspace.tsx",
+      "method": "renderContacts",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/MedicationTimingWorkspace.tsx",
+      "method": "load",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "components/MedicationTimingWorkspace.tsx",
+      "method": "save",
+      "status": "UNCHANGED"
+    },
+    {
+      "file": "app/login/page.tsx",
+      "method": "staffSignIn",
+      "status": "UNCHANGED"
+    }
+  ]
+}

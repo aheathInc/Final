@@ -1,0 +1,324 @@
+{
+  "parent": "AHP_Integrated_Candidate_005_Digital_Front_Desk.zip",
+  "parent_sha256": "1e9cf3324d85b09a9fc59e3680d3cd88da72961257ad86ae57b6bf46022946fd",
+  "changes": [
+    {
+      "path": "CANDIDATE.json",
+      "change": "modified",
+      "parent_sha256": "8ce77c4a7ab73427076883b19ff67810724459e4fce65127ad1d43252c6d7d88",
+      "candidate_sha256": "142f47d8fb283cbd9d72caf65166410ae3bc81e3febe0117794fb598e4a7a880"
+    },
+    {
+      "path": "apps/patient-mobile/lib/core/care_continuity.dart",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "278d047a0b8658ec9030d34aaeb381ae8122ab9d9bb545a52c81bf4396327ff5"
+    },
+    {
+      "path": "apps/patient-mobile/lib/core/config.dart",
+      "change": "modified",
+      "parent_sha256": "c942d834c3f36788845706475488956f91ae496d9152421d153a70fce5bdc86c",
+      "candidate_sha256": "f22b0101a96c8141fbb07af432b9862f8d1784a8ecf6cddad35cac15bcae8872"
+    },
+    {
+      "path": "apps/patient-mobile/lib/screens/care_continuity_screen.dart",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "9c47bc85135c7bd295a2b0c023d840797a28f0adf42d1df5cda1de5a45dc95b2"
+    },
+    {
+      "path": "apps/patient-mobile/lib/screens/home_screen.dart",
+      "change": "modified",
+      "parent_sha256": "f6df46fb9f39d18f36efd361af8c1f152ba8cd3e4be7aa61501592206fc5b3c6",
+      "candidate_sha256": "c1b196a4677e9177d87ee371a797457d134ea90a3523f959deb683b0d50db1f2"
+    },
+    {
+      "path": "apps/patient-mobile/test/care_continuity_test.dart",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "c4b8c84aecae615056abfc2d8bac25e3931131f5b52487908afe0e6e3bc64f81"
+    },
+    {
+      "path": "README.md",
+      "change": "modified",
+      "parent_sha256": "d267625f30fc9bf5f354f4be4aec13313e6d3741f8b9d1d57b823df830329a43",
+      "candidate_sha256": "513b36ac8cadd94392794314c037ef16221530fc2a63a5257d9ecebb1dca442e"
+    },
+    {
+      "path": "apps/staff-web/app/care-continuity.css",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "26cd0438a4b04e2f763e4663b510d994227567fcb6cccc7b5584a15a60d7fb48"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/follow-up/medication-times/page.tsx",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "325867b7f7253c2d0a464ab20df8b81b4cbe30e7dacb2c4d1104ab28270a20b1"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/follow-up/page.tsx",
+      "change": "modified",
+      "parent_sha256": "3cd1405c37b0a3028944781a0b1aeafc6573d087cf07ed8d1b93d655a3060ee0",
+      "candidate_sha256": "6165c457cababbec19dedb30abbae31095d89f1bc996f38e970c62fb90e453fa"
+    },
+    {
+      "path": "apps/staff-web/app/layout.tsx",
+      "change": "modified",
+      "parent_sha256": "bdb6a8b28fce36b5b88dfe766ab8523a576438e4e1604a3d3280eab94ac28400",
+      "candidate_sha256": "8437d92ce876352ce5c9d9a261f3270295a80827ae49160bab00dc14a7e7e475"
+    },
+    {
+      "path": "apps/staff-web/components/CareContinuityWorkspace.tsx",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "1f2a19ccb0e7f68fb05690dd11e7282418aef7c131d72266691310fc1bbc9b76"
+    },
+    {
+      "path": "apps/staff-web/components/CloseCaseForm.tsx",
+      "change": "modified",
+      "parent_sha256": "7beda30eee70e1d5ad8959c96808aa303c3320ef41b7cc34195cd1a6d1027828",
+      "candidate_sha256": "ca36e559190fe4a7e05d9bcbd5c05917d33099b18ce483712f8008a93f0eb3a6"
+    },
+    {
+      "path": "apps/staff-web/components/MedicationTimingWorkspace.tsx",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "5c2cbdb55581799b8733aa096fd1b46852b8a3bfd290553f01c987561af2038a"
+    },
+    {
+      "path": "apps/staff-web/lib/services.ts",
+      "change": "modified",
+      "parent_sha256": "a6c0f8e179b5ad6fdfefffbfeb33a8eaa71fe84d9587101e1d4b5864b77aa965",
+      "candidate_sha256": "fd022d2df5c977188e508b43345986f74a94308ac54f1bca260ab74282a432b6"
+    },
+    {
+      "path": "docs/CANDIDATE-006-IMPLEMENTATION.md",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "5e2fc53904b12a9e005e9ca7bb0038286d3ead4c83fa0547d8ee60f325d94301"
+    },
+    {
+      "path": "docs/CARE-CONTINUITY.md",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "eb3f5ae6b76ff95443bb7087c8d45a1268940833a26074d061789abf05c3e690"
+    },
+    {
+      "path": "docs/verification/006/browser-checks.json",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "5d586a98fd96814e9a1dd7b18cb79c3b0dd01fb65b25fc8359b0e44d24fba409"
+    },
+    {
+      "path": "docs/verification/006/combined-tests.tap",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "e10add97fcfbc1265f10c7a8851476f49e72de707e1e1cc371743541b1e4e65f"
+    },
+    {
+      "path": "docs/verification/006/integration-preflight.json",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "c155c3de2f3d0d0d7dad2839bf36979d0dce4faa448db784f95ab334a4476633"
+    },
+    {
+      "path": "docs/verification/006/preview-source-hashes.json",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "2b8518030e99a86301fda3385d15b8dc94f0844f5ee4d00ed478bf66d7f88b79"
+    },
+    {
+      "path": "docs/verification/006/source-review.json",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "a93c50d1c302644c39f902c1ada3f5fbfa3e3e85d202fec6aa40ce34248a8a91"
+    },
+    {
+      "path": "docs/verification/006/static-verification.json",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "c709947475ac2ee99f1ea9d93a4b449c3c50e8abf647882c3f8b05ab940bf3ea"
+    },
+    {
+      "path": "docs/verification/006/syntax-checks.json",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "0a7e8d1eb508dbfb4a40d4a40eaf44b2232ddda8e4edffc4f24d297541392f26"
+    },
+    {
+      "path": "packages/api/openapi/a-health-api-v1.yaml",
+      "change": "modified",
+      "parent_sha256": "23de1a9b985b782d4bfa4d4eccca49e981923a4f511cf7cdbdabb6091731ffe6",
+      "candidate_sha256": "06394d415d1d4545ba183676258b4aca8ba9f6a0f5f6d8f44aba13bc9140ea5f"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261021130000_care_continuity/migration.sql",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "3aaa547e788d62ecbbca54b0da5c14561ba1375ea96fa5b617402fde67e76c51"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "change": "modified",
+      "parent_sha256": "7c3a369b43f7b68d77167cea8173e911e3569f825de0e7f7907a65c9ebc75574",
+      "candidate_sha256": "22e01e9b67a925b9463bcc270f524d63eb610ef64dbbf002f76018268972e11a"
+    },
+    {
+      "path": "services/followup/.env.example",
+      "change": "modified",
+      "parent_sha256": "65cc984c8e17009feb28178fc105927626e13cbb304860cdd1705e9b58a3fc2d",
+      "candidate_sha256": "be0d897947cb06b56d78fb821de69b4f58617820c30e0a820b273b2ca5798e21"
+    },
+    {
+      "path": "services/followup/src/config/env.ts",
+      "change": "modified",
+      "parent_sha256": "d53543f6865072ad9ebca568f5fad1ea58fda36d691bdbcb81d74d18dc12fafe",
+      "candidate_sha256": "a72a39bafebcb82c004923a9d060fc483988625917bbe1caf0ec64fbf5b76a2d"
+    },
+    {
+      "path": "services/followup/src/continuity/reminder.worker.ts",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "09c002df7a3d019d13c04566277bfd3f90e55c4ba1bff4198daaf9491438804c"
+    },
+    {
+      "path": "services/followup/src/continuity/routes.ts",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "de5331caee1ee1b0e65cfe6da3684833d5dab0c000abe76551ace6369d16218d"
+    },
+    {
+      "path": "services/followup/src/continuity/schedule.ts",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "05a05fc60b8d79d0c45e078da6b78d0dbc0a11ddf3456f4414440b807e671800"
+    },
+    {
+      "path": "services/followup/src/continuity/service.ts",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "34b201e2c1c2572e35f71dca2301a0183adfe78bdc1c5df0cebe6495adcd4b22"
+    },
+    {
+      "path": "services/followup/src/continuity/types.ts",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "f83b6c67f71c629e71bd280f47e9b7bc3203ccb2f6042892d79bf74b11eab1c7"
+    },
+    {
+      "path": "services/followup/src/index.ts",
+      "change": "modified",
+      "parent_sha256": "c3ccbdcba26c4c9f3272725017c08523bbb71503ca57bfda1e6be51ae2a9914a",
+      "candidate_sha256": "11bb1ad60bef6e8b6e9ba330a6ad775f4896fc5ff299755046661567db4c3ca9"
+    },
+    {
+      "path": "services/followup/src/services/adherence.service.ts",
+      "change": "modified",
+      "parent_sha256": "a4d488b9e42174f6b38435a3a06a86120cd219505eb0406164e2bc2d16df9962",
+      "candidate_sha256": "b32829faa161de25b610ab59717778020bff7c1a78ae0caac2f1a49599986f58"
+    },
+    {
+      "path": "services/followup/src/services/checkin.service.ts",
+      "change": "modified",
+      "parent_sha256": "8fcbb008561bf29da8b47f2cd1855875f04a62b3a41904e4444cf8ace324ca85",
+      "candidate_sha256": "607ca8fc1cfad6d2aa16b69a7c6ea122463ac838774ed5f2cf699f4642b2ffde"
+    },
+    {
+      "path": "services/followup/src/tests/followup.test.ts",
+      "change": "modified",
+      "parent_sha256": "c7138efe5ca2779b0a0fa2bfd3c331cdebd4ee6810fd68684caa93dab29068fc",
+      "candidate_sha256": "9d2efcde14bac82fdebec820ce94a6f834e5720f0613d304c5fbcd5498e31994"
+    },
+    {
+      "path": "services/followup/src/types/followup.types.ts",
+      "change": "modified",
+      "parent_sha256": "2ebe73179b33f5dd5d9f614da50d177a05772eb8b11431ed5e7ad8c27544a281",
+      "candidate_sha256": "f5f48aef554096fa8ba3d1c1ac9336b7d7aff5e8968ccdede95478f9f8e79db4"
+    },
+    {
+      "path": "services/notification/src/config/env.ts",
+      "change": "modified",
+      "parent_sha256": "b133167398f82f28bebc3e87bb80ece18c3b80f87f0a99d8c6348f209dae5632",
+      "candidate_sha256": "de9c5af2e53b52c6f17644016e79c9897bae4b68271c9c5daf7f6ea343d4e152"
+    },
+    {
+      "path": "services/notification/src/providers/index.ts",
+      "change": "modified",
+      "parent_sha256": "db12828b54ac05e2636dd2a92d866add31b5dd9f4180609597c90bcb81837208",
+      "candidate_sha256": "88ba5de9fd960eb377a8fa47f0ef2b4030f80397f734cd3622d71f8a96a37cd6"
+    },
+    {
+      "path": "services/notification/src/services/care-delivery.ts",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "5c79f12e82d28efb3a11b1ee5b9cacd2b7a3a8a1d76ab83e0f61e1bb79fc7e7e"
+    },
+    {
+      "path": "services/notification/src/services/templates.ts",
+      "change": "modified",
+      "parent_sha256": "c1b6b843c547f4e5eed613693c2743b128dd7bb263b3fff3bb4fb7cfa6478779",
+      "candidate_sha256": "88c358df3c9369c8a8e4399ddcf877a37cb9033fe955af9799b3a6d96c74e615"
+    },
+    {
+      "path": "services/notification/src/tests/dispatch.test.ts",
+      "change": "modified",
+      "parent_sha256": "10de35bf151c5df854982aa8ac40638571c6683869daea8aadcfe5ab6a467552",
+      "candidate_sha256": "e986971726e5ae6281c4b4e40fc595516de73d52dd5743a15df28c6b602cdd10"
+    },
+    {
+      "path": "services/notification/src/workers/dispatch.worker.ts",
+      "change": "modified",
+      "parent_sha256": "5b9cf9bcf9af737528aeaec8ae6d05af55c565c2c21526f5b116e712cf4f525f",
+      "candidate_sha256": "b2ab79841b82d0885ee5b3ae84bb9a874a414a15bc77f8511e92f69760ee0d07"
+    },
+    {
+      "path": "demo-previews/AHP_Care_Continuity_Preview_006.html",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "406e6c76d6ded2b3b57af91d1fcc51f4c1f8a7c74fe310c83b05c8facbd95173"
+    },
+    {
+      "path": "verification/README.md",
+      "change": "modified",
+      "parent_sha256": "4bbe31dc2b4f302b0181b66c5d9f18a02268d125ead7913335574cf90e7bf54b",
+      "candidate_sha256": "2fefc3f32ef6e9b86594ef109a91ba5f89407af44ede4a3c293dff86dbce389a"
+    },
+    {
+      "path": "verification/care-continuity.test.cjs",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "1d2e8e2863e4e7fef776044fb41bf2dbb2de93ee9bf608ef06fd0b4888d854ce"
+    },
+    {
+      "path": "verification/care-preview-browser.py",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "c037e5b6b947ea26ebdd27cdc280d1fa7195e0c791cee60833cba2a3dcc6744c"
+    },
+    {
+      "path": "verification/lib/continuity-double.cjs",
+      "change": "added",
+      "parent_sha256": null,
+      "candidate_sha256": "80a107c552227d8e263bad460f2d6e3f55f738d5502fa2a9c86b60b67963535f"
+    },
+    {
+      "path": "verification/requirements.json",
+      "change": "modified",
+      "parent_sha256": "3c26436729e9094cfbfad8c61e053c58e950a8baba94c037d7d447893f5c252d",
+      "candidate_sha256": "528d6923fe5c28efa636f1c429f0c206dc62c64afa28c697cabf67172dd6c896"
+    },
+    {
+      "path": "verification/verify-safety.cjs",
+      "change": "modified",
+      "parent_sha256": "feec5fa339dcd01ac2efd4b33409c38b7fa889d9e4520017de1ce540684bf0a9",
+      "candidate_sha256": "30d6edf9cee0dcc3465334348654c02f56cc4a4ad53e1dbfc85673e5ff0a4c63"
+    }
+  ],
+  "removed_files": [],
+  "excluded_from_diff": [
+    "SHA256SUMS.txt",
+    "CHANGES-006.json"
+  ],
+  "note": "Source export differences, not a Git commit. Original pending UI and demo are not bulk merged."
+}

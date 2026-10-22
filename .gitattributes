@@ -1,0 +1,2 @@
+# Shell scripts must also work when checked out on Windows and used in Linux.
+*.sh text eol=lf

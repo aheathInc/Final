@@ -1,0 +1,15 @@
+{
+  "node": true,
+  "npm": true,
+  "pnpm": false,
+  "psql": false,
+  "initdb": false,
+  "docker": false,
+  "flutter": false,
+  "dart": false,
+  "npm_registry": {
+    "exit_code": 6,
+    "result": "DNS_FAILURE"
+  },
+  "node_version": "v22.16.0"
+}

@@ -1,0 +1,6 @@
+{
+  "kind": "syntax parse only; not repository type-check/build",
+  "typescript": "5.8.3",
+  "files": 513,
+  "errors": []
+}

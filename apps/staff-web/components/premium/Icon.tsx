@@ -1,0 +1,38 @@
+import type { SVGProps } from 'react';
+const paths: Record<string,string[]> = {
+ home:['M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z'],
+ heart:['M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z','M3 11h4l2-4 4 8 2-4h6'],
+ users:['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2','M16 3a4 4 0 0 1 0 8','M22 21v-2a4 4 0 0 0-3-3.9','M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z'],
+ user:['M20 21v-2a6 6 0 0 0-6-6h-4a6 6 0 0 0-6 6v2','M16 5a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z'],
+ send:['m22 2-7 20-4-9-9-4Z','M22 2 11 13'],
+ calendar:['M8 2v4M16 2v4M3 10h18','M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z','M8 14h2M14 14h2M8 18h2'],
+ flask:['M9 3h6M10 3v7L4 20a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1l-6-10V3','M7 16h10'],
+ pill:['m9 15 6-6','M5.5 18.5a5 5 0 0 1 0-7.1l5.9-5.9a5 5 0 0 1 7.1 7.1l-5.9 5.9a5 5 0 0 1-7.1 0Z'],
+ building:['M4 22V4h12v18M16 10h4v12M2 22h20M8 8h4M8 12h4M8 16h4M9 22v-3h2v3'],
+ activity:['M2 12h5l3-9 4 18 3-9h5'],
+ shield:['m12 3 9 4v6c0 5-9 9-9 9s-9-4-9-9V7Z','m8 12 3 3 5-6'],
+ message:['M21 11.5a8.3 8.3 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.3 8.3 0 0 1-3.8-.9L3 21l1.9-5.7a8.3 8.3 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.3 8.3 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z'],
+ history:['M3 11a9 9 0 1 1 2.5 7','M3 3v8h8','M12 7v5l3 2'],
+ clock:['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z','M12 7v5l3 2'],
+ book:['M2 3h6a4 4 0 0 1 4 4v15a4 4 0 0 0-4-4H2ZM22 3h-6a4 4 0 0 0-4 4v15a4 4 0 0 1 4-4h6Z'],
+ chart:['M4 20V10M10 20V4M16 20v-8M22 22H2'],
+ database:['M21 5c0 2.2-4 4-9 4S3 7.2 3 5s4-4 9-4 9 1.8 9 4ZM3 5v14c0 2.2 4 4 9 4s9-1.8 9-4V5M3 12c0 2.2 4 4 9 4s9-1.8 9-4'],
+ network:['M8 7h8M6 10v6M18 10v6M8 19h8','M8 7a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM20 7a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM8 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM20 19a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z'],
+ settings:['M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z','m9 2-1 3-3 1-2 3 2 3-2 3 2 3 3 1 1 3h6l1-3 3-1 2-3-2-3 2-3-2-3-3-1-1-3Z'],
+ radio:['M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14M12 12h.01'],
+ alert:['m12 3 10 18H2Z','M12 9v4M12 17h.01'],
+ credit:['M2 8h20M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM6 16h4'],
+ sparkles:['m12 3 3 6 6 3-6 3-3 6-3-6-6-3 6-3ZM21 3v4M19 5h4'],
+ search:['M21 21l-5-5','M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z'],
+ chevron:['m9 5 7 7-7 7'], left:['m15 5-7 7 7 7'], down:['m6 9 6 6 6-6'],
+ menu:['M3 6h18M3 12h18M3 18h18'], close:['m6 6 12 12M18 6 6 18'],
+ logout:['M9 3H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h5M9 12h13m-4-4 4 4-4 4'],
+ sun:['M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1 1M18 18l1 1M5 19l1-1M18 6l1-1'],
+ moon:['M21 12.8A9 9 0 0 1 11.2 3 9 9 0 1 0 21 12.8Z'],
+ monitor:['M3 3h18v14H3ZM8 22h8M12 17v5'], rows:['M3 5h18M3 12h18M3 19h18'],
+ arrow:['M4 12h16m-6-6 6 6-6 6'], check:['m5 12 4 4L19 6'], file:['M14 2H4v20h16V8Zm0 0v6h6M8 13h8M8 17h5'],
+ lock:['M5 11h14v11H5ZM8 11V7a4 4 0 0 1 8 0v4'], plus:['M12 4v16M4 12h16'],
+};
+export function Icon({ name, size=20, ...props }: SVGProps<SVGSVGElement> & { name: string; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{(paths[name]??paths.file).map((d,i)=><path d={d} key={i}/>)}</svg>;
+}

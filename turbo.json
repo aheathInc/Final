@@ -1,0 +1,82 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "JWT_ISSUER",
+        "JWT_AUDIENCE",
+        "CORS_ORIGINS",
+        "GATEWAY_SHARED_SECRET",
+        "AUTH_LOCAL_OTP_MODE",
+        "OTP_ECHO_IN_RESPONSE",
+        "OTP_LOG_TO_CONSOLE",
+        "MOBILE_MONEY_PROVIDER",
+        "SMS_PROVIDER",
+        "WEBHOOK_SECRET_MPESA",
+        "WEBHOOK_SECRET_TIGO_PESA",
+        "WEBHOOK_SECRET_AIRTEL_MONEY",
+        "CHAT_PROVIDER",
+        "TRANSCRIBE_PROVIDER",
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "AUTH_SERVICE_URL",
+        "PATIENT_SERVICE_URL",
+        "DOCTOR_SERVICE_URL",
+        "APPOINTMENT_SERVICE_URL",
+        "CONSULTATION_SERVICE_URL",
+        "MESSAGING_SERVICE_URL",
+        "FOLLOWUP_SERVICE_URL",
+        "AI_SERVICE_URL",
+        "EMERGENCY_SERVICE_URL",
+        "PHARMACY_SERVICE_URL",
+        "PAYMENT_SERVICE_URL",
+        "DIAGNOSTICS_SERVICE_URL",
+        "QUALITY_SERVICE_URL",
+        "FAMILIES_SERVICE_URL",
+        "EDUCATION_SERVICE_URL",
+        "NETWORK_SERVICE_URL",
+        "INSURANCE_SERVICE_URL",
+        "RESEARCH_SERVICE_URL",
+        "SURVEILLANCE_SERVICE_URL",
+        "SYNC_SERVICE_URL",
+        "DEVICES_SERVICE_URL",
+        "PREVENTION_SERVICE_URL",
+        "FACILITIES_SERVICE_URL"
+      ]
+    },
+    "lint": {},
+    "test": {
+      "env": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "JWT_ISSUER",
+        "JWT_AUDIENCE",
+        "CORS_ORIGINS",
+        "GATEWAY_SHARED_SECRET",
+        "AUTH_LOCAL_OTP_MODE",
+        "OTP_ECHO_IN_RESPONSE",
+        "OTP_LOG_TO_CONSOLE",
+        "AHP_SAFETY_TEST_DB_ACK",
+        "AHP_TEST_FRONT_DESK_SCHEMA",
+        "AHP_TEST_THREAD_SCHEMA",
+        "MOBILE_MONEY_PROVIDER",
+        "SMS_PROVIDER",
+        "WEBHOOK_SECRET_MPESA",
+        "WEBHOOK_SECRET_TIGO_PESA",
+        "WEBHOOK_SECRET_AIRTEL_MONEY",
+        "CHAT_PROVIDER",
+        "TRANSCRIBE_PROVIDER"
+      ]
+    }
+  }
+}

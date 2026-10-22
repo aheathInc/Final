@@ -1,0 +1,822 @@
+--- a/Web/services/consultation/src/services/consultation.service.ts
++++ b/Web/services/consultation/src/services/consultation.service.ts
+@@ -236,6 +236,12 @@
+     if (threadId) {
+       const thread = await tx.careThread.findUnique({ where: { id: threadId } });
+       if (!thread) throw notFound('Care thread not found');
++      // A caller-controlled thread ID must never associate this consultation
++      // with another patient's care history, even for a guardian or admin.
++      // Check before reopening the thread or writing any consultation data.
++      if (thread.patientProfileId !== patientProfileId) {
++        throw forbidden('NOT_RESOURCE_OWNER', 'The care thread does not belong to the selected patient');
++      }
+       if (thread.status === 'closed') {
+         // A deviation weeks after discharge belongs to the same problem, so a
+         // new consultation reopens the thread rather than orphaning itself.
+--- a/Web/services/followup/src/workers/scheduler.worker.ts
++++ b/Web/services/followup/src/workers/scheduler.worker.ts
+@@ -13,47 +13,29 @@
+ export interface SchedulerResult {
+   cyclesProcessed: number;
+   checkInsCreated: number;
++  /** Compatibility field: the scheduler never determines a clinical outcome. */
+   cyclesAutoClosed: number;
+ }
+ 
+ /**
+- * Generates due check-ins from active cycles, and closes a cycle whose window
+- * has ended cleanly — reached its end date with no unresolved deviation.
++ * Generates check-ins within active scheduling windows and marks overdue,
++ * unanswered check-ins as missed. An elapsed window does not establish recovery
++ * or loss to follow-up: clinical outcomes require the explicit close workflow.
++ * Ended cycles retain their status, outcome and care-thread association.
+  *
+- * Idempotent by construction: each pass only creates a check-in for a slot
+- * that does not already have one, so running the tick twice in the same
+- * window is harmless.
++ * Sequential ticks skip existing slots. This does not establish safety for
++ * concurrent scheduler instances; that requires separate database guarantees.
+  */
+ export async function tick(now = new Date()): Promise<SchedulerResult> {
+   const cycles = await prisma.followUpCycle.findMany({
+-    where: { status: 'active' },
++    // Filter before take: ended cycles awaiting review must not fill the batch
++    // and prevent in-window cycles from receiving scheduled check-ins.
++    where: { status: 'active', endDate: { gte: now } },
+     take: 500,
+   });
+ 
+   let checkInsCreated = 0;
+-  let cyclesAutoClosed = 0;
+-
+   for (const cycle of cycles) {
+-    if (cycle.endDate < now) {
+-      if (cycle.openDeviationCount === 0) {
+-        await prisma.$transaction([
+-          prisma.followUpCycle.update({
+-            where: { id: cycle.id },
+-            data: { status: 'completed', outcome: 'recovered', version: { increment: 1 } },
+-          }),
+-          prisma.careThread.updateMany({
+-            where: { id: cycle.careThreadId, activeFollowUpCycleId: cycle.id },
+-            data: { activeFollowUpCycleId: null },
+-          }),
+-        ]);
+-        cyclesAutoClosed += 1;
+-      }
+-      // A cycle past its end date with an open deviation is left active
+-      // deliberately — a clinical concern that has not been resolved does not
+-      // get closed by a timer.
+-      continue;
+-    }
+-
+     const intervalHours =
+       cycle.frequency === 'custom' ? 24 : (INTERVAL_HOURS[cycle.frequency] ?? 24);
+ 
+@@ -99,14 +81,16 @@
+ 
+   if (missed.count > 0) logger.warn('check-ins marked missed', { count: missed.count });
+ 
+-  return { cyclesProcessed: cycles.length, checkInsCreated, cyclesAutoClosed };
++  // Retain the result shape for existing callers, without reporting a clinical
++  // outcome inferred from a timer.
++  return { cyclesProcessed: cycles.length, checkInsCreated, cyclesAutoClosed: 0 };
+ }
+ 
+ export function startScheduler(): NodeJS.Timeout {
+   const timer = setInterval(() => {
+     void tick()
+       .then((r) => {
+-        if (r.checkInsCreated + r.cyclesAutoClosed > 0) logger.info('scheduler tick', { ...r });
++        if (r.checkInsCreated > 0) logger.info('scheduler tick', { ...r });
+       })
+       .catch((e) => logger.error('scheduler tick failed', { err: String(e) }));
+   }, env.SCHEDULER_INTERVAL_MINUTES * 60000);
+--- a/Web/services/followup/src/services/checkin.service.ts
++++ b/Web/services/followup/src/services/checkin.service.ts
+@@ -106,31 +106,42 @@
+   input: { responses: Record<string, unknown>; channel?: string; client_created_at?: string },
+   meta: Meta,
+ ) {
+-  const checkIn = await prisma.checkIn.findUnique({
+-    where: { id: checkInId },
+-    include: {
+-      followUpCycle: {
+-        include: { patient: { select: { userId: true, guardianUserId: true } } },
++  const updated = await prisma.$transaction(async (tx) => {
++    const checkIn = await tx.checkIn.findUnique({
++      where: { id: checkInId },
++      include: {
++        followUpCycle: {
++          include: { patient: { select: { userId: true, guardianUserId: true } } },
++        },
+       },
+-    },
+-  });
+-  if (!checkIn) throw notFound('Check-in not found');
+-
+-  const cycle = checkIn.followUpCycle;
+-  const owns = cycle.patient.userId === caller.sub || cycle.patient.guardianUserId === caller.sub;
+-  if (!owns && caller.role !== 'platform_admin') {
+-    throw forbidden('NOT_RESOURCE_OWNER', 'This check-in is not yours to answer');
+-  }
+-  if (checkIn.status === 'responded') {
+-    throw conflict('CHECK_IN_ALREADY_ANSWERED', 'This check-in has already been answered');
+-  }
+-
+-  const criteria = (cycle.recoveryCriteria ?? {}) as DeviationCriteria;
+-  const evaluation = evaluateDeviation(input.responses, criteria);
+-
+-  const updated = await prisma.$transaction(async (tx) => {
+-    const row = await tx.checkIn.update({
+-      where: { id: checkInId },
++    });
++    if (!checkIn) throw notFound('Check-in not found');
++
++    const cycle = checkIn.followUpCycle;
++    const owns = cycle.patient.userId === caller.sub || cycle.patient.guardianUserId === caller.sub;
++    if (!owns && caller.role !== 'platform_admin') {
++      throw forbidden('NOT_RESOURCE_OWNER', 'This check-in is not yours to answer');
++    }
++    if (checkIn.status === 'responded') {
++      throw conflict('CHECK_IN_ALREADY_ANSWERED', 'This check-in has already been answered');
++    }
++
++    // closeCycle locks the cycle when claiming its active -> completed update,
++    // before it touches check-ins. Follow the same cycle -> check-in lock order
++    // here to avoid a response/closure deadlock on the two related rows.
++    const lockedCycle = await tx.$queryRaw<Array<{ id: string }>>`
++      SELECT id FROM follow_up_cycles WHERE id = ${cycle.id}::uuid FOR UPDATE
++    `;
++    if (lockedCycle.length !== 1) throw notFound('Follow-up cycle not found');
++
++    const criteria = (cycle.recoveryCriteria ?? {}) as DeviationCriteria;
++    const evaluation = evaluateDeviation(input.responses, criteria);
++
++    // Compare-and-set, not a read followed by an unconditional update. A
++    // concurrent response must not overwrite the first or count its deviation
++    // twice. A late answer to a missed check-in remains supported.
++    const claimed = await tx.checkIn.updateMany({
++      where: { id: checkInId, status: { in: ['scheduled', 'missed'] } },
+       data: {
+         responses: input.responses as never,
+         status: 'responded',
+@@ -141,54 +152,62 @@
+         version: { increment: 1 },
+       },
+     });
++    if (claimed.count !== 1) {
++      throw conflict('CHECK_IN_ALREADY_ANSWERED', 'This check-in has already been answered');
++    }
+ 
+     if (evaluation.isDeviation) {
+       await tx.followUpCycle.update({
+         where: { id: cycle.id },
+         data: { openDeviationCount: { increment: 1 } },
+       });
+-    }
+-
+-    return row;
+-  });
+-
+-  if (evaluation.isDeviation) {
+-    await appendAudit({
+-      actorUserId: caller.sub,
+-      action: 'checkin.deviation_flagged',
+-      entityType: 'check_ins',
+-      entityId: checkInId,
+-      metadata: { reasons: evaluation.reasons, cycleId: cycle.id },
+-      ipAddress: meta.ip,
+-      requestId: meta.requestId,
+-    });
+-  }
++      // Keep clinical explanations on the protected check-in row. The ledger
++      // needs a reference and count, not patient-reported values or free text.
++      // Passing tx ensures an audit failure rolls back both preceding writes.
++      await appendAudit({
++        actorUserId: caller.sub,
++        action: 'checkin.deviation_flagged',
++        entityType: 'check_ins',
++        entityId: checkInId,
++        metadata: { cycleId: cycle.id, reasonCount: evaluation.reasons.length },
++        ipAddress: meta.ip,
++        requestId: meta.requestId,
++      }, tx);
++    }
++
++    return tx.checkIn.findUniqueOrThrow({ where: { id: checkInId } });
++  }, { maxWait: 10_000, timeout: 10_000 });
+ 
+   return serialiseCheckIn(updated);
+ }
+ 
+ /**
+- * Manual override. Cycles also close automatically when a scheduler-driven
+- * completion condition is met (end date reached with no open deviation); this
+- * is the clinician's early-exit or early-escalation path.
++ * Explicit outcome-recording path for the assigned clinician or platform admin
++ * under the existing authorization policy. The scheduler does not close cycles
++ * or infer recovery when their scheduling window ends.
+  */
+ export async function closeCycle(
+   cycleId: string, caller: Caller, outcome: string, notes: string | undefined, meta: Meta,
+ ) {
+-  const cycle = await prisma.followUpCycle.findUnique({ where: { id: cycleId } });
+-  if (!cycle) throw notFound('Follow-up cycle not found');
+-  if (cycle.clinicianId !== caller.cpid && caller.role !== 'platform_admin') {
+-    throw forbidden('NOT_RESOURCE_OWNER', 'Only the assigned clinician may close this cycle');
+-  }
+-  if (cycle.status !== 'active') {
+-    throw conflict('FOLLOW_UP_CYCLE_CLOSED', 'This cycle is already closed');
+-  }
+-
+   const updated = await prisma.$transaction(async (tx) => {
+-    const row = await tx.followUpCycle.update({
+-      where: { id: cycleId },
++    const cycle = await tx.followUpCycle.findUnique({ where: { id: cycleId } });
++    if (!cycle) throw notFound('Follow-up cycle not found');
++    if (cycle.clinicianId !== caller.cpid && caller.role !== 'platform_admin') {
++      throw forbidden('NOT_RESOURCE_OWNER', 'Only the assigned clinician may close this cycle');
++    }
++    if (cycle.status !== 'active') {
++      throw conflict('FOLLOW_UP_CYCLE_CLOSED', 'This cycle is already closed');
++    }
++
++    // Only one explicit closure can win. A retry cannot replace the clinical
++    // outcome committed by another authorized request.
++    const closed = await tx.followUpCycle.updateMany({
++      where: { id: cycleId, status: 'active' },
+       data: { status: 'completed', outcome: outcome as never, version: { increment: 1 } },
+     });
++    if (closed.count !== 1) {
++      throw conflict('FOLLOW_UP_CYCLE_CLOSED', 'This cycle is already closed');
++    }
+ 
+     await tx.careThread.updateMany({
+       where: { id: cycle.careThreadId, activeFollowUpCycleId: cycleId },
+@@ -200,15 +219,15 @@
+       data: { status: 'missed' },
+     });
+ 
+-    return row;
+-  });
+-
+-  await appendAudit({
+-    actorUserId: caller.sub, action: 'followup.cycle_closed',
+-    entityType: 'follow_up_cycles', entityId: cycleId,
+-    reason: notes ?? null, metadata: { outcome },
+-    ipAddress: meta.ip, requestId: meta.requestId,
+-  });
++    await appendAudit({
++      actorUserId: caller.sub, action: 'followup.cycle_closed',
++      entityType: 'follow_up_cycles', entityId: cycleId,
++      reason: notes ?? null, metadata: { outcome },
++      ipAddress: meta.ip, requestId: meta.requestId,
++    }, tx);
++
++    return tx.followUpCycle.findUniqueOrThrow({ where: { id: cycleId } });
++  }, { maxWait: 10_000, timeout: 10_000 });
+ 
+   return serialiseCycle(updated);
+ }
+--- a/Web/services/followup/src/tests/followup.test.ts
++++ b/Web/services/followup/src/tests/followup.test.ts
+@@ -1,4 +1,4 @@
+-import { after, describe, it } from 'node:test';
++import { after, before, describe, it } from 'node:test';
+ import assert from 'node:assert/strict';
+ import { randomInt, randomUUID } from 'node:crypto';
+ import { prisma } from '@a-health/database';
+@@ -8,9 +8,54 @@
+ import * as adherence from '../services/adherence.service.js';
+ import { tick } from '../workers/scheduler.worker.js';
+ 
+-if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
+-  throw new Error('Refusing to run tests outside a development database');
+-}
++// This suite writes data and calls a global scheduler. Use a disposable,
++// dedicated local ahealth_test cluster, never the acceptance/demo database.
++if (process.env.NODE_ENV !== 'test') {
++  throw new Error('Follow-up database tests require explicit NODE_ENV=test.');
++}
++const configuredDatabaseUrl = process.env.DATABASE_URL;
++if (!configuredDatabaseUrl) {
++  throw new Error('DATABASE_URL is required for isolated Follow-up database tests.');
++}
++let databaseUrl: URL;
++try {
++  databaseUrl = new URL(configuredDatabaseUrl);
++} catch {
++  throw new Error('DATABASE_URL must identify the isolated local ahealth_test database.');
++}
++const databasePort = Number(databaseUrl.port);
++const configuredHost = databaseUrl.hostname.replace(/^\[|\]$/g, '').toLowerCase();
++if (
++  !['postgres:', 'postgresql:'].includes(databaseUrl.protocol) ||
++  databaseUrl.pathname !== '/ahealth_test' ||
++  !databaseUrl.port ||
++  databasePort === 5432 ||
++  !['localhost', '127.0.0.1', '::1'].includes(configuredHost)
++) {
++  throw new Error('Follow-up tests require local ahealth_test on an explicit non-5432 port.');
++}
++
++before(async () => {
++  let identity: { database_name: string; server_address: string | null; server_port: number } | undefined;
++  try {
++    const rows = await prisma.$queryRaw<Array<{
++      database_name: string;
++      server_address: string | null;
++      server_port: number;
++    }>>`SELECT current_database() AS database_name, inet_server_addr()::text AS server_address, inet_server_port() AS server_port`;
++    identity = rows[0];
++  } catch {
++    throw new Error('Could not verify Follow-up test database identity; no tests were run.');
++  }
++  const address = (identity?.server_address ?? '').replace(/^::ffff:/, '').replace(/\/\d+$/, '');
++  const loopback = address === '::1' || /^127\.\d+\.\d+\.\d+$/.test(address);
++  if (
++    !identity || identity.database_name !== 'ahealth_test' ||
++    identity.server_port !== databasePort || !loopback
++  ) {
++    throw new Error('Connected database is not the approved isolated ahealth_test target; no tests were run.');
++  }
++});
+ 
+ const meta = { ip: '127.0.0.1', requestId: 'test' };
+ const users: string[] = [];
+@@ -97,6 +142,9 @@
+       endDate: new Date(Date.now() + 6 * 86400000),
+     },
+   });
++  await prisma.careThread.update({
++    where: { id: thread.id }, data: { activeFollowUpCycleId: cycle.id },
++  });
+   return { cycle, patient: profile, clinician, thread };
+ }
+ 
+@@ -217,26 +265,84 @@
+     assert.equal(afterFirst, afterSecond);
+   });
+ 
+-  it('auto-closes a cycle past its end date with no open deviation', async () => {
+-    const { cycle: c1 } = await makeCycle();
+-    const past = await prisma.followUpCycle.update({
+-      where: { id: c1.id },
+-      data: { endDate: new Date(Date.now() - 3600000) },
+-    });
+-    await tick();
+-    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: past.id } });
+-    assert.equal(reloaded.status, 'completed');
+-  });
+-
+-  it('does not auto-close a cycle with an open deviation', async () => {
+-    const { cycle } = await makeCycle();
++  it('leaves an ended, unanswered cycle active with no inferred outcome', async () => {
++    const { cycle, thread } = await makeCycle();
++    const now = new Date('2031-01-02T12:00:00Z');
++    const beforeTick = await prisma.followUpCycle.update({
++      where: { id: cycle.id },
++      data: { startDate: new Date('2030-12-01'), endDate: new Date('2031-01-01') },
++    });
++    await prisma.checkIn.create({
++      data: {
++        followUpCycleId: cycle.id, careThreadId: thread.id,
++        scheduledAt: new Date('2030-12-31T08:00:00Z'), questions: [],
++      },
++    });
++    const result = await tick(now);
++    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    const currentThread = await prisma.careThread.findUniqueOrThrow({ where: { id: thread.id } });
++    assert.equal(reloaded.status, 'active');
++    assert.equal(reloaded.outcome, null);
++    assert.equal(reloaded.version, beforeTick.version);
++    assert.equal(currentThread.activeFollowUpCycleId, cycle.id);
++    assert.equal(result.cyclesAutoClosed, 0);
++    assert.equal(await prisma.checkIn.count({ where: { followUpCycleId: cycle.id } }), 1);
++  });
++
++  it('does not infer recovery from normal responses after the window ends', async () => {
++    const { cycle, thread } = await makeCycle();
++    const now = new Date('2031-01-02T12:00:00Z');
+     await prisma.followUpCycle.update({
+       where: { id: cycle.id },
+-      data: { endDate: new Date(Date.now() - 3600000), openDeviationCount: 1 },
+-    });
+-    await tick();
++      data: { startDate: new Date('2030-12-01'), endDate: new Date('2031-01-01') },
++    });
++    await prisma.checkIn.create({
++      data: {
++        followUpCycleId: cycle.id, careThreadId: thread.id,
++        scheduledAt: new Date('2030-12-31T08:00:00Z'), questions: [],
++        status: 'responded', responses: { synthetic_check: 'acknowledged' },
++        isDeviation: false, respondedAt: new Date('2030-12-31T08:01:00Z'),
++      },
++    });
++    await tick(now);
++    await tick(now);
+     const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
+     assert.equal(reloaded.status, 'active');
++    assert.equal(reloaded.outcome, null);
++    const currentThread = await prisma.careThread.findUniqueOrThrow({ where: { id: thread.id } });
++    assert.equal(currentThread.activeFollowUpCycleId, cycle.id);
++  });
++
++  it('keeps an ended cycle with an unresolved deviation active', async () => {
++    const { cycle, thread } = await makeCycle();
++    await prisma.followUpCycle.update({
++      where: { id: cycle.id },
++      data: { startDate: new Date('2030-12-01'), endDate: new Date('2031-01-01'), openDeviationCount: 1 },
++    });
++    await tick(new Date('2031-01-02T12:00:00Z'));
++    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    assert.equal(reloaded.status, 'active');
++    assert.equal(reloaded.outcome, null);
++    const currentThread = await prisma.careThread.findUniqueOrThrow({ where: { id: thread.id } });
++    assert.equal(currentThread.activeFollowUpCycleId, cycle.id);
++  });
++
++  it('allows the assigned clinician to explicitly close an ended cycle', async () => {
++    const { cycle, clinician, thread } = await makeCycle();
++    await prisma.followUpCycle.update({
++      where: { id: cycle.id },
++      data: { startDate: new Date('2030-12-01'), endDate: new Date('2031-01-01') },
++    });
++    await tick(new Date('2031-01-02T12:00:00Z'));
++    await checkins.closeCycle(
++      cycle.id, { sub: clinician.userId, role: 'clinician', cpid: clinician.id },
++      'recovered', 'Synthetic explicit-close regression only', meta,
++    );
++    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    const currentThread = await prisma.careThread.findUniqueOrThrow({ where: { id: thread.id } });
++    assert.equal(reloaded.status, 'completed');
++    assert.equal(reloaded.outcome, 'recovered');
++    assert.equal(currentThread.activeFollowUpCycleId, null);
+   });
+ 
+   it('marks a long-overdue check-in as missed', async () => {
+@@ -328,3 +434,107 @@
+     assert.equal(entries, 1);
+   });
+ });
++
++
++// Candidate 004: DB-backed regressions. These require the verified isolated
++// ahealth_test target checked above; they are not offline/mock tests.
++describe('follow-up single-writer integrity', () => {
++  it('accepts one concurrent answer and counts one deviation', async () => {
++    const { cycle, patient } = await makeCycle({ red_flag_fields: ['synthetic_attention'] });
++    const row = await prisma.checkIn.create({
++      data: { followUpCycleId: cycle.id, careThreadId: cycle.careThreadId, scheduledAt: new Date(), questions: [] },
++    });
++    const results = await Promise.allSettled(Array.from({ length: 4 }, () =>
++      checkins.respondToCheckIn(row.id, { sub: patient.userId!, role: 'patient' },
++        { responses: { synthetic_attention: true } }, meta),
++    ));
++    assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
++    for (const r of results) {
++      if (r.status === 'rejected') assert.equal((r.reason as AppError).code, 'CHECK_IN_ALREADY_ANSWERED');
++    }
++    const persisted = await prisma.checkIn.findUniqueOrThrow({ where: { id: row.id } });
++    const reloadedCycle = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    assert.equal(persisted.status, 'responded');
++    assert.equal(persisted.version, row.version + 1);
++    assert.equal(reloadedCycle.openDeviationCount, 1);
++    assert.equal(await prisma.auditLog.count({ where: { entityId: row.id, action: 'checkin.deviation_flagged' } }), 1);
++  });
++
++  it('keeps clinical deviation values out of ledger metadata', async () => {
++    const { cycle, patient } = await makeCycle({ vital_bounds: { synthetic_metric: { max: 10 } } });
++    const row = await prisma.checkIn.create({
++      data: { followUpCycleId: cycle.id, careThreadId: cycle.careThreadId, scheduledAt: new Date(), questions: [] },
++    });
++    const response = await checkins.respondToCheckIn(row.id, { sub: patient.userId!, role: 'patient' },
++      { responses: { synthetic_metric: 1234567 } }, meta);
++    const audit = await prisma.auditLog.findFirstOrThrow({ where: { entityId: row.id, action: 'checkin.deviation_flagged' } });
++    assert.ok(JSON.stringify(response.deviation_reasons).includes('1234567'));
++    assert.deepEqual(audit.metadata, { cycleId: cycle.id, reasonCount: 1 });
++    assert.ok(!JSON.stringify(audit.metadata).includes('1234567'));
++  });
++
++  it('accepts an authorized late answer without reopening a clinical outcome', async () => {
++    const { cycle, patient } = await makeCycle();
++    const row = await prisma.checkIn.create({
++      data: { followUpCycleId: cycle.id, careThreadId: cycle.careThreadId, scheduledAt: new Date(), status: 'missed', questions: [] },
++    });
++    const result = await checkins.respondToCheckIn(row.id, { sub: patient.userId!, role: 'patient' }, { responses: {} }, meta);
++    assert.equal(result.status, 'responded');
++    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    assert.equal(reloaded.status, 'active');
++    assert.equal(reloaded.outcome, null);
++  });
++
++  it('persists one explicit outcome for competing closures', async () => {
++    const { cycle, clinician, thread } = await makeCycle();
++    const caller = { sub: clinician.userId, role: 'clinician', cpid: clinician.id };
++    const results = await Promise.allSettled([
++      checkins.closeCycle(cycle.id, caller, 'recovered', undefined, meta),
++      checkins.closeCycle(cycle.id, caller, 'escalated', undefined, meta),
++    ]);
++    assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
++    const failure = results.find(r => r.status === 'rejected') as PromiseRejectedResult;
++    assert.equal((failure.reason as AppError).code, 'FOLLOW_UP_CYCLE_CLOSED');
++    const success = results.find(r => r.status === 'fulfilled') as PromiseFulfilledResult<Awaited<ReturnType<typeof checkins.closeCycle>>>;
++    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    assert.equal(reloaded.outcome, success.value.outcome);
++    assert.equal(reloaded.version, cycle.version + 1);
++    assert.equal(await prisma.auditLog.count({ where: { entityId: cycle.id, action: 'followup.cycle_closed' } }), 1);
++    assert.equal((await prisma.careThread.findUniqueOrThrow({ where: { id: thread.id } })).activeFollowUpCycleId, null);
++  });
++
++  it('does not mutate a cycle or write a success audit for a forbidden closure', async () => {
++    const { cycle, patient, thread } = await makeCycle();
++    await assert.rejects(
++      () => checkins.closeCycle(cycle.id, { sub: patient.userId!, role: 'patient' }, 'recovered', undefined, meta),
++      (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
++    );
++    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    assert.equal(reloaded.status, 'active');
++    assert.equal(reloaded.outcome, null);
++    assert.equal((await prisma.careThread.findUniqueOrThrow({ where: { id: thread.id } })).activeFollowUpCycleId, cycle.id);
++    assert.equal(await prisma.auditLog.count({ where: { entityId: cycle.id, action: 'followup.cycle_closed' } }), 0);
++  });
++});
++
++
++describe('follow-up response/closure lock ordering', () => {
++  it('can complete an allowed late response and explicit closure without contradictory row updates', async () => {
++    const { cycle, patient, clinician } = await makeCycle({ red_flag_fields: ['synthetic_attention'] });
++    const checkIn = await prisma.checkIn.create({
++      data: { followUpCycleId: cycle.id, careThreadId: cycle.careThreadId, scheduledAt: new Date(), questions: [] },
++    });
++    const results = await Promise.allSettled([
++      checkins.respondToCheckIn(checkIn.id, { sub: patient.userId!, role: 'patient' },
++        { responses: { synthetic_attention: true } }, meta),
++      checkins.closeCycle(cycle.id, { sub: clinician.userId, role: 'clinician', cpid: clinician.id },
++        'escalated', undefined, meta),
++    ]);
++    assert.equal(results.filter(r => r.status === 'fulfilled').length, 2);
++    const persisted = await prisma.checkIn.findUniqueOrThrow({ where: { id: checkIn.id } });
++    const reloaded = await prisma.followUpCycle.findUniqueOrThrow({ where: { id: cycle.id } });
++    assert.equal(persisted.status, 'responded');
++    assert.equal(reloaded.outcome, 'escalated');
++    assert.equal(reloaded.openDeviationCount, 1);
++  });
++});
+--- /dev/null
++++ b/Web/services/consultation/src/tests/safety-test-target.ts
+@@ -0,0 +1,54 @@
++/** Test-only safety boundary. No database connection or application import here. */
++export interface SafetyTestTarget { host: string; port: number }
++export interface DatabaseIdentity {
++  database_name: string;
++  server_address: string | null;
++  server_port: number | null;
++  database_owner: string;
++  login_role: string;
++  in_recovery: boolean;
++}
++
++export const SAFETY_DB_ACK = 'ISOLATED_DISPOSABLE_AHEALTH_TEST';
++
++export function parseSafetyTestTarget(env: Record<string, string | undefined>): SafetyTestTarget {
++  if (env.NODE_ENV !== 'test') throw new Error('Safety integration tests require NODE_ENV=test.');
++  if (env.AHP_SAFETY_TEST_DB_ACK !== SAFETY_DB_ACK) {
++    throw new Error('Explicit acknowledgement of an owned, disposable ahealth_test database is required.');
++  }
++  if (!env.DATABASE_URL) throw new Error('DATABASE_URL is required; no database fallback exists.');
++  let url: URL;
++  try { url = new URL(env.DATABASE_URL); }
++  catch { throw new Error('DATABASE_URL is not an approved test target.'); }
++  const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
++  const port = Number(url.port);
++  if (!['postgresql:', 'postgres:'].includes(url.protocol) ||
++      !['localhost', '127.0.0.1', '::1'].includes(host) ||
++      url.pathname !== '/ahealth_test' || !url.username || url.hash ||
++      !/^\d+$/.test(url.port) || port <= 0 || port > 65535 || port === 5432) {
++    throw new Error('Use local ahealth_test with an explicit non-5432 port and database user.');
++  }
++  // Prevent libpq/Prisma URL options from redirecting a superficially local URL.
++  const seen = new Set<string>();
++  for (const [key, value] of url.searchParams) {
++    if (seen.has(key)) throw new Error('Duplicate database URL options are not allowed.');
++    seen.add(key);
++    if (key === 'schema' && value === 'public') continue;
++    if (['connection_limit', 'connect_timeout', 'pool_timeout'].includes(key) &&
++        /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 30) continue;
++    throw new Error('Unsupported database URL option; test target was not contacted.');
++  }
++  return { host, port }; // Never return or log the password-bearing URL.
++}
++
++export function assertSafetyDatabaseIdentity(target: SafetyTestTarget, row: DatabaseIdentity | undefined): void {
++  const address = (row?.server_address ?? '').toLowerCase().replace(/^::ffff:/, '').replace(/\/\d+$/, '');
++  const ipv4 = address.split('.').map(Number);
++  const isLoopback = address === '::1' || (
++    /^127\.\d+\.\d+\.\d+$/.test(address) && ipv4.every((part) => part >= 0 && part <= 255)
++  );
++  if (!row || row.database_name !== 'ahealth_test' || row.server_port !== target.port ||
++      !isLoopback || !row.login_role || row.database_owner !== row.login_role || row.in_recovery !== false) {
++    throw new Error('Database identity/ownership check failed; no test fixture writes are allowed.');
++  }
++}
+--- /dev/null
++++ b/Web/services/consultation/src/tests/thread-integrity.test.ts
+@@ -0,0 +1,170 @@
++/**
++ * ChangeSet 001 database regression. Real Prisma/service calls; NOT HTTP/JWT E2E.
++ * Requires a dedicated, operator-owned ahealth_test on a non-5432 loopback port.
++ * Synthetic rows are deliberately retained for inspection. No reset/truncate or
++ * audit deletion occurs. Dispose of the dedicated DB through the operator's
++ * approved procedure after inspection; do not reuse a shared test environment.
++ */
++import { after, before, describe, it } from 'node:test';
++import assert from 'node:assert/strict';
++import { randomUUID } from 'node:crypto';
++import { parseSafetyTestTarget, assertSafetyDatabaseIdentity, type DatabaseIdentity } from './safety-test-target.js';
++import type { Caller } from '../services/careThread.service.js';
++import type { AppError } from '@a-health/http';
++
++// Validate target BEFORE importing Prisma, dotenv or the application.
++const target = parseSafetyTestTarget(process.env);
++let database: typeof import('@a-health/database') | undefined;
++let service: typeof import('../services/consultation.service.js');
++let events: typeof import('../events.js') | undefined;
++const meta = { requestId: 'synthetic-thread-integrity-regression' };
++
++function db() {
++  assert.ok(database, 'Database bootstrap must complete before fixtures.');
++  return database.prisma;
++}
++
++before(async () => {
++  database = await import('@a-health/database');
++  let row: DatabaseIdentity | undefined;
++  try {
++    const rows = await db().$queryRaw<DatabaseIdentity[]>`
++      SELECT current_database() AS database_name,
++             inet_server_addr()::text AS server_address,
++             inet_server_port() AS server_port,
++             current_user::text AS login_role,
++             pg_get_userbyid(datdba)::text AS database_owner,
++             pg_is_in_recovery() AS in_recovery
++      FROM pg_database WHERE datname = current_database()`;
++    row = rows[0];
++  } catch {
++    throw new Error('Unable to verify isolated test database; fixtures were not created.');
++  }
++  assertSafetyDatabaseIdentity(target, row);
++  // Earlier suites must have cleaned up their own patient/staff/care fixtures.
++  // Schema, migration and immutable audit records may remain; patient data may not.
++  assert.equal(await db().user.count(), 0, 'Use an empty disposable test DB, not an acceptance/shared DB.');
++  assert.equal(await db().careThread.count(), 0, 'Pre-existing care records are not allowed.');
++  assert.equal(await db().followUpCycle.count(), 0, 'Pre-existing follow-up records are not allowed.');
++  service = await import('../services/consultation.service.js');
++  events = await import('../events.js');
++});
++
++after(async () => {
++  await events?.bus.close();
++  await database?.prisma.$disconnect();
++});
++
++async function makePatient(guardianUserId?: string) {
++  const user = guardianUserId ? null : await db().user.create({ data: {
++    // Deliberately not a real/reachable phone number. No delivery/Auth call here.
++    phoneNumber: `TEST-${randomUUID().replace(/-/g, '').slice(0, 12)}`,
++    fullName: 'SYNTHETIC ONLY — thread integrity', role: 'patient', status: 'active',
++  } });
++  const patient = await db().patientProfile.create({ data: {
++    userId: user?.id, guardianUserId,
++    fullName: 'SYNTHETIC ONLY — thread integrity', dateOfBirth: new Date('2000-01-01'),
++  } });
++  return { patient, user };
++}
++
++async function makeThread(patientProfileId: string, closed = false) {
++  return db().careThread.create({ data: {
++    patientProfileId, status: closed ? 'closed' : 'open',
++    closedAt: closed ? new Date('2025-01-01T00:00:00Z') : null,
++    outcome: closed ? 'recovered' : null, reasonSummary: 'SYNTHETIC ONLY — not clinical care',
++  } });
++}
++
++function callerFor(p: Awaited<ReturnType<typeof makePatient>>): Caller {
++  assert.ok(p.user);
++  return { sub: p.user.id, role: 'patient', ppid: p.patient.id };
++}
++
++function inputFor(patientId: string, threadId: string) {
++  return {
++    patient_profile_id: patientId, care_thread_id: threadId,
++    channel: 'app', modality: 'chat', symptom_text: 'SYNTHETIC ONLY — integrity regression',
++  };
++}
++
++async function assertDeniedWithoutMutation(caller: Caller, patientId: string, threadId: string, code = 'NOT_RESOURCE_OWNER') {
++  const beforeThread = await db().careThread.findUnique({ where: { id: threadId } });
++  const beforeCounts = await Promise.all([
++    db().consultationRequest.count(), db().changeLog.count(),
++    db().auditLog.count({ where: { action: 'consultation.created', actorUserId: caller.sub } }),
++  ]);
++  await assert.rejects(
++    service.createConsultation(caller, inputFor(patientId, threadId), meta),
++    (error: AppError) => error.code === code && error.statusCode === (code === 'NOT_FOUND' ? 404 : 403),
++  );
++  assert.deepEqual(await db().careThread.findUnique({ where: { id: threadId } }), beforeThread,
++    'A denied request must not reopen/change the foreign thread.');
++  const afterCounts = await Promise.all([
++    db().consultationRequest.count(), db().changeLog.count(),
++    db().auditLog.count({ where: { action: 'consultation.created', actorUserId: caller.sub } }),
++  ]);
++  assert.deepEqual(afterCounts, beforeCounts, 'Denied association must not create consultation/change/audit success records.');
++}
++
++async function assertAccepted(caller: Caller, patientId: string, threadId: string) {
++  const prior = await db().careThread.findUniqueOrThrow({ where: { id: threadId } });
++  const result = await service.createConsultation(caller, inputFor(patientId, threadId), meta);
++  const persisted = await db().consultationRequest.findUniqueOrThrow({ where: { id: result.id } });
++  assert.equal(persisted.patientProfileId, patientId);
++  assert.equal(persisted.careThreadId, threadId);
++  const thread = await db().careThread.findUniqueOrThrow({ where: { id: threadId } });
++  assert.equal(thread.patientProfileId, patientId);
++  assert.equal(thread.status, 'open');
++  assert.equal(thread.latestConsultationId, persisted.id);
++  assert.equal(thread.openConsultationCount, prior.openConsultationCount + 1);
++  assert.equal(await db().auditLog.count({ where: { action: 'consultation.created', entityId: persisted.id } }), 1);
++  // No clinicians are created in this suite. The real async offer function is
++  // not mocked; its non-clinical routing effects are not acceptance criteria.
++}
++
++describe('consultation patient/thread integrity — real database', { concurrency: false }, () => {
++  it('denies a foreign open thread without persistent writes', async () => {
++    const a = await makePatient(); const b = await makePatient();
++    await assertDeniedWithoutMutation(callerFor(a), a.patient.id, (await makeThread(b.patient.id)).id);
++  });
++  it('denies a foreign closed thread without reopening it', async () => {
++    const a = await makePatient(); const b = await makePatient();
++    await assertDeniedWithoutMutation(callerFor(a), a.patient.id, (await makeThread(b.patient.id, true)).id);
++  });
++  it('does not mix two dependants even when they share a guardian', async () => {
++    const guardian = await makePatient();
++    const a = await makePatient(guardian.user!.id); const b = await makePatient(guardian.user!.id);
++    await assertDeniedWithoutMutation(callerFor(guardian), a.patient.id, (await makeThread(b.patient.id)).id);
++  });
++  it('rejects mismatched associations for the existing admin caller path', async () => {
++    const admin = await db().user.create({ data: {
++      phoneNumber: `TEST-${randomUUID().replace(/-/g, '').slice(0, 12)}`,
++      role: 'platform_admin', status: 'active', fullName: 'SYNTHETIC ONLY — integrity admin',
++    } });
++    const a = await makePatient(); const b = await makePatient();
++    await assertDeniedWithoutMutation({ sub: admin.id, role: 'platform_admin' }, a.patient.id, (await makeThread(b.patient.id)).id);
++  });
++  it('preserves valid own-thread consultation creation', async () => {
++    const a = await makePatient();
++    await assertAccepted(callerFor(a), a.patient.id, (await makeThread(a.patient.id)).id);
++  });
++  it('preserves reopening an owned closed thread', async () => {
++    const a = await makePatient(); const t = await makeThread(a.patient.id, true);
++    await assertAccepted(callerFor(a), a.patient.id, t.id);
++    const current = await db().careThread.findUniqueOrThrow({ where: { id: t.id } });
++    assert.equal(current.closedAt, null); assert.equal(current.outcome, null);
++  });
++  it('preserves a guardian consultation on the correct dependant thread', async () => {
++    const guardian = await makePatient(); const child = await makePatient(guardian.user!.id);
++    await assertAccepted(callerFor(guardian), child.patient.id, (await makeThread(child.patient.id)).id);
++  });
++  it('rejects a nonexistent thread without persistent writes', async () => {
++    const a = await makePatient();
++    await assertDeniedWithoutMutation(callerFor(a), a.patient.id, randomUUID(), 'NOT_FOUND');
++  });
++  it('retains the existing selected-patient ownership rejection', async () => {
++    const a = await makePatient(); const b = await makePatient();
++    await assertDeniedWithoutMutation(callerFor(a), b.patient.id, (await makeThread(b.patient.id)).id);
++  });
++});
+--- a/Web/apps/web/lib/roles.ts
++++ b/Web/apps/web/lib/roles.ts
+@@ -4,6 +4,7 @@
+ 
+ export const ROLE_HOME: Record<string, string> = {
+   clinician: '/doctor/queue',
++  pharmacist: '/pharmacy',
+   dispatcher: '/admin/emergency',
+   facility_admin: '/admin/facilities',
+   platform_admin: '/admin/dashboard',
+@@ -11,7 +12,9 @@
+ };
+ 
+ export function homeForRole(role?: string | null) {
+-  return (role && ROLE_HOME[role]) || '/login';
++  return role && Object.prototype.hasOwnProperty.call(ROLE_HOME, role)
++    ? ROLE_HOME[role]
++    : '/login';
+ }
+ 
+ export async function requireRole(roles: string[]) {
+--- /dev/null
++++ b/.gitattributes
+@@ -0,0 +1,2 @@
++# Shell scripts must also work when checked out on Windows and used in Linux.
++*.sh text eol=lf

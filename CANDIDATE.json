@@ -1,0 +1,85 @@
+{
+  "id": "AHP-CANDIDATE-006-20261021",
+  "status": "IMPLEMENTED_SOURCE_AND_SYNTHETIC_BROWSER_VERIFIED_REAL_RUNTIME_ACCEPTANCE_PENDING",
+  "reported_input_commit": "901dc9366f2eeb524fb04329eb95e7576e60201b",
+  "input_archive_sha256": "90d9f87affb120f60e6dd403b5eecb330c53bdc7950ad4c1246cc785cfa09e02",
+  "input_kind": "sanitized source export, not an independently verified Git checkout",
+  "includes": [
+    "001 patient/thread consistency",
+    "002 no inferred recovery",
+    "003 DB verification tests/runner",
+    "004 response/closure single-writer + transactional audit + minimized deviation metadata",
+    "004 pharmacist home helper consistency",
+    "004 LF-only shell portability",
+    "005 Digital Front Desk vertical slice",
+    "006 Care Continuity vertical slice"
+  ],
+  "pending_archives": "not bulk merged; pharmacist home mapping intent selectively reconciled from Demo; Premium UI not applied",
+  "migrations_unchanged": 21,
+  "lockfiles_unchanged": [
+    "pnpm-lock.yaml",
+    "apps/patient-mobile/pubspec.lock"
+  ],
+  "omitted_input_source_files": [],
+  "verification": {
+    "new_scoped_source_doubles": {
+      "pass": 78,
+      "fail": 0
+    },
+    "prior_scoped_tests": {
+      "pass": 230,
+      "fail": 0
+    },
+    "combined_scoped_tests": {
+      "pass": 308,
+      "fail": 0,
+      "skipped": 0
+    },
+    "actual_component_synthetic_browser_checks": {
+      "pass": 16,
+      "page_errors": 0,
+      "viewports": [
+        1440,
+        1024,
+        768,
+        390
+      ]
+    },
+    "new_database_tests": {
+      "authored_cases": 12,
+      "status": "NOT_RUN"
+    },
+    "new_flutter_tests": {
+      "authored_cases": 12,
+      "status": "NOT_RUN"
+    },
+    "global_typescript_syntax": {
+      "version": "5.8.3",
+      "files": 513,
+      "errors": 0,
+      "not_full_typecheck": true
+    },
+    "pure_schedule_strict_typecheck": "PASS using global compiler only",
+    "openapi_yaml_local_refs_route_parity": "PASS; semantic lint and code generation NOT_RUN",
+    "bash_syntax": "70/70 PASS; scripts not executed",
+    "prisma_validate_generate_migrate": "NOT_RUN",
+    "locked_repository_build_typecheck_lint": "NOT_RUN",
+    "flutter_analyze_device": "NOT_RUN",
+    "real_database_concurrency_jwt_browser_e2e": "NOT_RUN",
+    "deployment": "NOT_PERFORMED"
+  },
+  "original_zip_inputs": "PRESERVED_UNCHANGED",
+  "github_writes": false,
+  "parent_candidate": "005",
+  "parent_archive_sha256": "1e9cf3324d85b09a9fc59e3680d3cd88da72961257ad86ae57b6bf46022946fd",
+  "new_feature": "Care Continuity: explicit medication schedules, reminders/outbox dispatch, patient-reported adherence, clinician review and planned contact records",
+  "new_migration": "20261021130000_care_continuity",
+  "migration_source_count": 22,
+  "new_migration_applied": false,
+  "openapi_generator": "NOT_RUN; regenerate exported API types before integration",
+  "parent_migrations_byte_preserved": 21,
+  "browser_preview": "actual TSX/CSS with a synthetic transport and demo-only React runtime, not Next.js/Auth/BFF/database E2E",
+  "actual_external_delivery": "NOT_EXERCISED",
+  "real_calling": "NOT_IMPLEMENTED; device-dialer link plus clinician-reported outcomes only",
+  "original_merged_migrations_preserved": 20
+}

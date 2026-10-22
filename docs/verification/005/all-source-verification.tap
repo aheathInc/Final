@@ -1,0 +1,1390 @@
+TAP version 13
+# Subtest: rejects another patient's OPEN care thread before any write
+ok 1 - rejects another patient's OPEN care thread before any write
+  ---
+  duration_ms: 211.1478
+  type: 'test'
+  ...
+# Subtest: rejects another patient's CLOSED thread without reopening it
+ok 2 - rejects another patient's CLOSED thread without reopening it
+  ---
+  duration_ms: 113.337976
+  type: 'test'
+  ...
+# Subtest: guardian cannot mix the selected dependent with another dependent's thread
+ok 3 - guardian cannot mix the selected dependent with another dependent's thread
+  ---
+  duration_ms: 105.586599
+  type: 'test'
+  ...
+# Subtest: admin role does not waive patient/thread consistency
+ok 4 - admin role does not waive patient/thread consistency
+  ---
+  duration_ms: 54.575897
+  type: 'test'
+  ...
+# Subtest: patient can still create a consultation on their OWN OPEN thread
+ok 5 - patient can still create a consultation on their OWN OPEN thread
+  ---
+  duration_ms: 60.390099
+  type: 'test'
+  ...
+# Subtest: patient can still reopen their OWN CLOSED thread
+ok 6 - patient can still reopen their OWN CLOSED thread
+  ---
+  duration_ms: 72.227393
+  type: 'test'
+  ...
+# Subtest: guardian can still use the correct dependent and matching thread
+ok 7 - guardian can still use the correct dependent and matching thread
+  ---
+  duration_ms: 69.681071
+  type: 'test'
+  ...
+# Subtest: missing thread still returns not found without writes
+ok 8 - missing thread still returns not found without writes
+  ---
+  duration_ms: 43.470186
+  type: 'test'
+  ...
+# Subtest: existing unrelated patient-profile guard remains intact
+ok 9 - existing unrelated patient-profile guard remains intact
+  ---
+  duration_ms: 91.243585
+  type: 'test'
+  ...
+# Subtest: ended cycle with no responses remains active; no outcome is invented
+ok 10 - ended cycle with no responses remains active; no outcome is invented
+  ---
+  duration_ms: 113.131491
+  type: 'test'
+  ...
+# Subtest: zero recorded deviations plus a normal response does not establish recovery
+ok 11 - zero recorded deviations plus a normal response does not establish recovery
+  ---
+  duration_ms: 80.129304
+  type: 'test'
+  ...
+# Subtest: missed check-ins do not create recovered or lost_to_follow_up outcomes
+ok 12 - missed check-ins do not create recovered or lost_to_follow_up outcomes
+  ---
+  duration_ms: 42.415646
+  type: 'test'
+  ...
+# Subtest: an unresolved deviation remains active and linked after window end
+ok 13 - an unresolved deviation remains active and linked after window end
+  ---
+  duration_ms: 49.138021
+  type: 'test'
+  ...
+# Subtest: repeated ticks do not change ended-cycle version or care-thread linkage
+ok 14 - repeated ticks do not change ended-cycle version or care-thread linkage
+  ---
+  duration_ms: 33.724607
+  type: 'test'
+  ...
+# Subtest: cyclesAutoClosed is retained as zero, with the existing result keys
+ok 15 - cyclesAutoClosed is retained as zero, with the existing result keys
+  ---
+  duration_ms: 37.830902
+  type: 'test'
+  ...
+# Subtest: ended cycles are filtered before the 500-row scheduler batch
+ok 16 - ended cycles are filtered before the 500-row scheduler batch
+  ---
+  duration_ms: 59.272475
+  type: 'test'
+  ...
+# Subtest: ended cycles receive no new scheduled check-ins
+ok 17 - ended cycles receive no new scheduled check-ins
+  ---
+  duration_ms: 26.244459
+  type: 'test'
+  ...
+# Subtest: overdue unanswered check-in becomes missed without closing its cycle
+ok 18 - overdue unanswered check-in becomes missed without closing its cycle
+  ---
+  duration_ms: 28.853339
+  type: 'test'
+  ...
+# Subtest: response rows and the exact missed cutoff remain unchanged
+ok 19 - response rows and the exact missed cutoff remain unchanged
+  ---
+  duration_ms: 50.74539
+  type: 'test'
+  ...
+# Subtest: in-window daily schedule retains its existing frequency
+ok 20 - in-window daily schedule retains its existing frequency
+  ---
+  duration_ms: 20.840233
+  type: 'test'
+  ...
+# Subtest: in-window twice_daily schedule retains its existing frequency
+ok 21 - in-window twice_daily schedule retains its existing frequency
+  ---
+  duration_ms: 43.033078
+  type: 'test'
+  ...
+# Subtest: in-window weekly schedule retains its existing frequency
+ok 22 - in-window weekly schedule retains its existing frequency
+  ---
+  duration_ms: 24.005137
+  type: 'test'
+  ...
+# Subtest: check-ins never extend beyond the current cycle end
+ok 23 - check-ins never extend beyond the current cycle end
+  ---
+  duration_ms: 32.662755
+  type: 'test'
+  ...
+# Subtest: sequential scheduling ticks skip existing slots
+ok 24 - sequential scheduling ticks skip existing slots
+  ---
+  duration_ms: 47.201936
+  type: 'test'
+  ...
+# Subtest: the exact end instant retains the inclusive scheduling boundary
+ok 25 - the exact end instant retains the inclusive scheduling boundary
+  ---
+  duration_ms: 33.464992
+  type: 'test'
+  ...
+# Subtest: previously completed cycles are not rewritten or scheduled
+ok 26 - previously completed cycles are not rewritten or scheduled
+  ---
+  duration_ms: 27.559114
+  type: 'test'
+  ...
+# Subtest: the assigned clinician can still explicitly close an ended cycle
+ok 27 - the assigned clinician can still explicitly close an ended cycle
+  ---
+  duration_ms: 28.351236
+  type: 'test'
+  ...
+# Subtest: patient caller cannot close the cycle through the existing manual service
+ok 28 - patient caller cannot close the cycle through the existing manual service
+  ---
+  duration_ms: 21.220357
+  type: 'test'
+  ...
+# Subtest: unrelated clinician cannot record the outcome
+ok 29 - unrelated clinician cannot record the outcome
+  ---
+  duration_ms: 29.949064
+  type: 'test'
+  ...
+# Subtest: existing platform-admin explicit-close policy remains unchanged
+ok 30 - existing platform-admin explicit-close policy remains unchanged
+  ---
+  duration_ms: 16.878745
+  type: 'test'
+  ...
+# Subtest: explicit close cannot clear a different active follow-up pointer
+ok 31 - explicit close cannot clear a different active follow-up pointer
+  ---
+  duration_ms: 32.021571
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects missing NODE_ENV before any probe or test body
+ok 32 - DB-suite guard rejects missing NODE_ENV before any probe or test body
+  ---
+  duration_ms: 3.010804
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects development mode before any probe or test body
+ok 33 - DB-suite guard rejects development mode before any probe or test body
+  ---
+  duration_ms: 1.557935
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects production mode before any probe or test body
+ok 34 - DB-suite guard rejects production mode before any probe or test body
+  ---
+  duration_ms: 0.677783
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects missing database URL before any probe or test body
+ok 35 - DB-suite guard rejects missing database URL before any probe or test body
+  ---
+  duration_ms: 0.7705
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects malformed database URL before any probe or test body
+ok 36 - DB-suite guard rejects malformed database URL before any probe or test body
+  ---
+  duration_ms: 0.602511
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects non-PostgreSQL URL before any probe or test body
+ok 37 - DB-suite guard rejects non-PostgreSQL URL before any probe or test body
+  ---
+  duration_ms: 0.688288
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects development database before any probe or test body
+ok 38 - DB-suite guard rejects development database before any probe or test body
+  ---
+  duration_ms: 0.681378
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects remote server before any probe or test body
+ok 39 - DB-suite guard rejects remote server before any probe or test body
+  ---
+  duration_ms: 0.524877
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects unspecified/default port before any probe or test body
+ok 40 - DB-suite guard rejects unspecified/default port before any probe or test body
+  ---
+  duration_ms: 0.8783
+  type: 'test'
+  ...
+# Subtest: DB-suite guard rejects protected port 5432 before any probe or test body
+ok 41 - DB-suite guard rejects protected port 5432 before any probe or test body
+  ---
+  duration_ms: 0.699315
+  type: 'test'
+  ...
+# Subtest: read-only identity gate rejects different database
+ok 42 - read-only identity gate rejects different database
+  ---
+  duration_ms: 1.416305
+  type: 'test'
+  ...
+# Subtest: read-only identity gate rejects different port
+ok 43 - read-only identity gate rejects different port
+  ---
+  duration_ms: 0.580048
+  type: 'test'
+  ...
+# Subtest: read-only identity gate rejects non-loopback server
+ok 44 - read-only identity gate rejects non-loopback server
+  ---
+  duration_ms: 0.546979
+  type: 'test'
+  ...
+# Subtest: read-only identity gate rejects missing server identity
+ok 45 - read-only identity gate rejects missing server identity
+  ---
+  duration_ms: 0.656962
+  type: 'test'
+  ...
+# Subtest: connection-probe failure is sanitized
+ok 46 - connection-probe failure is sanitized
+  ---
+  duration_ms: 0.564956
+  type: 'test'
+  ...
+# Subtest: matching local ahealth_test identity passes the guard (not DB acceptance)
+ok 47 - matching local ahealth_test identity passes the guard (not DB acceptance)
+  ---
+  duration_ms: 0.528412
+  type: 'test'
+  ...
+# Subtest: IPv6 loopback is accepted only with matching database and explicit test port
+ok 48 - IPv6 loopback is accepted only with matching database and explicit test port
+  ---
+  duration_ms: 0.468383
+  type: 'test'
+  ...
+# Subtest: owner response keeps existing API shape and records one deviation
+ok 49 - owner response keeps existing API shape and records one deviation
+  ---
+  duration_ms: 109.973349
+  type: 'test'
+  ...
+# Subtest: guardian response remains supported
+ok 50 - guardian response remains supported
+  ---
+  duration_ms: 79.135523
+  type: 'test'
+  ...
+# Subtest: existing admin response authorization is unchanged
+ok 51 - existing admin response authorization is unchanged
+  ---
+  duration_ms: 70.20509
+  type: 'test'
+  ...
+# Subtest: outsider cannot answer another patient check-in
+ok 52 - outsider cannot answer another patient check-in
+  ---
+  duration_ms: 45.716604
+  type: 'test'
+  ...
+# Subtest: clinician has no newly granted response write privilege
+ok 53 - clinician has no newly granted response write privilege
+  ---
+  duration_ms: 53.166412
+  type: 'test'
+  ...
+# Subtest: missing check-in returns not-found without writes
+ok 54 - missing check-in returns not-found without writes
+  ---
+  duration_ms: 42.574785
+  type: 'test'
+  ...
+# Subtest: a late response to a missed check-in still works
+ok 55 - a late response to a missed check-in still works
+  ---
+  duration_ms: 57.655705
+  type: 'test'
+  ...
+# Subtest: normal response does not invent a deviation
+ok 56 - normal response does not invent a deviation
+  ---
+  duration_ms: 17.279237
+  type: 'test'
+  ...
+# Subtest: a sequential retry cannot replace a response
+ok 57 - a sequential retry cannot replace a response
+  ---
+  duration_ms: 23.702591
+  type: 'test'
+  ...
+# Subtest: two requests that both read scheduled produce one response and one count
+ok 58 - two requests that both read scheduled produce one response and one count
+  ---
+  duration_ms: 14.473126
+  type: 'test'
+  ...
+# Subtest: concurrent distinct responses preserve only the winning response
+ok 59 - concurrent distinct responses preserve only the winning response
+  ---
+  duration_ms: 14.162215
+  type: 'test'
+  ...
+# Subtest: required deviation audit uses the caller transaction
+ok 60 - required deviation audit uses the caller transaction
+  ---
+  duration_ms: 17.632219
+  type: 'test'
+  ...
+# Subtest: deviation audit failure rolls back response, version and deviation count in the double
+ok 61 - deviation audit failure rolls back response, version and deviation count in the double
+  ---
+  duration_ms: 14.394268
+  type: 'test'
+  ...
+# Subtest: cycle-write failure rolls back a response in the double
+ok 62 - cycle-write failure rolls back a response in the double
+  ---
+  duration_ms: 24.546039
+  type: 'test'
+  ...
+# Subtest: retry after a rolled-back audit failure remains possible
+ok 63 - retry after a rolled-back audit failure remains possible
+  ---
+  duration_ms: 15.306048
+  type: 'test'
+  ...
+# Subtest: audit metadata omits clinical response values; protected check-in retains reasons
+ok 64 - audit metadata omits clinical response values; protected check-in retains reasons
+  ---
+  duration_ms: 13.044841
+  type: 'test'
+  ...
+# Subtest: assigned clinician explicit close preserves the existing outcome workflow
+ok 65 - assigned clinician explicit close preserves the existing outcome workflow
+  ---
+  duration_ms: 14.312367
+  type: 'test'
+  ...
+# Subtest: closure ledger append uses the same transaction
+ok 66 - closure ledger append uses the same transaction
+  ---
+  duration_ms: 11.943222
+  type: 'test'
+  ...
+# Subtest: patient cannot close a follow-up cycle
+ok 67 - patient cannot close a follow-up cycle
+  ---
+  duration_ms: 10.135497
+  type: 'test'
+  ...
+# Subtest: unrelated clinician cannot close a cycle
+ok 68 - unrelated clinician cannot close a cycle
+  ---
+  duration_ms: 13.271157
+  type: 'test'
+  ...
+# Subtest: closed cycle cannot be assigned a second outcome
+ok 69 - closed cycle cannot be assigned a second outcome
+  ---
+  duration_ms: 13.743696
+  type: 'test'
+  ...
+# Subtest: concurrent closures preserve one outcome and one closure audit
+ok 70 - concurrent closures preserve one outcome and one closure audit
+  ---
+  duration_ms: 12.300921
+  type: 'test'
+  ...
+# Subtest: closure audit failure restores cycle, thread and check-ins in the double
+ok 71 - closure audit failure restores cycle, thread and check-ins in the double
+  ---
+  duration_ms: 24.5863
+  type: 'test'
+  ...
+# Subtest: closure does not clear another active cycle pointer
+ok 72 - closure does not clear another active cycle pointer
+  ---
+  duration_ms: 15.237015
+  type: 'test'
+  ...
+# Subtest: new operations declare finite transaction bounds
+ok 73 - new operations declare finite transaction bounds
+  ---
+  duration_ms: 10.477914
+  type: 'test'
+  ...
+# Subtest: response acquires cycle lock before check-in mutation, matching closure lock order
+ok 74 - response acquires cycle lock before check-in mutation, matching closure lock order
+  ---
+  duration_ms: 13.589358
+  type: 'test'
+  ...
+# Subtest: readiness fails without checkedInAt
+ok 75 - readiness fails without checkedInAt
+  ---
+  duration_ms: 0.926261
+  type: 'test'
+  ...
+# Subtest: readiness fails without administrativeAt
+ok 76 - readiness fails without administrativeAt
+  ---
+  duration_ms: 0.166276
+  type: 'test'
+  ...
+# Subtest: no automatic routine admission: pending
+ok 77 - no automatic routine admission: pending
+  ---
+  duration_ms: 0.099727
+  type: 'test'
+  ...
+# Subtest: no automatic routine admission: escalated
+ok 78 - no automatic routine admission: escalated
+  ---
+  duration_ms: 0.065447
+  type: 'test'
+  ...
+# Subtest: required paymentCheck cannot be waived by patient input
+ok 79 - required paymentCheck cannot be waived by patient input
+  ---
+  duration_ms: 0.158314
+  type: 'test'
+  ...
+# Subtest: required insuranceCheck cannot be waived by patient input
+ok 80 - required insuranceCheck cannot be waived by patient input
+  ---
+  duration_ms: 0.060199
+  type: 'test'
+  ...
+# Subtest: all explicit gates admit to waiting
+ok 81 - all explicit gates admit to waiting
+  ---
+  duration_ms: 0.134709
+  type: 'test'
+  ...
+# Subtest: optional check may be not_required only under policy
+ok 82 - optional check may be not_required only under policy
+  ---
+  duration_ms: 0.082271
+  type: 'test'
+  ...
+# Subtest: preregistration is not physical arrival
+ok 83 - preregistration is not physical arrival
+  ---
+  duration_ms: 0.264852
+  type: 'test'
+  ...
+# Subtest: arrived without review remains awaiting_review
+ok 84 - arrived without review remains awaiting_review
+  ---
+  duration_ms: 0.577855
+  type: 'test'
+  ...
+# Subtest: state transition allowlist preregistered
+ok 85 - state transition allowlist preregistered
+  ---
+  duration_ms: 0.474882
+  type: 'test'
+  ...
+# Subtest: state transition allowlist awaiting_review
+ok 86 - state transition allowlist awaiting_review
+  ---
+  duration_ms: 0.066529
+  type: 'test'
+  ...
+# Subtest: state transition allowlist waiting
+ok 87 - state transition allowlist waiting
+  ---
+  duration_ms: 0.049103
+  type: 'test'
+  ...
+# Subtest: state transition allowlist called
+ok 88 - state transition allowlist called
+  ---
+  duration_ms: 0.039639
+  type: 'test'
+  ...
+# Subtest: state transition allowlist in_consultation
+ok 89 - state transition allowlist in_consultation
+  ---
+  duration_ms: 0.040761
+  type: 'test'
+  ...
+# Subtest: state transition allowlist completed
+ok 90 - state transition allowlist completed
+  ---
+  duration_ms: 0.14857
+  type: 'test'
+  ...
+# Subtest: state transition allowlist cancelled
+ok 91 - state transition allowlist cancelled
+  ---
+  duration_ms: 0.047069
+  type: 'test'
+  ...
+# Subtest: jino text suggests configured dental department without diagnosis
+ok 92 - jino text suggests configured dental department without diagnosis
+  ---
+  duration_ms: 0.84472
+  type: 'test'
+  ...
+# Subtest: unknown text does not silently route to general practice
+ok 93 - unknown text does not silently route to general practice
+  ---
+  duration_ms: 0.09466
+  type: 'test'
+  ...
+# Subtest: multiple configured matches require selection
+ok 94 - multiple configured matches require selection
+  ---
+  duration_ms: 0.131905
+  type: 'test'
+  ...
+# Subtest: substring is not a directory word match
+ok 95 - substring is not a directory word match
+  ---
+  duration_ms: 0.149381
+  type: 'test'
+  ...
+# Subtest: malformed aliases do not execute or match arbitrary content
+ok 96 - malformed aliases do not execute or match arbitrary content
+  ---
+  duration_ms: 0.088441
+  type: 'test'
+  ...
+# Subtest: directory suggestions never reveal matched input itself
+ok 97 - directory suggestions never reveal matched input itself
+  ---
+  duration_ms: 0.152285
+  type: 'test'
+  ...
+# Subtest: availability requires active verified currently receiving clinician
+ok 98 - availability requires active verified currently receiving clinician
+  ---
+  duration_ms: 0.080489
+  type: 'test'
+  ...
+# Subtest: expired availability window is unavailable
+ok 99 - expired availability window is unavailable
+  ---
+  duration_ms: 0.066027
+  type: 'test'
+  ...
+# Subtest: suspended verified clinician is not receiving
+ok 100 - suspended verified clinician is not receiving
+  ---
+  duration_ms: 0.062713
+  type: 'test'
+  ...
+# Subtest: FIFO query is scoped to facility department and requested clinician
+ok 101 - FIFO query is scoped to facility department and requested clinician
+  ---
+  duration_ms: 0.286043
+  type: 'test'
+  ...
+# Subtest: BFF routes /front-desk/facilities to the Consultation owner
+ok 102 - BFF routes /front-desk/facilities to the Consultation owner
+  ---
+  duration_ms: 72.291116
+  type: 'test'
+  ...
+# Subtest: BFF routes /front-desk/visits to the Consultation owner
+ok 103 - BFF routes /front-desk/visits to the Consultation owner
+  ---
+  duration_ms: 22.047863
+  type: 'test'
+  ...
+# Subtest: BFF routes /front-desk/staff/visits to the Consultation owner
+ok 104 - BFF routes /front-desk/staff/visits to the Consultation owner
+  ---
+  duration_ms: 19.82877
+  type: 'test'
+  ...
+# Subtest: BFF routes /front-desk/visits/synthetic-id/start to the Consultation owner
+ok 105 - BFF routes /front-desk/visits/synthetic-id/start to the Consultation owner
+  ---
+  duration_ms: 12.145541
+  type: 'test'
+  ...
+# Subtest: BFF respects explicit worktree Consultation URL
+ok 106 - BFF respects explicit worktree Consultation URL
+  ---
+  duration_ms: 8.804988
+  type: 'test'
+  ...
+# Subtest: BFF keeps configured gateway precedence
+ok 107 - BFF keeps configured gateway precedence
+  ---
+  duration_ms: 9.759661
+  type: 'test'
+  ...
+# Subtest: new prefix does not hijack an unrelated endpoint
+ok 108 - new prefix does not hijack an unrelated endpoint
+  ---
+  duration_ms: 8.174215
+  type: 'test'
+  ...
+# Subtest: new full patient-to-department-to-clinician workflow creates one linked consultation
+ok 109 - new full patient-to-department-to-clinician workflow creates one linked consultation
+  ---
+  duration_ms: 186.086723
+  type: 'test'
+  ...
+# Subtest: existing signed consultation completion also finishes linked visit
+ok 110 - existing signed consultation completion also finishes linked visit
+  ---
+  duration_ms: 83.304151
+  type: 'test'
+  ...
+# Subtest: disabled facility fails closed
+ok 111 - disabled facility fails closed
+  ---
+  duration_ms: 78.043507
+  type: 'test'
+  ...
+# Subtest: urgent help request never becomes an ordinary queue ticket
+ok 112 - urgent help request never becomes an ordinary queue ticket
+  ---
+  duration_ms: 62.756498
+  type: 'test'
+  ...
+# Subtest: department-sharing opt-in is mandatory
+ok 113 - department-sharing opt-in is mandatory
+  ---
+  duration_ms: 48.241381
+  type: 'test'
+  ...
+# Subtest: patient cannot preregister unrelated patient B
+ok 114 - patient cannot preregister unrelated patient B
+  ---
+  duration_ms: 42.164047
+  type: 'test'
+  ...
+# Subtest: guardian may preregister only their expressly linked dependant
+ok 115 - guardian may preregister only their expressly linked dependant
+  ---
+  duration_ms: 51.112378
+  type: 'test'
+  ...
+# Subtest: wrong facility/department pair rejected
+ok 116 - wrong facility/department pair rejected
+  ---
+  duration_ms: 50.666088
+  type: 'test'
+  ...
+# Subtest: wrong-facility clinician rejected
+ok 117 - wrong-facility clinician rejected
+  ---
+  duration_ms: 42.501948
+  type: 'test'
+  ...
+# Subtest: expired availability cannot be selected
+ok 118 - expired availability cannot be selected
+  ---
+  duration_ms: 46.294349
+  type: 'test'
+  ...
+# Subtest: identical retried key returns same record and one audit
+ok 119 - identical retried key returns same record and one audit
+  ---
+  duration_ms: 41.738428
+  type: 'test'
+  ...
+# Subtest: same key changed payload rejected
+ok 120 - same key changed payload rejected
+  ---
+  duration_ms: 45.604579
+  type: 'test'
+  ...
+# Subtest: new key cannot duplicate an active patient/facility visit
+ok 121 - new key cannot duplicate an active patient/facility visit
+  ---
+  duration_ms: 39.68471
+  type: 'test'
+  ...
+# Subtest: simulated concurrent same-key creation is idempotent
+ok 122 - simulated concurrent same-key creation is idempotent
+  ---
+  duration_ms: 37.065719
+  type: 'test'
+  ...
+# Subtest: arrival declaration alone does not admit to clinical queue
+ok 123 - arrival declaration alone does not admit to clinical queue
+  ---
+  duration_ms: 39.65473
+  type: 'test'
+  ...
+# Subtest: payment/insurance checks remain pending even when policy says optional until admin review
+ok 124 - payment/insurance checks remain pending even when policy says optional until admin review
+  ---
+  duration_ms: 43.2664
+  type: 'test'
+  ...
+# Subtest: patient cannot record administrative clearance
+ok 125 - patient cannot record administrative clearance
+  ---
+  duration_ms: 43.541506
+  type: 'test'
+  ...
+# Subtest: clinician does not inherit administrator payment clearance permission
+ok 126 - clinician does not inherit administrator payment clearance permission
+  ---
+  duration_ms: 45.478693
+  type: 'test'
+  ...
+# Subtest: required insurance/payment cannot be waived or confirmed without external manual references
+ok 127 - required insurance/payment cannot be waived or confirmed without external manual references
+  ---
+  duration_ms: 42.747085
+  type: 'test'
+  ...
+# Subtest: patient and platform admin cannot give clinical clearance
+ok 128 - patient and platform admin cannot give clinical clearance
+  ---
+  duration_ms: 37.740723
+  type: 'test'
+  ...
+# Subtest: unverified doctor is denied clinical review
+ok 129 - unverified doctor is denied clinical review
+  ---
+  duration_ms: 42.317781
+  type: 'test'
+  ...
+# Subtest: wrong department doctor cannot triage/read this queue
+ok 130 - wrong department doctor cannot triage/read this queue
+  ---
+  duration_ms: 43.2674
+  type: 'test'
+  ...
+# Subtest: escalation remains outside routine queue despite administrative clearance
+ok 131 - escalation remains outside routine queue despite administrative clearance
+  ---
+  duration_ms: 55.550284
+  type: 'test'
+  ...
+# Subtest: stale-version mutation is rejected
+ok 132 - stale-version mutation is rejected
+  ---
+  duration_ms: 41.602827
+  type: 'test'
+  ...
+# Subtest: requested doctor cannot be silently replaced by department colleague
+ok 133 - requested doctor cannot be silently replaced by department colleague
+  ---
+  duration_ms: 45.542988
+  type: 'test'
+  ...
+# Subtest: competing call requests have one winner in serialized transaction simulation
+ok 134 - competing call requests have one winner in serialized transaction simulation
+  ---
+  duration_ms: 38.877375
+  type: 'test'
+  ...
+# Subtest: one clinician cannot call two hospital patients simultaneously
+ok 135 - one clinician cannot call two hospital patients simultaneously
+  ---
+  duration_ms: 42.521698
+  type: 'test'
+  ...
+# Subtest: start cannot create duplicate consultation on retry
+ok 136 - start cannot create duplicate consultation on retry
+  ---
+  duration_ms: 36.446649
+  type: 'test'
+  ...
+# Subtest: patient cannot start own clinical encounter
+ok 137 - patient cannot start own clinical encounter
+  ---
+  duration_ms: 55.553119
+  type: 'test'
+  ...
+# Subtest: Patient B cannot read or cancel Patient A visit
+ok 138 - Patient B cannot read or cancel Patient A visit
+  ---
+  duration_ms: 47.969398
+  type: 'test'
+  ...
+# Subtest: staff projection omits private purpose for administrative review
+ok 139 - staff projection omits private purpose for administrative review
+  ---
+  duration_ms: 43.258878
+  type: 'test'
+  ...
+# Subtest: queue position ignores different hospital and requested-clinician pool
+ok 140 - queue position ignores different hospital and requested-clinician pool
+  ---
+  duration_ms: 44.643256
+  type: 'test'
+  ...
+# Subtest: board contains honest aggregates and no private identities or symptoms
+ok 141 - board contains honest aggregates and no private identities or symptoms
+  ---
+  duration_ms: 38.993136
+  type: 'test'
+  ...
+# Subtest: suspended user cannot read board with a stale active token
+ok 142 - suspended user cannot read board with a stale active token
+  ---
+  duration_ms: 39.174304
+  type: 'test'
+  ...
+# Subtest: cancelling is durable and frees active slot without deleting history
+ok 143 - cancelling is durable and frees active slot without deleting history
+  ---
+  duration_ms: 44.313839
+  type: 'test'
+  ...
+# Subtest: audit failure rolls back registration in transaction simulation
+ok 144 - audit failure rolls back registration in transaction simulation
+  ---
+  duration_ms: 34.962872
+  type: 'test'
+  ...
+# Subtest: audit failure at consultation-start rolls back thread consultation visit and clinician load in simulation
+ok 145 - audit failure at consultation-start rolls back thread consultation visit and clinician load in simulation
+  ---
+  duration_ms: 35.629289
+  type: 'test'
+  ...
+# Subtest: audit metadata excludes purpose patient names and verification references
+ok 146 - audit metadata excludes purpose patient names and verification references
+  ---
+  duration_ms: 37.708285
+  type: 'test'
+  ...
+# Subtest: policy and directory labels remain platform-admin-only
+ok 147 - policy and directory labels remain platform-admin-only
+  ---
+  duration_ms: 36.202427
+  type: 'test'
+  ...
+# Subtest: disabled facility visits remain cancellable but cannot progress
+ok 148 - disabled facility visits remain cancellable but cannot progress
+  ---
+  duration_ms: 34.279262
+  type: 'test'
+  ...
+# Subtest: defaults to static-only mode
+ok 149 - defaults to static-only mode
+  ---
+  duration_ms: 1.224663
+  type: 'test'
+  ...
+# Subtest: requires explicit --run for tests
+ok 150 - requires explicit --run for tests
+  ---
+  duration_ms: 0.151815
+  type: 'test'
+  ...
+# Subtest: accepts explicit --check
+ok 151 - accepts explicit --check
+  ---
+  duration_ms: 0.092657
+  type: 'test'
+  ...
+# Subtest: rejects no root
+ok 152 - rejects no root
+  ---
+  duration_ms: 0.200927
+  type: 'test'
+  ...
+# Subtest: rejects missing root value
+ok 153 - rejects missing root value
+  ---
+  duration_ms: 0.160207
+  type: 'test'
+  ...
+# Subtest: rejects unknown option
+ok 154 - rejects unknown option
+  ---
+  duration_ms: 0.0744
+  type: 'test'
+  ...
+# Subtest: rejects duplicate root
+ok 155 - rejects duplicate root
+  ---
+  duration_ms: 0.118405
+  type: 'test'
+  ...
+# Subtest: rejects conflicting modes
+ok 156 - rejects conflicting modes
+  ---
+  duration_ms: 0.070454
+  type: 'test'
+  ...
+# Subtest: normalizes CRLF for source fingerprint
+ok 157 - normalizes CRLF for source fingerprint
+  ---
+  duration_ms: 0.628149
+  type: 'test'
+  ...
+# Subtest: counts complete TAP success
+ok 158 - counts complete TAP success
+  ---
+  duration_ms: 0.643462
+  type: 'test'
+  ...
+# Subtest: nonzero process cannot pass
+ok 159 - nonzero process cannot pass
+  ---
+  duration_ms: 0.151384
+  type: 'test'
+  ...
+# Subtest: missing summary cannot pass
+ok 160 - missing summary cannot pass
+  ---
+  duration_ms: 0.117443
+  type: 'test'
+  ...
+# Subtest: zero tests cannot pass
+ok 161 - zero tests cannot pass
+  ---
+  duration_ms: 0.752233
+  type: 'test'
+  ...
+# Subtest: skipped tests cannot pass
+ok 162 - skipped tests cannot pass
+  ---
+  duration_ms: 0.211814
+  type: 'test'
+  ...
+# Subtest: cancelled tests cannot pass
+ok 163 - cancelled tests cannot pass
+  ---
+  duration_ms: 0.845651
+  type: 'test'
+  ...
+# Subtest: TODO tests cannot pass
+ok 164 - TODO tests cannot pass
+  ---
+  duration_ms: 0.123914
+  type: 'test'
+  ...
+# Subtest: assertion failures cannot pass
+ok 165 - assertion failures cannot pass
+  ---
+  duration_ms: 0.070975
+  type: 'test'
+  ...
+# Subtest: reads final TAP counts
+ok 166 - reads final TAP counts
+  ---
+  duration_ms: 0.060599
+  type: 'test'
+  ...
+# Subtest: redacts process secrets and encoded database password
+ok 167 - redacts process secrets and encoded database password
+  ---
+  duration_ms: 0.77719
+  type: 'test'
+  ...
+# Subtest: redacts credential URLs even without env match
+ok 168 - redacts credential URLs even without env match
+  ---
+  duration_ms: 0.216811
+  type: 'test'
+  ...
+# Subtest: redacts bearer values
+ok 169 - redacts bearer values
+  ---
+  duration_ms: 0.115942
+  type: 'test'
+  ...
+# Subtest: retains useful TAP diagnostics
+ok 170 - retains useful TAP diagnostics
+  ---
+  duration_ms: 0.073438
+  type: 'test'
+  ...
+# Subtest: source absence blocks preflight
+ok 171 - source absence blocks preflight
+  ---
+  duration_ms: 0.314215
+  type: 'test'
+  ...
+# Subtest: clinician resolves to the existing role-specific home
+ok 172 - clinician resolves to the existing role-specific home
+  ---
+  duration_ms: 65.405176
+  type: 'test'
+  ...
+# Subtest: pharmacist resolves to the existing role-specific home
+ok 173 - pharmacist resolves to the existing role-specific home
+  ---
+  duration_ms: 10.836945
+  type: 'test'
+  ...
+# Subtest: platform_admin resolves to the existing role-specific home
+ok 174 - platform_admin resolves to the existing role-specific home
+  ---
+  duration_ms: 11.141045
+  type: 'test'
+  ...
+# Subtest: dispatcher resolves to the existing role-specific home
+ok 175 - dispatcher resolves to the existing role-specific home
+  ---
+  duration_ms: 7.778038
+  type: 'test'
+  ...
+# Subtest: facility_admin resolves to the existing role-specific home
+ok 176 - facility_admin resolves to the existing role-specific home
+  ---
+  duration_ms: 7.81286
+  type: 'test'
+  ...
+# Subtest: researcher resolves to the existing role-specific home
+ok 177 - researcher resolves to the existing role-specific home
+  ---
+  duration_ms: 6.828664
+  type: 'test'
+  ...
+# Subtest: unrecognized role undefined falls back to login
+ok 178 - unrecognized role undefined falls back to login
+  ---
+  duration_ms: 4.438026
+  type: 'test'
+  ...
+# Subtest: unrecognized role null falls back to login
+ok 179 - unrecognized role null falls back to login
+  ---
+  duration_ms: 4.701116
+  type: 'test'
+  ...
+# Subtest: unrecognized role  falls back to login
+ok 180 - unrecognized role  falls back to login
+  ---
+  duration_ms: 7.087377
+  type: 'test'
+  ...
+# Subtest: unrecognized role unknown falls back to login
+ok 181 - unrecognized role unknown falls back to login
+  ---
+  duration_ms: 7.39385
+  type: 'test'
+  ...
+# Subtest: unrecognized role patient falls back to login
+ok 182 - unrecognized role patient falls back to login
+  ---
+  duration_ms: 3.950455
+  type: 'test'
+  ...
+# Subtest: unrecognized role __proto__ falls back to login
+ok 183 - unrecognized role __proto__ falls back to login
+  ---
+  duration_ms: 3.545576
+  type: 'test'
+  ...
+# Subtest: unrecognized role constructor falls back to login
+ok 184 - unrecognized role constructor falls back to login
+  ---
+  duration_ms: 13.228143
+  type: 'test'
+  ...
+# Subtest: unrecognized role toString falls back to login
+ok 185 - unrecognized role toString falls back to login
+  ---
+  duration_ms: 3.728947
+  type: 'test'
+  ...
+# Subtest: unauthenticated requireRole still redirects to login
+ok 186 - unauthenticated requireRole still redirects to login
+  ---
+  duration_ms: 3.549873
+  type: 'test'
+  ...
+# Subtest: pharmacist cannot inherit Admin route permission
+ok 187 - pharmacist cannot inherit Admin route permission
+  ---
+  duration_ms: 3.809717
+  type: 'test'
+  ...
+# Subtest: Doctor cannot inherit pharmacy route permission
+ok 188 - Doctor cannot inherit pharmacy route permission
+  ---
+  duration_ms: 3.130482
+  type: 'test'
+  ...
+# Subtest: explicitly allowed session is returned unchanged
+ok 189 - explicitly allowed session is returned unchanged
+  ---
+  duration_ms: 3.051556
+  type: 'test'
+  ...
+# Subtest: allows explicit test target on 127.0.0.1
+ok 190 - allows explicit test target on 127.0.0.1
+  ---
+  duration_ms: 1.28379
+  type: 'test'
+  ...
+# Subtest: allows explicit test target on localhost
+ok 191 - allows explicit test target on localhost
+  ---
+  duration_ms: 0.187938
+  type: 'test'
+  ...
+# Subtest: allows explicit test target on [::1]
+ok 192 - allows explicit test target on [::1]
+  ---
+  duration_ms: 0.129952
+  type: 'test'
+  ...
+# Subtest: rejects NODE_ENV undefined
+ok 193 - rejects NODE_ENV undefined
+  ---
+  duration_ms: 0.219014
+  type: 'test'
+  ...
+# Subtest: rejects NODE_ENV development
+ok 194 - rejects NODE_ENV development
+  ---
+  duration_ms: 0.138315
+  type: 'test'
+  ...
+# Subtest: rejects NODE_ENV production
+ok 195 - rejects NODE_ENV production
+  ---
+  duration_ms: 0.064095
+  type: 'test'
+  ...
+# Subtest: rejects NODE_ENV staging
+ok 196 - rejects NODE_ENV staging
+  ---
+  duration_ms: 0.235358
+  type: 'test'
+  ...
+# Subtest: rejects absent/incorrect disposable acknowledgement: undefined
+ok 197 - rejects absent/incorrect disposable acknowledgement: undefined
+  ---
+  duration_ms: 0.111495
+  type: 'test'
+  ...
+# Subtest: rejects absent/incorrect disposable acknowledgement: true
+ok 198 - rejects absent/incorrect disposable acknowledgement: true
+  ---
+  duration_ms: 0.218173
+  type: 'test'
+  ...
+# Subtest: rejects absent/incorrect disposable acknowledgement: ahealth_test
+ok 199 - rejects absent/incorrect disposable acknowledgement: ahealth_test
+  ---
+  duration_ms: 0.266745
+  type: 'test'
+  ...
+# Subtest: rejects missing URL without leaking URL/password
+ok 200 - rejects missing URL without leaking URL/password
+  ---
+  duration_ms: 0.443306
+  type: 'test'
+  ...
+# Subtest: rejects malformed URL without leaking URL/password
+ok 201 - rejects malformed URL without leaking URL/password
+  ---
+  duration_ms: 0.119888
+  type: 'test'
+  ...
+# Subtest: rejects remote host without leaking URL/password
+ok 202 - rejects remote host without leaking URL/password
+  ---
+  duration_ms: 0.104925
+  type: 'test'
+  ...
+# Subtest: rejects port 5432 without leaking URL/password
+ok 203 - rejects port 5432 without leaking URL/password
+  ---
+  duration_ms: 0.093398
+  type: 'test'
+  ...
+# Subtest: rejects implicit port without leaking URL/password
+ok 204 - rejects implicit port without leaking URL/password
+  ---
+  duration_ms: 0.157553
+  type: 'test'
+  ...
+# Subtest: rejects zero port without leaking URL/password
+ok 205 - rejects zero port without leaking URL/password
+  ---
+  duration_ms: 0.12125
+  type: 'test'
+  ...
+# Subtest: rejects out of range port without leaking URL/password
+ok 206 - rejects out of range port without leaking URL/password
+  ---
+  duration_ms: 0.133518
+  type: 'test'
+  ...
+# Subtest: rejects development database without leaking URL/password
+ok 207 - rejects development database without leaking URL/password
+  ---
+  duration_ms: 0.096392
+  type: 'test'
+  ...
+# Subtest: rejects encoded database name without leaking URL/password
+ok 208 - rejects encoded database name without leaking URL/password
+  ---
+  duration_ms: 0.164103
+  type: 'test'
+  ...
+# Subtest: rejects wrong protocol without leaking URL/password
+ok 209 - rejects wrong protocol without leaking URL/password
+  ---
+  duration_ms: 0.102952
+  type: 'test'
+  ...
+# Subtest: rejects host override without leaking URL/password
+ok 210 - rejects host override without leaking URL/password
+  ---
+  duration_ms: 0.119838
+  type: 'test'
+  ...
+# Subtest: rejects port override without leaking URL/password
+ok 211 - rejects port override without leaking URL/password
+  ---
+  duration_ms: 0.104244
+  type: 'test'
+  ...
+# Subtest: rejects database override without leaking URL/password
+ok 212 - rejects database override without leaking URL/password
+  ---
+  duration_ms: 0.206476
+  type: 'test'
+  ...
+# Subtest: rejects schema override without leaking URL/password
+ok 213 - rejects schema override without leaking URL/password
+  ---
+  duration_ms: 0.176611
+  type: 'test'
+  ...
+# Subtest: rejects duplicate schema without leaking URL/password
+ok 214 - rejects duplicate schema without leaking URL/password
+  ---
+  duration_ms: 0.103513
+  type: 'test'
+  ...
+# Subtest: rejects URL fragment without leaking URL/password
+ok 215 - rejects URL fragment without leaking URL/password
+  ---
+  duration_ms: 0.085577
+  type: 'test'
+  ...
+# Subtest: rejects empty user without leaking URL/password
+ok 216 - rejects empty user without leaking URL/password
+  ---
+  duration_ms: 0.081821
+  type: 'test'
+  ...
+# Subtest: rejects multi-host without leaking URL/password
+ok 217 - rejects multi-host without leaking URL/password
+  ---
+  duration_ms: 0.075792
+  type: 'test'
+  ...
+# Subtest: rejects unbounded timeout without leaking URL/password
+ok 218 - rejects unbounded timeout without leaking URL/password
+  ---
+  duration_ms: 0.241828
+  type: 'test'
+  ...
+# Subtest: allows bounded documented public-schema options
+ok 219 - allows bounded documented public-schema options
+  ---
+  duration_ms: 0.233676
+  type: 'test'
+  ...
+# Subtest: accepts matching server identity
+ok 220 - accepts matching server identity
+  ---
+  duration_ms: 0.246765
+  type: 'test'
+  ...
+# Subtest: accepts mapped loopback address
+ok 221 - accepts mapped loopback address
+  ---
+  duration_ms: 0.172405
+  type: 'test'
+  ...
+# Subtest: rejects metadata: wrong database
+ok 222 - rejects metadata: wrong database
+  ---
+  duration_ms: 0.118656
+  type: 'test'
+  ...
+# Subtest: rejects metadata: other server port
+ok 223 - rejects metadata: other server port
+  ---
+  duration_ms: 0.071336
+  type: 'test'
+  ...
+# Subtest: rejects metadata: Docker/internal network address
+ok 224 - rejects metadata: Docker/internal network address
+  ---
+  duration_ms: 0.064976
+  type: 'test'
+  ...
+# Subtest: rejects metadata: null server address
+ok 225 - rejects metadata: null server address
+  ---
+  duration_ms: 0.057836
+  type: 'test'
+  ...
+# Subtest: rejects metadata: bad loopback address
+ok 226 - rejects metadata: bad loopback address
+  ---
+  duration_ms: 0.085576
+  type: 'test'
+  ...
+# Subtest: rejects metadata: not database owner
+ok 227 - rejects metadata: not database owner
+  ---
+  duration_ms: 0.068772
+  type: 'test'
+  ...
+# Subtest: rejects metadata: replica
+ok 228 - rejects metadata: replica
+  ---
+  duration_ms: 0.058987
+  type: 'test'
+  ...
+# Subtest: rejects metadata: missing current user
+ok 229 - rejects metadata: missing current user
+  ---
+  duration_ms: 0.10813
+  type: 'test'
+  ...
+# Subtest: rejects missing metadata row
+ok 230 - rejects missing metadata row
+  ---
+  duration_ms: 0.089362
+  type: 'test'
+  ...
+1..230
+# tests 230
+# suites 0
+# pass 230
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3722.403947

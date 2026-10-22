@@ -1,0 +1,12 @@
+{
+  "scope": "Changed/new implementation source relative to Candidate004, excluding historical evidence and prose. Not semantic/legal PHI certification or full penetration test.",
+  "high_confidence_credential_patterns": [
+    "private_key",
+    "github_token",
+    "aws_access_key",
+    "live_payment_secret",
+    "credential_database_url"
+  ],
+  "findings": [],
+  "synthetic_placeholders": "Explicit test-only session values and synthetic actors retained; no operational credentials added."
+}

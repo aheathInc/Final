@@ -1,0 +1,51 @@
+{
+  "scope": "source and syntax only; full build/type-check NOT performed",
+  "typescript": "5.8.3",
+  "tsTsxFiles": 125,
+  "checks": [
+    {
+      "name": "Unknown/unauthenticated role adds no navigation privileges",
+      "status": "PASS"
+    },
+    {
+      "name": "Clinician navigation keeps clinical destinations only",
+      "status": "PASS"
+    },
+    {
+      "name": "Pharmacist navigation stays within the pharmacist workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "Admin/facility/research/dispatch role presentation remains separate",
+      "status": "PASS"
+    },
+    {
+      "name": "Every exposed navigation destination has an existing app page",
+      "status": "PASS"
+    },
+    {
+      "name": "Active route uses path boundaries, not substring matching",
+      "status": "PASS"
+    },
+    {
+      "name": "Decorative assets are local source assets, not external patient images",
+      "status": "PASS"
+    },
+    {
+      "name": "Shared motion and transparency fallbacks are present",
+      "status": "PASS"
+    },
+    {
+      "name": "Design preserves original ink/paper/petrol/amber/clay values",
+      "status": "PASS"
+    },
+    {
+      "name": "Opaque clinical content and non-color statuses remain explicit",
+      "status": "PASS"
+    },
+    {
+      "name": "Staff Web TypeScript/TSX syntax parsing",
+      "status": "PASS"
+    }
+  ]
+}

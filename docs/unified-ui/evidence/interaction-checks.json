@@ -1,0 +1,74 @@
+{
+  "scope": "Preview-only React components and local fixture responses; no real auth/API/database assertions",
+  "checks": [
+    {
+      "test": "Follow-up local search and no-match state",
+      "status": "PASS"
+    },
+    {
+      "test": "Density reduces actual follow-up row height",
+      "status": "PASS"
+    },
+    {
+      "test": "Follow-up detail opens and clinical tab keyboard interaction",
+      "status": "PASS"
+    },
+    {
+      "test": "Referral form retains required consent and two original submit requests (simulated)",
+      "status": "PASS"
+    },
+    {
+      "test": "Diagnostics status and search filters",
+      "status": "PASS"
+    },
+    {
+      "test": "Health timeline source filters and provenance details",
+      "status": "PASS"
+    },
+    {
+      "test": "Pharmacy reference preview, quantity guard and cancel (simulated API; no dispense)",
+      "status": "PASS"
+    },
+    {
+      "test": "Pharmacist navigation contains only its workspace",
+      "status": "PASS"
+    },
+    {
+      "test": "Admin navigation does not add clinician routes",
+      "status": "PASS"
+    },
+    {
+      "test": "Light/dark/system responds to OS changes",
+      "status": "PASS"
+    },
+    {
+      "test": "Desktop navigation expands and collapses",
+      "status": "PASS"
+    },
+    {
+      "test": "Ctrl+K role-scoped navigation search and Escape",
+      "status": "PASS"
+    },
+    {
+      "test": "Mobile preserves clinical review status without page overflow",
+      "status": "PASS"
+    },
+    {
+      "test": "Mobile drawer focus, Tab containment, background inertness, Escape and focus return",
+      "status": "PASS"
+    },
+    {
+      "test": "Mobile navigation closes after route change",
+      "status": "PASS"
+    },
+    {
+      "test": "Title motion has reduced-motion opt-out",
+      "status": "PASS"
+    },
+    {
+      "test": "Unavailable and authorized-empty follow-up states stay distinct",
+      "status": "PASS"
+    }
+  ],
+  "pageErrors": []
+}

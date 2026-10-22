@@ -1,0 +1,422 @@
+[
+  {
+    "path": "dev-web.sh",
+    "before_sha256": "af6635f773bdcb357f8e11c270b2aafd449c3998bac3b3d6fcd9f8e1b1741e38",
+    "after_sha256": "56ab876191dfecd7b24534d03146591aa6b2fd8cbed42cb2d33d25eba8b9cf85",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "dev.sh",
+    "before_sha256": "60594c09ac3eb17e0433e36fcd8aad0054891a79f41284de43df044a0e9f6d98",
+    "after_sha256": "388c0c51fcd98c62486ab5fa2c3b308cfaec8c2296ab562d55feeaefa2a7c6cc",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "diagnose-401.sh",
+    "before_sha256": "f2ecaca6c867112795a22804ed74f8b1ad87193504b570f033bf805bfd32225e",
+    "after_sha256": "946c02cb48bb2ee01f28a34b186c74df8820abacd8b7e6e41c71abf59bad8f3d",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "expand-contract-payment-v2.sh",
+    "before_sha256": "80acf1cbecde26628b7a77cddc275dabe85413b8311bbec27240b6860d04b09e",
+    "after_sha256": "3491414dd47e0f815dadec25887f803e1f03ff92cc3aeb8db1d4e535cb216f2f",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "expand-contract-payment.sh",
+    "before_sha256": "1035c0aeef1474ff4b89d5432dfc460fb0265e4f1c986a4dbea9ff4ec2f993af",
+    "after_sha256": "5886d3916379ca9b7ce362bb32fef64302839d7059c35c08c5402884b9a595e6",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "expand-schema-gateway.sh",
+    "before_sha256": "87fcc67f8c652e7aad858ba62cd2f60063f3bd15eb071d722317642678272713",
+    "after_sha256": "7f6f1b884cd8fef9387dfe3d2bc55ee19d95d8f70e0a0d427995a72c4a4372f7",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "expand-schema-payment.sh",
+    "before_sha256": "1af7ffd7a32157c16ae50678b2bbd543a404d954c1338c0940814ed99cb58929",
+    "after_sha256": "e300ec534f501ba7dcc80676d8656243e8382a04df1c61776c6306be4c7453e2",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "expand-schema-triage-rules.sh",
+    "before_sha256": "c4dd4cca97e56cd74f8eafe6dc90c9483bd225438880f72fde2a2db0cfc4fa5e",
+    "after_sha256": "2393b4cb1b2b19d4f884afa296ff4d155cb0b03508c019ab3b070e023b3dabcd",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "expand-schema.sh",
+    "before_sha256": "2bfabd14a5a275747062ed036c99712d1068da208887421dab99011a55017a40",
+    "after_sha256": "40504a40ab00588ba35b7a5c527fb86596092a3b2bfd8e8b24badc08912cf9fa",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "finish-auth.sh",
+    "before_sha256": "b0775fcbcb7813a5ec99974a2e20d36238ed99152081a6f8ba37f05f9aff9877",
+    "after_sha256": "dad2e670f7d654ac0b1921fbb59bc4f8b438f85c051b55947766d484bd907d04",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-ai-conversation-v2.sh",
+    "before_sha256": "c483ab2a0b9170daf6f749dc80e8629476594b5614b05f1b99cee9a5b26319cc",
+    "after_sha256": "86fdfc92620d0b25e2bd28d9b612482acc80e3de1db9433bce9008a281f733b1",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-ai-conversation.sh",
+    "before_sha256": "1adb9e766a4abf4ceaa34ccbd9f51a9e0088d43c452da7a7b544f567f91c2f14",
+    "after_sha256": "7b54e563a227ac05b79b205d22a2891f70a82b490cc6836393f6c2267d3449eb",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-consultation-prescriptions-v2.sh",
+    "before_sha256": "d0e4b6a1250d2d7f82253ac09ec2c05a3405795d745662f997a4e2b2032e3f65",
+    "after_sha256": "cf5b2d04bf7a0628f0a16afeefa15ec06627d4efe65418794f23e9bb3db6739c",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-consultation-prescriptions.sh",
+    "before_sha256": "9cdd45b5d02b3147c43203e608450bed78d175e01394d2a2d28055b5769336eb",
+    "after_sha256": "4d9fef5e8a478180a781e6531be64368e6b64bdef63e24f48795b3de2c3e90b3",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-consultation-reads.sh",
+    "before_sha256": "b21d9f4a5633a90d3d39d6f0fa90e2bdcf80252dbea74ec6448582cb7aecac5d",
+    "after_sha256": "4dbf5bbc49e0ca88844682fb5bca44711c644e02f5f109e119fac4f0a7d18bfd",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-consultation.sh",
+    "before_sha256": "a236122b64e32f10075d7974b4db8b15138121159db25c43e2ae9f78c0d237cb",
+    "after_sha256": "41712543ff4b6d27cdefc103371fe58e8cc4435d25ff1c98169dd35b10392784",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-deliver-after.sh",
+    "before_sha256": "9e456c45641d4053cfff813304c086442662a46a4067d08fd20c79bbfaf2f7d3",
+    "after_sha256": "9bd330e7583b590608a725563f58c6f0fb1bcb4c7553c606a93fe962586413e8",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-devices.sh",
+    "before_sha256": "fb700385c1e8a8b69c93d2107e16be849290ae7e68082625a0ebbba48a08b251",
+    "after_sha256": "8c94a9044883b4b11181fab5ba574746dc0efa3c7ed79716fd5b327cb5812966",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-education.sh",
+    "before_sha256": "811a3ad9760927925d557d126ebad0ab405f1550fdae8be817f27f2c37870505",
+    "after_sha256": "c5605d43fcc8f1d87fac1664dba750c255deed638f435bce3e215a4dc5987dd7",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-followup-list-checkins.sh",
+    "before_sha256": "5a6c637760ba5cc03c345f219732432e170168e99a4735389f788bdbf5a62c50",
+    "after_sha256": "edb1b6913d0d5606720e9c8be07c27ef5844156500d85592bea53a9313d18260",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-payment.sh",
+    "before_sha256": "fcb0f780c1a57ee72cf380bd1f8e1ce93248c0b55530a009517e12637dcc52ee",
+    "after_sha256": "cadad724628b356883457a8addfd3647f4a4901ed71c0bd097025f7021836d18",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-pharmacy-v2.sh",
+    "before_sha256": "c47b3f01c56b7b35997951064000ade65d544679d89d4638ab64b634678ecca7",
+    "after_sha256": "75feeffdcc39febe45a863f6acf53d1c1f61b3a5bf7c59b1ed1b6fbef7ac09b3",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-pharmacy.sh",
+    "before_sha256": "b158263ed4b80b738fc96a6858e6a0b659630200369b585af92ff2bfaa3987be",
+    "after_sha256": "974a20519fee27431923dfbaa9593719d4317a2844cf5e42e5c9ca53ff052ffa",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-quality.sh",
+    "before_sha256": "ecad08ac9de25c264f8e1121025b9fa6da7ebef91a21f47a94303b1abc9efd0b",
+    "after_sha256": "6a59982409b3cd3625ddefe50f6d0d8c78861b82902ecdc3e4f43e708531c434",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-research-v2.sh",
+    "before_sha256": "204af0f16dc666be8b61dd2890bde8e688a2c1f10c530522b35f11adf12a7571",
+    "after_sha256": "7620299fbf65e4d25bd0fc4e9f7fc2fa599791343718854d790ac9a349ce2cbe",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-research.sh",
+    "before_sha256": "b2486da597421df6c5d2fbd1f72169fe74a5bcd5ba196143eb6b9192219f5a36",
+    "after_sha256": "cd7b6fb2a739c7f4b5c6f7e9b631597bc8e8c217e44f9d20e47adf70be3ba957",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-seed-admin-upsert.sh",
+    "before_sha256": "4cdce8c215b8865269d30a8341c2bf06e30105dac877f60dabd2e83234af6366",
+    "after_sha256": "8e47713fb47dd01e4ffb1ad7abda5ae5706e12161caede46699c17faa6d56007",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-seed-env.sh",
+    "before_sha256": "f78439c2ecadfc96bce9fe90f0925ed9e707de85d899b605909799e88c3f9f8b",
+    "after_sha256": "d7611f158ceb73406963456eb1fda2603065ea7695e1d3f0b02a731c3ce26f22",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-token-refresh.sh",
+    "before_sha256": "fe09dfe16c52c5e81d4a651a591b33c91aa408c27c8a4a4b69c7a322412cdf6b",
+    "after_sha256": "3c360a61eab5dbe3cd3a61b1a0bec675dbcfcb37df1e633499868e3e3a9443ee",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "fix-triage-config-fallout.sh",
+    "before_sha256": "72f1156e438f3c13d37368e0c8ebf04104b7078f5bf55c71679f94d2d8d2ae60",
+    "after_sha256": "1aefe6cf1208952b66315348bfea0da20a170ea9735e5edbc897592e6e7f049a",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "seed-dev-admin.sh",
+    "before_sha256": "1f86a0aca1b1278cc6c08c62ecae9ee7c288de89db5597537249f09616446e42",
+    "after_sha256": "49caa52661a6992fc967531e2710d2ba8d2a26433cb67ffb1ea01d80bbd1e7ce",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "seed-dev-clinician-v2.sh",
+    "before_sha256": "073d38448aa59b9b2d62cc4ac6a8ddcfe827cd07e3019fa7be354a1444754455",
+    "after_sha256": "a3dd8a423997bb39aa183f2975b6a91f97cf49318c5a6abead02ab22110742ca",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "seed-dev-clinician.sh",
+    "before_sha256": "9736b367340160ba986732cce6accdcd4c7b5c7e2175d91f199dbb2832e7c814",
+    "after_sha256": "2fc95e981108435ad612a9101b15d8ab60c951dae5ecb3ef852c8327153f15b4",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-admin-triage-screen (1).sh",
+    "before_sha256": "3ecfe65781db8958246bf0beed1ca6c9d458fc8b9e4c615d9577fc10ed7b0372",
+    "after_sha256": "646633f6b37fb723318b100c1684b87e58ba8bf2f82cfab7339bb8f7e5310dd3",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-admin-triage-screen.sh",
+    "before_sha256": "3ecfe65781db8958246bf0beed1ca6c9d458fc8b9e4c615d9577fc10ed7b0372",
+    "after_sha256": "646633f6b37fb723318b100c1684b87e58ba8bf2f82cfab7339bb8f7e5310dd3",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-ai-service.sh",
+    "before_sha256": "0463c532d0695c180832a9358b99562ed3bc26c2a68e23c0b71eae73181e1641",
+    "after_sha256": "c28612cb6a4c03ae75a36f4b5b2707d6b73b5d8230cf21138b05fe04effe82da",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-appointment-service.sh",
+    "before_sha256": "6cf1fc30bef11ab903625221694726897b4cac5146451d256e8285722bac3902",
+    "after_sha256": "392ee75116575b35f89dd8264699839678638ed68e7eb08eff821b8365330df4",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-auth-rewire.sh",
+    "before_sha256": "d1c08e7b61b5d360078347e3e0be42812e538689c138d31f26b0c1d63f848bd2",
+    "after_sha256": "8eb56c787ce44225f69fffcd54982aed788c4af849b4f7fe43e216027619623f",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-auth-service-2.sh",
+    "before_sha256": "6ef037824230968312a7fc52fcba2a07e78efbdcf757a3aae664403bf318746b",
+    "after_sha256": "b526aa14d7bf1d266e9de5b20731babc43d2ce83ec8b9b83452c8806cba70bf6",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-auth-service.sh",
+    "before_sha256": "05e526b0507cbe5af9ae079921c7e35f841d28e19d97be7297672bb6ee4024c7",
+    "after_sha256": "34b241dae263796041d1961ddb00149160089685b86f0db7ba2deae5b9865c04",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-auth-tests.sh",
+    "before_sha256": "aab8349f08365f56a4c689e937fc967d284f2b594e830728db5f976cb9be08d2",
+    "after_sha256": "9a26a948323bec7a2b9551d9e86f48f6f64b000247f88888c9960d3d8c5c2ad8",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-ci.sh",
+    "before_sha256": "00761e7b3117ca3b2925482e58de3bc36f02547b0f4af971696e32258a1c8bbf",
+    "after_sha256": "0623c411cfc9a3507febeb2d7e6c9b2878aeae7e0c800186325702ddb0b343ea",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-consultation-service.sh",
+    "before_sha256": "a53d9f8a71a13eeb9c67844be86803be2091e58367bd57bf7a9dc9ba55d7898f",
+    "after_sha256": "794ab198e44fc3586034d2b7722c49be5b99d8a3897d9cf4a2d60611bb6257e2",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-devices-service.sh",
+    "before_sha256": "177456d84b2265532615d579eb8172f407d70429743bf208c08f62c07aa26a40",
+    "after_sha256": "2c5ec9d7a262d5db2f70685436e1308800b33d2b3c4175324d4e682100958497",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-diagnostics-service.sh",
+    "before_sha256": "0d8d39582294ae1cb6642a35bf14698a2c421ed9f0a49b085d22f48875ee6d86",
+    "after_sha256": "ede4c83878ea1ed79e5b9cd3ed06cc50e103a3ab30b89ae8c007a3b40f7fcfec",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-docker-compose.sh",
+    "before_sha256": "b0368e8de662c731f8cafe9224e3f18d995583c15bddeb2b545076d268e7b816",
+    "after_sha256": "84a4cf20c4194b67beb8c4487135a467037369a096c9dc7840d6ffe7651244ca",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-doctor-service.sh",
+    "before_sha256": "3edac2e7284eab813f03edab8cb01b9f75fdd063614bd693bd3195a589dd96c4",
+    "after_sha256": "9ac483ee84abd010a9f087bfb7984b58ec4a4f07988a2c8792977d86826f9830",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-education-service.sh",
+    "before_sha256": "64c547b0b7f46d2e3c2df34008e0581a08c14d37b3a267360f33b67694f6e4ec",
+    "after_sha256": "b520aee54c45f09ccf1f191a0db8b98052790616bfa78954906871f599ae2e01",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-emergency-service.sh",
+    "before_sha256": "8be9766e1e1a0149e5e8a1eb88ac8df4b7d40a84c075b15f9e3b86fb3aa55d71",
+    "after_sha256": "1044f12db3c5762cf77021466cb5c512fa0ca541765140654d52070eae4fad17",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-env-files.sh",
+    "before_sha256": "f124ff639b118ce9dcea09466f4df5513ca729b6c1a0608952e5282d7978a2ee",
+    "after_sha256": "27631e6d58eb5248a8f7af91c12238a1eedd72d2cae7bfb4b6ee145acdf8c10b",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-facilities-service.sh",
+    "before_sha256": "a4019c67e03403a81f7f650f0e06faffd58100a3853646b8b089267a9ecbf18d",
+    "after_sha256": "0e07a42fa844bbcdd7a270d16d02533c42fff5cb59d069adc344798dd617b752",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-families-service.sh",
+    "before_sha256": "25190d3ab554af1cbe557bfd79fa4af8c4b93169b10f598ab6e868fcb24d3ef2",
+    "after_sha256": "46a6c52369e9bcdbc3c052b87295d229d1e9240695d73bd074babeb9aac4f5b3",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-followup-service.sh",
+    "before_sha256": "7e88e7f14e35d6a2a360abde302255a07a28ceced0058f4469cf84f390a25de2",
+    "after_sha256": "8a0c60b9d74a99a08b2eb05383feef70ee4c56754feec17159e293e2b38966dd",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-gateway-service.sh",
+    "before_sha256": "c3a9ba40f5bab76b09c29c35c678d1d55434b6c60ee0d32bf648244977bb81cf",
+    "after_sha256": "39c31b2bd75aff59936c4109a12dcf6f652b9828a70f2075d152a36f503efeb2",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-insurance-service.sh",
+    "before_sha256": "3d7d5cea93cbbe38f07d6cf2bbbad1d507d8c13fd098d9f35c7994d3c287234f",
+    "after_sha256": "437b6ad418162912a07d4ef6a580111d4bdf884c32424bde89b76afc3ecd3c05",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-messaging-service.sh",
+    "before_sha256": "3428f9addc8cc8dd38c1e8184736d1ff7866299b88ccc78dd1561dd145af54da",
+    "after_sha256": "06608f4195dd670326c3e9c4c5f8842b693eaab91f36465bb5ae677f9feaab24",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-network-service.sh",
+    "before_sha256": "504aa033264758019720c1747f4694225e7ff0b148e16461098c4bcafed89539",
+    "after_sha256": "15a740c01cb6c74a1c3ddb83a6c319a5428e33e00c159df8ee87c2ea5074bbd1",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-notification-service.sh",
+    "before_sha256": "899fb82325b0ff8b9d5c9a40d3cd1d7f3034d5484dd29a8d0b9ae75cdc9823e6",
+    "after_sha256": "dc571573205d377164b5e37bc22e67550aa3df2b3cf4c72daa289c742c51dd0d",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-patient-service.sh",
+    "before_sha256": "29005b49a5ca08d7a249ba0914c57b42cf974361c757aa7a47fbe85705f59967",
+    "after_sha256": "4c4b85d341fae6ab65910f1b38bed17c8ddf2d2609ddf68c1c85927954c0c4fc",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-payment-service.sh",
+    "before_sha256": "b82f13a7fcb98af5dd88427b2b80b4e12190afd04250843c0a2739930109e6ed",
+    "after_sha256": "3dd16fcd4d88f966480790ba11bbceadbf6c4fdca4729b6e88a9628278283d62",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-pharmacy-service.sh",
+    "before_sha256": "1c4386aeb56b847ca25005ce83c99261831161560bf4635860c82725513e3c17",
+    "after_sha256": "d6b02403ae2fe6ca30025a07e47a461972f86ba8ab1a2748e358f964d2c43de2",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-prevention-service.sh",
+    "before_sha256": "216b8b8ae4a16fad3fd924511047a81ca880f6a799b498c91fb190f199342651",
+    "after_sha256": "2861eb25021d4f816935d4b4d30cf5fbd12bcdb262b8bb2267610af020f3a246",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-quality-service.sh",
+    "before_sha256": "8e53f9518ec8cf758f32daf48b45dabf780b561dd11ec09e68311472a509b99c",
+    "after_sha256": "685ea60db351862f7e65d6553e86b9114f5c5b7f4686455578964de64b28fb6b",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-research-service.sh",
+    "before_sha256": "1637a7852b904325f763783da68d3743acb959fa8a01aed54953cab0ad69723b",
+    "after_sha256": "ef0fcbdc8678be61868ab9f5bb57cfdd98f5efa7b97a0d63bfea52b8bddf9edd",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-shared-http.sh",
+    "before_sha256": "571e1a0f7d8a05ba1d7e12f9f4c74ad79f7e1530079ebefebcf311e8b43ff8df",
+    "after_sha256": "917e94dd6c2d3e0bc966f4393c05a454081d432ed3e190e6f4df246a2d691081",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-surveillance-service.sh",
+    "before_sha256": "1e84ed87ec8ddadbca2505d4e3e5cb55c00a0991ed176d45eda0bdc3cf60a62a",
+    "after_sha256": "f632375bb63e2bc54acf0dde7cb1a68f1800393c1b32d7517619125b84f0bd7b",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-sync-service.sh",
+    "before_sha256": "05b94fc0286c5ea27082e22641dc07b534bc4b8cc65b35239ccf4d2e69b97b7a",
+    "after_sha256": "af7a7f9eae0e371df13fa8dd8f4a5b9926865a1c69a3d2a1776c7773c01dda47",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "setup-triage-config.sh",
+    "before_sha256": "df6bb1148694626570ca305f44d65ed606017b73623238cc673158212f98de54",
+    "after_sha256": "758e94db97b101ae4f387cee3482afb2b10be66b145ba40e00c87110a802edca",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "sync-contract.sh",
+    "before_sha256": "312aac2cfeeec1e3f15c66640f014b6ec59a35f430c6ce8de9bd9b9be0659536",
+    "after_sha256": "fe3b01f6860b60b202dcd6782920e8aa6744bae79be4b48658dc9963f1603d40",
+    "content_change": "CRLF to LF only"
+  },
+  {
+    "path": "verify-system.sh",
+    "before_sha256": "f20b2069166045f1bdd1151a70a6dfbefd9ca4790c6527f3f26409459c43dcc0",
+    "after_sha256": "14f73674e4c9a1852b79655e8819b3c107ce02c1376619a112e1a82681bd9168",
+    "content_change": "CRLF to LF only"
+  }
+]
