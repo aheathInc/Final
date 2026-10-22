@@ -468,7 +468,7 @@ void main() {
     final refresh = tester
         .widget<RefreshIndicator>(find.byType(RefreshIndicator))
         .onRefresh;
-    final refreshFuture = refresh!();
+    final refreshFuture = refresh();
     for (var attempt = 0;
         attempt < 10 &&
             !adapter.requests.any((request) =>

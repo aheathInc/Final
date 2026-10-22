@@ -1,0 +1,166 @@
+TAP version 13
+# Subtest: owner response keeps existing API shape and records one deviation
+ok 1 - owner response keeps existing API shape and records one deviation
+  ---
+  duration_ms: 89.871336
+  type: 'test'
+  ...
+# Subtest: guardian response remains supported
+ok 2 - guardian response remains supported
+  ---
+  duration_ms: 32.026612
+  type: 'test'
+  ...
+# Subtest: existing admin response authorization is unchanged
+ok 3 - existing admin response authorization is unchanged
+  ---
+  duration_ms: 70.347258
+  type: 'test'
+  ...
+# Subtest: outsider cannot answer another patient check-in
+ok 4 - outsider cannot answer another patient check-in
+  ---
+  duration_ms: 90.011589
+  type: 'test'
+  ...
+# Subtest: clinician has no newly granted response write privilege
+ok 5 - clinician has no newly granted response write privilege
+  ---
+  duration_ms: 66.673021
+  type: 'test'
+  ...
+# Subtest: missing check-in returns not-found without writes
+ok 6 - missing check-in returns not-found without writes
+  ---
+  duration_ms: 45.07481
+  type: 'test'
+  ...
+# Subtest: a late response to a missed check-in still works
+ok 7 - a late response to a missed check-in still works
+  ---
+  duration_ms: 62.993687
+  type: 'test'
+  ...
+# Subtest: normal response does not invent a deviation
+ok 8 - normal response does not invent a deviation
+  ---
+  duration_ms: 30.397138
+  type: 'test'
+  ...
+# Subtest: a sequential retry cannot replace a response
+ok 9 - a sequential retry cannot replace a response
+  ---
+  duration_ms: 27.962401
+  type: 'test'
+  ...
+# Subtest: two requests that both read scheduled produce one response and one count
+ok 10 - two requests that both read scheduled produce one response and one count
+  ---
+  duration_ms: 17.39998
+  type: 'test'
+  ...
+# Subtest: concurrent distinct responses preserve only the winning response
+ok 11 - concurrent distinct responses preserve only the winning response
+  ---
+  duration_ms: 29.386263
+  type: 'test'
+  ...
+# Subtest: required deviation audit uses the caller transaction
+ok 12 - required deviation audit uses the caller transaction
+  ---
+  duration_ms: 17.138236
+  type: 'test'
+  ...
+# Subtest: deviation audit failure rolls back response, version and deviation count in the double
+ok 13 - deviation audit failure rolls back response, version and deviation count in the double
+  ---
+  duration_ms: 23.440878
+  type: 'test'
+  ...
+# Subtest: cycle-write failure rolls back a response in the double
+ok 14 - cycle-write failure rolls back a response in the double
+  ---
+  duration_ms: 20.848508
+  type: 'test'
+  ...
+# Subtest: retry after a rolled-back audit failure remains possible
+ok 15 - retry after a rolled-back audit failure remains possible
+  ---
+  duration_ms: 14.992915
+  type: 'test'
+  ...
+# Subtest: audit metadata omits clinical response values; protected check-in retains reasons
+ok 16 - audit metadata omits clinical response values; protected check-in retains reasons
+  ---
+  duration_ms: 13.089151
+  type: 'test'
+  ...
+# Subtest: assigned clinician explicit close preserves the existing outcome workflow
+ok 17 - assigned clinician explicit close preserves the existing outcome workflow
+  ---
+  duration_ms: 15.958005
+  type: 'test'
+  ...
+# Subtest: closure ledger append uses the same transaction
+ok 18 - closure ledger append uses the same transaction
+  ---
+  duration_ms: 17.291144
+  type: 'test'
+  ...
+# Subtest: patient cannot close a follow-up cycle
+ok 19 - patient cannot close a follow-up cycle
+  ---
+  duration_ms: 9.608379
+  type: 'test'
+  ...
+# Subtest: unrelated clinician cannot close a cycle
+ok 20 - unrelated clinician cannot close a cycle
+  ---
+  duration_ms: 21.575675
+  type: 'test'
+  ...
+# Subtest: closed cycle cannot be assigned a second outcome
+ok 21 - closed cycle cannot be assigned a second outcome
+  ---
+  duration_ms: 13.43053
+  type: 'test'
+  ...
+# Subtest: concurrent closures preserve one outcome and one closure audit
+ok 22 - concurrent closures preserve one outcome and one closure audit
+  ---
+  duration_ms: 16.002419
+  type: 'test'
+  ...
+# Subtest: closure audit failure restores cycle, thread and check-ins in the double
+ok 23 - closure audit failure restores cycle, thread and check-ins in the double
+  ---
+  duration_ms: 16.144778
+  type: 'test'
+  ...
+# Subtest: closure does not clear another active cycle pointer
+ok 24 - closure does not clear another active cycle pointer
+  ---
+  duration_ms: 12.640521
+  type: 'test'
+  ...
+# Subtest: new operations declare finite transaction bounds
+ok 25 - new operations declare finite transaction bounds
+  ---
+  duration_ms: 15.507708
+  type: 'test'
+  ...
+# Subtest: response acquires cycle lock before check-in mutation, matching closure lock order
+ok 26 - response acquires cycle lock before check-in mutation, matching closure lock order
+  ---
+  duration_ms: 19.779662
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1065.373272

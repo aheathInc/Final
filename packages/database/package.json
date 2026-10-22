@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./src/client.ts",
   "exports": {
-    ".": "./src/client.ts"
+    ".": "./src/client.ts",
+    "./test-safety": "./src/test-safety.ts"
   },
   "scripts": {
     "generate": "prisma generate",

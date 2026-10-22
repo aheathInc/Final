@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: clinician resolves to the existing role-specific home
+ok 1 - clinician resolves to the existing role-specific home
+  ---
+  duration_ms: 59.560412
+  type: 'test'
+  ...
+# Subtest: pharmacist resolves to the existing role-specific home
+ok 2 - pharmacist resolves to the existing role-specific home
+  ---
+  duration_ms: 9.937946
+  type: 'test'
+  ...
+# Subtest: platform_admin resolves to the existing role-specific home
+ok 3 - platform_admin resolves to the existing role-specific home
+  ---
+  duration_ms: 10.383109
+  type: 'test'
+  ...
+# Subtest: dispatcher resolves to the existing role-specific home
+ok 4 - dispatcher resolves to the existing role-specific home
+  ---
+  duration_ms: 4.944589
+  type: 'test'
+  ...
+# Subtest: facility_admin resolves to the existing role-specific home
+ok 5 - facility_admin resolves to the existing role-specific home
+  ---
+  duration_ms: 5.714036
+  type: 'test'
+  ...
+# Subtest: researcher resolves to the existing role-specific home
+ok 6 - researcher resolves to the existing role-specific home
+  ---
+  duration_ms: 6.191956
+  type: 'test'
+  ...
+# Subtest: unrecognized role undefined falls back to login
+ok 7 - unrecognized role undefined falls back to login
+  ---
+  duration_ms: 4.323504
+  type: 'test'
+  ...
+# Subtest: unrecognized role null falls back to login
+ok 8 - unrecognized role null falls back to login
+  ---
+  duration_ms: 4.253328
+  type: 'test'
+  ...
+# Subtest: unrecognized role  falls back to login
+ok 9 - unrecognized role  falls back to login
+  ---
+  duration_ms: 6.31806
+  type: 'test'
+  ...
+# Subtest: unrecognized role unknown falls back to login
+ok 10 - unrecognized role unknown falls back to login
+  ---
+  duration_ms: 10.123887
+  type: 'test'
+  ...
+# Subtest: unrecognized role patient falls back to login
+ok 11 - unrecognized role patient falls back to login
+  ---
+  duration_ms: 3.671756
+  type: 'test'
+  ...
+# Subtest: unrecognized role __proto__ falls back to login
+ok 12 - unrecognized role __proto__ falls back to login
+  ---
+  duration_ms: 3.279708
+  type: 'test'
+  ...
+# Subtest: unrecognized role constructor falls back to login
+ok 13 - unrecognized role constructor falls back to login
+  ---
+  duration_ms: 6.540328
+  type: 'test'
+  ...
+# Subtest: unrecognized role toString falls back to login
+ok 14 - unrecognized role toString falls back to login
+  ---
+  duration_ms: 3.47414
+  type: 'test'
+  ...
+# Subtest: unauthenticated requireRole still redirects to login
+ok 15 - unauthenticated requireRole still redirects to login
+  ---
+  duration_ms: 9.863024
+  type: 'test'
+  ...
+# Subtest: pharmacist cannot inherit Admin route permission
+ok 16 - pharmacist cannot inherit Admin route permission
+  ---
+  duration_ms: 3.937462
+  type: 'test'
+  ...
+# Subtest: Doctor cannot inherit pharmacy route permission
+ok 17 - Doctor cannot inherit pharmacy route permission
+  ---
+  duration_ms: 10.138456
+  type: 'test'
+  ...
+# Subtest: explicitly allowed session is returned unchanged
+ok 18 - explicitly allowed session is returned unchanged
+  ---
+  duration_ms: 6.41104
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 414.910204

@@ -1,0 +1,692 @@
+[
+  {
+    "path": ".gitattributes",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "9063e9c924497029714a753f02f010d9e6fa0a7b3b5a0ecc7f3cd9092189cc02"
+  },
+  {
+    "path": "README.md",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "87a95346d083b749f192c071c49879c3b68cf87e8c3031bc6e1f0ac2edcce7c8"
+  },
+  {
+    "path": "apps/staff-web/lib/roles.ts",
+    "kind": "MODIFIED",
+    "uploaded_baseline_sha256": "ff5f1cf32a9c32acd5728ca8860025bf8bb8a9285a3d2ea19ea28f127eb8a990",
+    "candidate_sha256": "986d520ae6583b773e533bfb41db7524498d0a3784e2d4c053475ddb13b372e4"
+  },
+  {
+    "path": "dev-web.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "af6635f773bdcb357f8e11c270b2aafd449c3998bac3b3d6fcd9f8e1b1741e38",
+    "candidate_sha256": "56ab876191dfecd7b24534d03146591aa6b2fd8cbed42cb2d33d25eba8b9cf85"
+  },
+  {
+    "path": "dev.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "60594c09ac3eb17e0433e36fcd8aad0054891a79f41284de43df044a0e9f6d98",
+    "candidate_sha256": "388c0c51fcd98c62486ab5fa2c3b308cfaec8c2296ab562d55feeaefa2a7c6cc"
+  },
+  {
+    "path": "diagnose-401.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "f2ecaca6c867112795a22804ed74f8b1ad87193504b570f033bf805bfd32225e",
+    "candidate_sha256": "946c02cb48bb2ee01f28a34b186c74df8820abacd8b7e6e41c71abf59bad8f3d"
+  },
+  {
+    "path": "docs/CANDIDATE-004-VERIFICATION.md",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "836f0dd27711b1022f27bffb712bb4c7c3cde650e9ed4e2dcb665e6dd848c521"
+  },
+  {
+    "path": "docs/verification/BASELINE-ARCHIVE-SHA256SUMS.txt",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "a1a253121353478dfc69f241f665724719144ba8d7d27e0631115ab15a632cc2"
+  },
+  {
+    "path": "docs/verification/CHANGESET-002-HISTORICAL-REPORT.md",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "85073f1a93e37b6733a470449ab9d0f7a73d26c2f9ec43ddf6d36aaa14dca4ac"
+  },
+  {
+    "path": "docs/verification/PATIENT-JOURNEY-INITIAL-AUDIT.md",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "7aaec3bc3e4bac42aac49b7ee82687ce10f89f13c1da97503b0f8289f3c4d902"
+  },
+  {
+    "path": "docs/verification/VERIFICATION-003-HISTORICAL-REPORT.md",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "5a515c4df373214cc876f80da848f3231cf79a637645d4dfb63577e162e6f446"
+  },
+  {
+    "path": "docs/verification/all-candidate-offline.tap",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "703c3e084814e5773450bbbffa7292e7c7e4bfb3c1ef2623fddd226a061ba538"
+  },
+  {
+    "path": "docs/verification/auth-security-existing.tap",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "d37d3a1965da6f18a1648c0df96529a5c5f0a9be08077f9afa12979c95937537"
+  },
+  {
+    "path": "docs/verification/combined-offline.tap",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "679a2864dd36d74cee51afce31075819d333323bc6097c8d35e23b2855fa4500"
+  },
+  {
+    "path": "docs/verification/environment.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "1250c4468eb4a65d2bfd16b77e9669603de82f230ab4a596a21d4947f894e283"
+  },
+  {
+    "path": "docs/verification/followup-after.tap",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "a6c14a27a6ffa675e727830cdc99b7cfc377efb9319ca5fb5851bb2bcb911cc2"
+  },
+  {
+    "path": "docs/verification/followup-before.tap",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "3b198a35a343c4b7324a3ab5232983b91be5d4cf5687f6afd2a678296c6cdbd6"
+  },
+  {
+    "path": "docs/verification/input-verification.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "acbc4416f8b3870c6307628cd3c37972c10a05580fe6de4912e94eaa532f1fe7"
+  },
+  {
+    "path": "docs/verification/package-inventory.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "456a6287e4db9659c79dda49c351f05d963b23fcb467d15800ccdcb9f4ba60f5"
+  },
+  {
+    "path": "docs/verification/patch-application.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "a63a38c4a7a693cdcb29c7ec94b8cf9cc5bfdb6242d657ebabe251d64e4b9f80"
+  },
+  {
+    "path": "docs/verification/pending-demo-comparison.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "c5ce5e2479bb7b9cbd764c7c38c9daead4b9d9274308ceb12df5cdb5e2f5921e"
+  },
+  {
+    "path": "docs/verification/pending-ui-comparison.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "d54f707a142f1ca841d27057bc7eefa23d44487806db115420d64c8d55c4352a"
+  },
+  {
+    "path": "docs/verification/pinned-preflight.txt",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "24ed5a2252f3cd8f59cffa3e6b3cd61be909a820339b7226a8b8862c50e4eac9"
+  },
+  {
+    "path": "docs/verification/previous-changes.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "32124825123d8427112654454c01d23d9467d7474247647edb03c139eb95a8aa"
+  },
+  {
+    "path": "docs/verification/roles-after.tap",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "158380fd2dac90f4d8a06e15c7ecc061fa217825373586dc0ec8bb4e0533f761"
+  },
+  {
+    "path": "docs/verification/roles-before.tap",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "d4eb20e76ba99eae349fbd789b928c3b2e1dec103298459949243e76cee80c3c"
+  },
+  {
+    "path": "docs/verification/shell-normalization.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "51fd1731c2f003a3374a2949a00634ffd3736f52e7d57ba7f89f31b1da6ab8cc"
+  },
+  {
+    "path": "docs/verification/shell-portability-before-normalization.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "e250d600bfa345f240b8e33f80f23bae3f98fd45300c1d7f707ff8448e4de377"
+  },
+  {
+    "path": "docs/verification/static-source-checks.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "0ebb43a7ecf9e6adafd18df8a72b01ab68a8079e5a2ad9d840dff95ebf5dc669"
+  },
+  {
+    "path": "docs/verification/static-summary.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "44e2316dec1ae9752d5e6fe7bdea4e9ca946b6dca648b749b08d8be903bf3810"
+  },
+  {
+    "path": "expand-contract-payment-v2.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "80acf1cbecde26628b7a77cddc275dabe85413b8311bbec27240b6860d04b09e",
+    "candidate_sha256": "3491414dd47e0f815dadec25887f803e1f03ff92cc3aeb8db1d4e535cb216f2f"
+  },
+  {
+    "path": "expand-contract-payment.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "1035c0aeef1474ff4b89d5432dfc460fb0265e4f1c986a4dbea9ff4ec2f993af",
+    "candidate_sha256": "5886d3916379ca9b7ce362bb32fef64302839d7059c35c08c5402884b9a595e6"
+  },
+  {
+    "path": "expand-schema-gateway.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "87fcc67f8c652e7aad858ba62cd2f60063f3bd15eb071d722317642678272713",
+    "candidate_sha256": "7f6f1b884cd8fef9387dfe3d2bc55ee19d95d8f70e0a0d427995a72c4a4372f7"
+  },
+  {
+    "path": "expand-schema-payment.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "1af7ffd7a32157c16ae50678b2bbd543a404d954c1338c0940814ed99cb58929",
+    "candidate_sha256": "e300ec534f501ba7dcc80676d8656243e8382a04df1c61776c6306be4c7453e2"
+  },
+  {
+    "path": "expand-schema-triage-rules.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "c4dd4cca97e56cd74f8eafe6dc90c9483bd225438880f72fde2a2db0cfc4fa5e",
+    "candidate_sha256": "2393b4cb1b2b19d4f884afa296ff4d155cb0b03508c019ab3b070e023b3dabcd"
+  },
+  {
+    "path": "expand-schema.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "2bfabd14a5a275747062ed036c99712d1068da208887421dab99011a55017a40",
+    "candidate_sha256": "40504a40ab00588ba35b7a5c527fb86596092a3b2bfd8e8b24badc08912cf9fa"
+  },
+  {
+    "path": "finish-auth.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "b0775fcbcb7813a5ec99974a2e20d36238ed99152081a6f8ba37f05f9aff9877",
+    "candidate_sha256": "dad2e670f7d654ac0b1921fbb59bc4f8b438f85c051b55947766d484bd907d04"
+  },
+  {
+    "path": "fix-ai-conversation-v2.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "c483ab2a0b9170daf6f749dc80e8629476594b5614b05f1b99cee9a5b26319cc",
+    "candidate_sha256": "86fdfc92620d0b25e2bd28d9b612482acc80e3de1db9433bce9008a281f733b1"
+  },
+  {
+    "path": "fix-ai-conversation.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "1adb9e766a4abf4ceaa34ccbd9f51a9e0088d43c452da7a7b544f567f91c2f14",
+    "candidate_sha256": "7b54e563a227ac05b79b205d22a2891f70a82b490cc6836393f6c2267d3449eb"
+  },
+  {
+    "path": "fix-consultation-prescriptions-v2.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "d0e4b6a1250d2d7f82253ac09ec2c05a3405795d745662f997a4e2b2032e3f65",
+    "candidate_sha256": "cf5b2d04bf7a0628f0a16afeefa15ec06627d4efe65418794f23e9bb3db6739c"
+  },
+  {
+    "path": "fix-consultation-prescriptions.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "9cdd45b5d02b3147c43203e608450bed78d175e01394d2a2d28055b5769336eb",
+    "candidate_sha256": "4d9fef5e8a478180a781e6531be64368e6b64bdef63e24f48795b3de2c3e90b3"
+  },
+  {
+    "path": "fix-consultation-reads.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "b21d9f4a5633a90d3d39d6f0fa90e2bdcf80252dbea74ec6448582cb7aecac5d",
+    "candidate_sha256": "4dbf5bbc49e0ca88844682fb5bca44711c644e02f5f109e119fac4f0a7d18bfd"
+  },
+  {
+    "path": "fix-consultation.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "a236122b64e32f10075d7974b4db8b15138121159db25c43e2ae9f78c0d237cb",
+    "candidate_sha256": "41712543ff4b6d27cdefc103371fe58e8cc4435d25ff1c98169dd35b10392784"
+  },
+  {
+    "path": "fix-deliver-after.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "9e456c45641d4053cfff813304c086442662a46a4067d08fd20c79bbfaf2f7d3",
+    "candidate_sha256": "9bd330e7583b590608a725563f58c6f0fb1bcb4c7553c606a93fe962586413e8"
+  },
+  {
+    "path": "fix-devices.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "fb700385c1e8a8b69c93d2107e16be849290ae7e68082625a0ebbba48a08b251",
+    "candidate_sha256": "8c94a9044883b4b11181fab5ba574746dc0efa3c7ed79716fd5b327cb5812966"
+  },
+  {
+    "path": "fix-education.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "811a3ad9760927925d557d126ebad0ab405f1550fdae8be817f27f2c37870505",
+    "candidate_sha256": "c5605d43fcc8f1d87fac1664dba750c255deed638f435bce3e215a4dc5987dd7"
+  },
+  {
+    "path": "fix-followup-list-checkins.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "5a6c637760ba5cc03c345f219732432e170168e99a4735389f788bdbf5a62c50",
+    "candidate_sha256": "edb1b6913d0d5606720e9c8be07c27ef5844156500d85592bea53a9313d18260"
+  },
+  {
+    "path": "fix-payment.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "fcb0f780c1a57ee72cf380bd1f8e1ce93248c0b55530a009517e12637dcc52ee",
+    "candidate_sha256": "cadad724628b356883457a8addfd3647f4a4901ed71c0bd097025f7021836d18"
+  },
+  {
+    "path": "fix-pharmacy-v2.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "c47b3f01c56b7b35997951064000ade65d544679d89d4638ab64b634678ecca7",
+    "candidate_sha256": "75feeffdcc39febe45a863f6acf53d1c1f61b3a5bf7c59b1ed1b6fbef7ac09b3"
+  },
+  {
+    "path": "fix-pharmacy.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "b158263ed4b80b738fc96a6858e6a0b659630200369b585af92ff2bfaa3987be",
+    "candidate_sha256": "974a20519fee27431923dfbaa9593719d4317a2844cf5e42e5c9ca53ff052ffa"
+  },
+  {
+    "path": "fix-quality.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "ecad08ac9de25c264f8e1121025b9fa6da7ebef91a21f47a94303b1abc9efd0b",
+    "candidate_sha256": "6a59982409b3cd3625ddefe50f6d0d8c78861b82902ecdc3e4f43e708531c434"
+  },
+  {
+    "path": "fix-research-v2.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "204af0f16dc666be8b61dd2890bde8e688a2c1f10c530522b35f11adf12a7571",
+    "candidate_sha256": "7620299fbf65e4d25bd0fc4e9f7fc2fa599791343718854d790ac9a349ce2cbe"
+  },
+  {
+    "path": "fix-research.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "b2486da597421df6c5d2fbd1f72169fe74a5bcd5ba196143eb6b9192219f5a36",
+    "candidate_sha256": "cd7b6fb2a739c7f4b5c6f7e9b631597bc8e8c217e44f9d20e47adf70be3ba957"
+  },
+  {
+    "path": "fix-seed-admin-upsert.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "4cdce8c215b8865269d30a8341c2bf06e30105dac877f60dabd2e83234af6366",
+    "candidate_sha256": "8e47713fb47dd01e4ffb1ad7abda5ae5706e12161caede46699c17faa6d56007"
+  },
+  {
+    "path": "fix-seed-env.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "f78439c2ecadfc96bce9fe90f0925ed9e707de85d899b605909799e88c3f9f8b",
+    "candidate_sha256": "d7611f158ceb73406963456eb1fda2603065ea7695e1d3f0b02a731c3ce26f22"
+  },
+  {
+    "path": "fix-token-refresh.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "fe09dfe16c52c5e81d4a651a591b33c91aa408c27c8a4a4b69c7a322412cdf6b",
+    "candidate_sha256": "3c360a61eab5dbe3cd3a61b1a0bec675dbcfcb37df1e633499868e3e3a9443ee"
+  },
+  {
+    "path": "fix-triage-config-fallout.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "72f1156e438f3c13d37368e0c8ebf04104b7078f5bf55c71679f94d2d8d2ae60",
+    "candidate_sha256": "1aefe6cf1208952b66315348bfea0da20a170ea9735e5edbc897592e6e7f049a"
+  },
+  {
+    "path": "seed-dev-admin.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "1f86a0aca1b1278cc6c08c62ecae9ee7c288de89db5597537249f09616446e42",
+    "candidate_sha256": "49caa52661a6992fc967531e2710d2ba8d2a26433cb67ffb1ea01d80bbd1e7ce"
+  },
+  {
+    "path": "seed-dev-clinician-v2.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "073d38448aa59b9b2d62cc4ac6a8ddcfe827cd07e3019fa7be354a1444754455",
+    "candidate_sha256": "a3dd8a423997bb39aa183f2975b6a91f97cf49318c5a6abead02ab22110742ca"
+  },
+  {
+    "path": "seed-dev-clinician.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "9736b367340160ba986732cce6accdcd4c7b5c7e2175d91f199dbb2832e7c814",
+    "candidate_sha256": "2fc95e981108435ad612a9101b15d8ab60c951dae5ecb3ef852c8327153f15b4"
+  },
+  {
+    "path": "services/consultation/src/services/consultation.service.ts",
+    "kind": "MODIFIED",
+    "uploaded_baseline_sha256": "0f0d4a6cd0a7ec14e44e757fe047bf3baebca516ce7b61b848f7488d55e26c2c",
+    "candidate_sha256": "c0d6efaddb48f32a2741561f76fd88a83a28a20d33ec53436532b62c6c178c82"
+  },
+  {
+    "path": "services/consultation/src/tests/safety-test-target.ts",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "470e0bcb944b6a58c0dc8248837fad12f5e1a06f388e3c94a65070fbfa528d0d"
+  },
+  {
+    "path": "services/consultation/src/tests/thread-integrity.test.ts",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "f4b142cf0dcb3b981b46d7f0a315efbf7934996679663b7bf1d7c0f46eb8153a"
+  },
+  {
+    "path": "services/followup/src/services/checkin.service.ts",
+    "kind": "MODIFIED",
+    "uploaded_baseline_sha256": "eba13df08323ef1fbd639a24ac7d126d87087fd57e05f8b49d59d54ac13925a8",
+    "candidate_sha256": "8fcbb008561bf29da8b47f2cd1855875f04a62b3a41904e4444cf8ace324ca85"
+  },
+  {
+    "path": "services/followup/src/tests/followup.test.ts",
+    "kind": "MODIFIED",
+    "uploaded_baseline_sha256": "8ab68efd45d70ac053e667582a8c729af2cfd5ef6b80e79ffd29a5f799450971",
+    "candidate_sha256": "c7138efe5ca2779b0a0fa2bfd3c331cdebd4ee6810fd68684caa93dab29068fc"
+  },
+  {
+    "path": "services/followup/src/workers/scheduler.worker.ts",
+    "kind": "MODIFIED",
+    "uploaded_baseline_sha256": "aef6a3819452a9ca71a98c131fbc32c9991a1e3d18cfc0cc57056edf8dff80cb",
+    "candidate_sha256": "e610eb25c03bfac31e40cd16e61eb31e3162d67251b7fe81a3cf0874a20fa792"
+  },
+  {
+    "path": "setup-admin-triage-screen (1).sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "3ecfe65781db8958246bf0beed1ca6c9d458fc8b9e4c615d9577fc10ed7b0372",
+    "candidate_sha256": "646633f6b37fb723318b100c1684b87e58ba8bf2f82cfab7339bb8f7e5310dd3"
+  },
+  {
+    "path": "setup-admin-triage-screen.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "3ecfe65781db8958246bf0beed1ca6c9d458fc8b9e4c615d9577fc10ed7b0372",
+    "candidate_sha256": "646633f6b37fb723318b100c1684b87e58ba8bf2f82cfab7339bb8f7e5310dd3"
+  },
+  {
+    "path": "setup-ai-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "0463c532d0695c180832a9358b99562ed3bc26c2a68e23c0b71eae73181e1641",
+    "candidate_sha256": "c28612cb6a4c03ae75a36f4b5b2707d6b73b5d8230cf21138b05fe04effe82da"
+  },
+  {
+    "path": "setup-appointment-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "6cf1fc30bef11ab903625221694726897b4cac5146451d256e8285722bac3902",
+    "candidate_sha256": "392ee75116575b35f89dd8264699839678638ed68e7eb08eff821b8365330df4"
+  },
+  {
+    "path": "setup-auth-rewire.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "d1c08e7b61b5d360078347e3e0be42812e538689c138d31f26b0c1d63f848bd2",
+    "candidate_sha256": "8eb56c787ce44225f69fffcd54982aed788c4af849b4f7fe43e216027619623f"
+  },
+  {
+    "path": "setup-auth-service-2.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "6ef037824230968312a7fc52fcba2a07e78efbdcf757a3aae664403bf318746b",
+    "candidate_sha256": "b526aa14d7bf1d266e9de5b20731babc43d2ce83ec8b9b83452c8806cba70bf6"
+  },
+  {
+    "path": "setup-auth-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "05e526b0507cbe5af9ae079921c7e35f841d28e19d97be7297672bb6ee4024c7",
+    "candidate_sha256": "34b241dae263796041d1961ddb00149160089685b86f0db7ba2deae5b9865c04"
+  },
+  {
+    "path": "setup-auth-tests.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "aab8349f08365f56a4c689e937fc967d284f2b594e830728db5f976cb9be08d2",
+    "candidate_sha256": "9a26a948323bec7a2b9551d9e86f48f6f64b000247f88888c9960d3d8c5c2ad8"
+  },
+  {
+    "path": "setup-ci.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "00761e7b3117ca3b2925482e58de3bc36f02547b0f4af971696e32258a1c8bbf",
+    "candidate_sha256": "0623c411cfc9a3507febeb2d7e6c9b2878aeae7e0c800186325702ddb0b343ea"
+  },
+  {
+    "path": "setup-consultation-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "a53d9f8a71a13eeb9c67844be86803be2091e58367bd57bf7a9dc9ba55d7898f",
+    "candidate_sha256": "794ab198e44fc3586034d2b7722c49be5b99d8a3897d9cf4a2d60611bb6257e2"
+  },
+  {
+    "path": "setup-devices-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "177456d84b2265532615d579eb8172f407d70429743bf208c08f62c07aa26a40",
+    "candidate_sha256": "2c5ec9d7a262d5db2f70685436e1308800b33d2b3c4175324d4e682100958497"
+  },
+  {
+    "path": "setup-diagnostics-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "0d8d39582294ae1cb6642a35bf14698a2c421ed9f0a49b085d22f48875ee6d86",
+    "candidate_sha256": "ede4c83878ea1ed79e5b9cd3ed06cc50e103a3ab30b89ae8c007a3b40f7fcfec"
+  },
+  {
+    "path": "setup-docker-compose.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "b0368e8de662c731f8cafe9224e3f18d995583c15bddeb2b545076d268e7b816",
+    "candidate_sha256": "84a4cf20c4194b67beb8c4487135a467037369a096c9dc7840d6ffe7651244ca"
+  },
+  {
+    "path": "setup-doctor-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "3edac2e7284eab813f03edab8cb01b9f75fdd063614bd693bd3195a589dd96c4",
+    "candidate_sha256": "9ac483ee84abd010a9f087bfb7984b58ec4a4f07988a2c8792977d86826f9830"
+  },
+  {
+    "path": "setup-education-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "64c547b0b7f46d2e3c2df34008e0581a08c14d37b3a267360f33b67694f6e4ec",
+    "candidate_sha256": "b520aee54c45f09ccf1f191a0db8b98052790616bfa78954906871f599ae2e01"
+  },
+  {
+    "path": "setup-emergency-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "8be9766e1e1a0149e5e8a1eb88ac8df4b7d40a84c075b15f9e3b86fb3aa55d71",
+    "candidate_sha256": "1044f12db3c5762cf77021466cb5c512fa0ca541765140654d52070eae4fad17"
+  },
+  {
+    "path": "setup-env-files.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "f124ff639b118ce9dcea09466f4df5513ca729b6c1a0608952e5282d7978a2ee",
+    "candidate_sha256": "27631e6d58eb5248a8f7af91c12238a1eedd72d2cae7bfb4b6ee145acdf8c10b"
+  },
+  {
+    "path": "setup-facilities-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "a4019c67e03403a81f7f650f0e06faffd58100a3853646b8b089267a9ecbf18d",
+    "candidate_sha256": "0e07a42fa844bbcdd7a270d16d02533c42fff5cb59d069adc344798dd617b752"
+  },
+  {
+    "path": "setup-families-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "25190d3ab554af1cbe557bfd79fa4af8c4b93169b10f598ab6e868fcb24d3ef2",
+    "candidate_sha256": "46a6c52369e9bcdbc3c052b87295d229d1e9240695d73bd074babeb9aac4f5b3"
+  },
+  {
+    "path": "setup-followup-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "7e88e7f14e35d6a2a360abde302255a07a28ceced0058f4469cf84f390a25de2",
+    "candidate_sha256": "8a0c60b9d74a99a08b2eb05383feef70ee4c56754feec17159e293e2b38966dd"
+  },
+  {
+    "path": "setup-gateway-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "c3a9ba40f5bab76b09c29c35c678d1d55434b6c60ee0d32bf648244977bb81cf",
+    "candidate_sha256": "39c31b2bd75aff59936c4109a12dcf6f652b9828a70f2075d152a36f503efeb2"
+  },
+  {
+    "path": "setup-insurance-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "3d7d5cea93cbbe38f07d6cf2bbbad1d507d8c13fd098d9f35c7994d3c287234f",
+    "candidate_sha256": "437b6ad418162912a07d4ef6a580111d4bdf884c32424bde89b76afc3ecd3c05"
+  },
+  {
+    "path": "setup-messaging-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "3428f9addc8cc8dd38c1e8184736d1ff7866299b88ccc78dd1561dd145af54da",
+    "candidate_sha256": "06608f4195dd670326c3e9c4c5f8842b693eaab91f36465bb5ae677f9feaab24"
+  },
+  {
+    "path": "setup-network-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "504aa033264758019720c1747f4694225e7ff0b148e16461098c4bcafed89539",
+    "candidate_sha256": "15a740c01cb6c74a1c3ddb83a6c319a5428e33e00c159df8ee87c2ea5074bbd1"
+  },
+  {
+    "path": "setup-notification-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "899fb82325b0ff8b9d5c9a40d3cd1d7f3034d5484dd29a8d0b9ae75cdc9823e6",
+    "candidate_sha256": "dc571573205d377164b5e37bc22e67550aa3df2b3cf4c72daa289c742c51dd0d"
+  },
+  {
+    "path": "setup-patient-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "29005b49a5ca08d7a249ba0914c57b42cf974361c757aa7a47fbe85705f59967",
+    "candidate_sha256": "4c4b85d341fae6ab65910f1b38bed17c8ddf2d2609ddf68c1c85927954c0c4fc"
+  },
+  {
+    "path": "setup-payment-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "b82f13a7fcb98af5dd88427b2b80b4e12190afd04250843c0a2739930109e6ed",
+    "candidate_sha256": "3dd16fcd4d88f966480790ba11bbceadbf6c4fdca4729b6e88a9628278283d62"
+  },
+  {
+    "path": "setup-pharmacy-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "1c4386aeb56b847ca25005ce83c99261831161560bf4635860c82725513e3c17",
+    "candidate_sha256": "d6b02403ae2fe6ca30025a07e47a461972f86ba8ab1a2748e358f964d2c43de2"
+  },
+  {
+    "path": "setup-prevention-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "216b8b8ae4a16fad3fd924511047a81ca880f6a799b498c91fb190f199342651",
+    "candidate_sha256": "2861eb25021d4f816935d4b4d30cf5fbd12bcdb262b8bb2267610af020f3a246"
+  },
+  {
+    "path": "setup-quality-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "8e53f9518ec8cf758f32daf48b45dabf780b561dd11ec09e68311472a509b99c",
+    "candidate_sha256": "685ea60db351862f7e65d6553e86b9114f5c5b7f4686455578964de64b28fb6b"
+  },
+  {
+    "path": "setup-research-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "1637a7852b904325f763783da68d3743acb959fa8a01aed54953cab0ad69723b",
+    "candidate_sha256": "ef0fcbdc8678be61868ab9f5bb57cfdd98f5efa7b97a0d63bfea52b8bddf9edd"
+  },
+  {
+    "path": "setup-shared-http.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "571e1a0f7d8a05ba1d7e12f9f4c74ad79f7e1530079ebefebcf311e8b43ff8df",
+    "candidate_sha256": "917e94dd6c2d3e0bc966f4393c05a454081d432ed3e190e6f4df246a2d691081"
+  },
+  {
+    "path": "setup-surveillance-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "1e84ed87ec8ddadbca2505d4e3e5cb55c00a0991ed176d45eda0bdc3cf60a62a",
+    "candidate_sha256": "f632375bb63e2bc54acf0dde7cb1a68f1800393c1b32d7517619125b84f0bd7b"
+  },
+  {
+    "path": "setup-sync-service.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "05b94fc0286c5ea27082e22641dc07b534bc4b8cc65b35239ccf4d2e69b97b7a",
+    "candidate_sha256": "af7a7f9eae0e371df13fa8dd8f4a5b9926865a1c69a3d2a1776c7773c01dda47"
+  },
+  {
+    "path": "setup-triage-config.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "df6bb1148694626570ca305f44d65ed606017b73623238cc673158212f98de54",
+    "candidate_sha256": "758e94db97b101ae4f387cee3482afb2b10be66b145ba40e00c87110a802edca"
+  },
+  {
+    "path": "sync-contract.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "312aac2cfeeec1e3f15c66640f014b6ec59a35f430c6ce8de9bd9b9be0659536",
+    "candidate_sha256": "fe3b01f6860b60b202dcd6782920e8aa6744bae79be4b48658dc9963f1603d40"
+  },
+  {
+    "path": "verify-system.sh",
+    "kind": "LINE_ENDINGS_ONLY",
+    "uploaded_baseline_sha256": "f20b2069166045f1bdd1151a70a6dfbefd9ca4790c6527f3f26409459c43dcc0",
+    "candidate_sha256": "14f73674e4c9a1852b79655e8819b3c107ce02c1376619a112e1a82681bd9168"
+  },
+  {
+    "path": "verification/README.md",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "47986a8210d07e52898de6e96129807a9638d66613a79bd5f727af39a3ba0b04"
+  },
+  {
+    "path": "verification/consultation-thread-ownership.test.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "12de68bcfe6773b84aa1b068bce6b52914385fd3daf7e5740a002cf224007159"
+  },
+  {
+    "path": "verification/followup-no-inferred-recovery.test.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "a8409443c5c1d01a7fa1bcc6cd16b0faa6d2c56f334ea2e135072d9cda247efa"
+  },
+  {
+    "path": "verification/followup-test-target-guard.test.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "64ad6f3f786618c570d11b5bcb14f360bdb58bb8101629f81bed8b3c6f6c5eba"
+  },
+  {
+    "path": "verification/followup-write-integrity.test.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "71ab5e77f56fa24e21f14e0b9b7fa6c307116f951b2b554c361d081e7ce8b33a"
+  },
+  {
+    "path": "verification/patches/004-cumulative-reviewed-source.patch",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "87358f9199ae9bec8b166fe0d0b656ecd20ad5a4c94ad3dadd2be3d5de0f8316"
+  },
+  {
+    "path": "verification/probe-database.mjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "1666d4d9b58cac62559d02583426040313d7f1bd5d2703adb4a2f15335fd88f8"
+  },
+  {
+    "path": "verification/requirements.json",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "61bd84e2533eb7902703242e21949e3c1d167cd0c76c371ae721e647582b9623"
+  },
+  {
+    "path": "verification/runner.test.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "49093329844a6fa8893b29960529df80436b0ff4437dc406fa3e0cc5674294dc"
+  },
+  {
+    "path": "verification/staff-role-routing.test.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "787036e2cfe03a92d1a7737fb39e33d159a9b45bf83d480516a3a7d44c5bd54a"
+  },
+  {
+    "path": "verification/test-target-guard.test.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "712a5451e0bb60c5966064c5c204c8c44bf4684fc0255708f1bc392b2716cc21"
+  },
+  {
+    "path": "verification/verify-safety.cjs",
+    "kind": "ADDED",
+    "uploaded_baseline_sha256": null,
+    "candidate_sha256": "feec5fa339dcd01ac2efd4b33409c38b7fa889d9e4520017de1ce540684bf0a9"
+  }
+]

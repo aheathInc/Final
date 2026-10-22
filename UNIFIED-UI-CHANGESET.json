@@ -1,0 +1,384 @@
+{
+  "name": "A-Health Unified Clinical Staff Web UI",
+  "date": "2026-10-22",
+  "baseline_archive": "A-Health-Platform-Premium-Patient-UI-20261021.zip",
+  "baseline_sha256": "446e1e67d8dbb1bf1a2bbda92189bf3b3909ba2701a7d1bbb4d37bda22f7deb3",
+  "status": "Implemented review candidate; locked build/live E2E not run here",
+  "changes": [
+    {
+      "path": "UNIFIED-UI-README.md",
+      "before_sha256": null,
+      "after_sha256": "d5c0f28adf99b26711fb5750eb29b10168461e20a3221d00802c99ce7e463e73"
+    },
+    {
+      "path": "apps/staff-web/app/admin/audit-ledger/page.tsx",
+      "before_sha256": "dbd668436e1bdf54dc864aecc051cc27499af8512a0f4ea2273b8cd7b16388a6",
+      "after_sha256": "21857fc5626bb50e655404b3e90a58920296401073a8fea8e8a21943d66d598b"
+    },
+    {
+      "path": "apps/staff-web/app/admin/dashboard/page.tsx",
+      "before_sha256": "1b98f9d693cb75c13bdb6f3943121aba93159bd5f2552d169e96c77afcc540e7",
+      "after_sha256": "223070c2b3fc6918a0bf90eb8e4b3571f5e68762c678aaf8fcace95c6f0facf2"
+    },
+    {
+      "path": "apps/staff-web/app/admin/devices/page.tsx",
+      "before_sha256": "5673ff18a8ee1357fdab5a6c6f4c5f4125edfb005b091131d523415414c94641",
+      "after_sha256": "4dce559dc34d57faadb5078d3dbb0cd1f3a945bf74003f020897a1a3db2583cf"
+    },
+    {
+      "path": "apps/staff-web/app/admin/emergency/[emergency_id]/page.tsx",
+      "before_sha256": "48c25c78a44e1a32c290eb2f49c9c01b1a3b6f3b94fd6dbe43dbd5427067fe18",
+      "after_sha256": "336054ad980d8fa07561daadaee26c5bc7c8ef9d65d3fd91a55494c92d0e2e42"
+    },
+    {
+      "path": "apps/staff-web/app/admin/emergency/page.tsx",
+      "before_sha256": "dbca24163ece95521c605227d86687d71811b2a6ae28b9c6153ef892d84dbfb8",
+      "after_sha256": "799579f03304400f2e5eff022f6bc5a438b97b3695cc0a61ed856109d14e845f"
+    },
+    {
+      "path": "apps/staff-web/app/admin/facilities/[facility_id]/page.tsx",
+      "before_sha256": "8f4421617795f32c116691601888aeb029ffe823fb54a2ff4c884f1654c4afc7",
+      "after_sha256": "15932fe1d4dfe77cac3645961b982ade3e6374197f96fada8fcc653a35f1aebb"
+    },
+    {
+      "path": "apps/staff-web/app/admin/facilities/page.tsx",
+      "before_sha256": "db8908f437382a9d2ac7ff8ea2da0a70475acd52ec08cad9fd9ea7066bc0b808",
+      "after_sha256": "065ac597f87453966d71f7107ae2031fe956ea270601f87d5e68f1e7af2de7fb"
+    },
+    {
+      "path": "apps/staff-web/app/admin/incidents/page.tsx",
+      "before_sha256": "6d1ef92477459f5767e08105888e4f814f1d64a424aae5ee2d5a6d92d545f1cb",
+      "after_sha256": "63e67b1e40a94b6c14a6ba65634b83c35c58ac33eef25d9c35d7cdd39023388c"
+    },
+    {
+      "path": "apps/staff-web/app/admin/payments/page.tsx",
+      "before_sha256": "a216a7ad8480ebc72604db7c440c37a8a70e3d74b69216265b0678aed3dea8d0",
+      "after_sha256": "ce3b62698a6815af3dca1b2e39b1b05b24907b77116b1458405c09f4171b7335"
+    },
+    {
+      "path": "apps/staff-web/app/admin/settings/page.tsx",
+      "before_sha256": "64cceccda4996b5e1e419fd8a41f5732774ac5da2edd4f3be9c7c5c81d914edb",
+      "after_sha256": "b037482369af80f226276a2397e367e2791d95caa8e965abf236fa79ed27f223"
+    },
+    {
+      "path": "apps/staff-web/app/admin/triage/page.tsx",
+      "before_sha256": "8671847a199a38a2a9dcbed423a120af757770e4441b7e2b4f665064eb035605",
+      "after_sha256": "39c52a23a5bb7bd1c717ad00007e2fe62bd747ac01438cc1dee8b3a4b7a1b731"
+    },
+    {
+      "path": "apps/staff-web/app/admin/verification/page.tsx",
+      "before_sha256": "d58a4a6404fdcceab7500e1bf2951eb203060b811b529ee5d3a47029235efb4e",
+      "after_sha256": "30a5383e8a5545d9759098c87d1ab52bad87b8cd5385903531414eafbe0bb6fb"
+    },
+    {
+      "path": "apps/staff-web/app/analytics/dashboard/page.tsx",
+      "before_sha256": "948b8f4ebb67ec402d33247bc26368b3786ff8c4ec1f82b5f0d84b6c44733dec",
+      "after_sha256": "c33c85ff5ddcd481997cc3d630c3306745e6529c9e084081048966f06a1c4bb5"
+    },
+    {
+      "path": "apps/staff-web/app/analytics/research/[query_id]/page.tsx",
+      "before_sha256": "4ad45f6b1fed06fa71a8585fcf20a2979f5dd0b1582185d76726d83a4b804180",
+      "after_sha256": "bb3f9295dbf3dc6d443a13f0af307998e07310358d900ebdab75ffb0e5e67c9f"
+    },
+    {
+      "path": "apps/staff-web/app/analytics/research/page.tsx",
+      "before_sha256": "0a88ddc2da29e86c114b699feaa0182519e1995704ec2f39c493d606fb840065",
+      "after_sha256": "eb8d98bec350862e2639651ae12ede734adf59c9dbf5548b2ebd885a2fd9d0dd"
+    },
+    {
+      "path": "apps/staff-web/app/analytics/surveillance/page.tsx",
+      "before_sha256": "073599f1a183cf93be63f53addfed469de85c3ec2b98c78f16fd2054845093c2",
+      "after_sha256": "f81c8f6d8ad343b6a98930ec61cd224e8c706a7ae33e804262cebc5f1282c284"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/appointments/page.tsx",
+      "before_sha256": "ad295feb380e6232d8219c1bec99cc0a1c0f5f9cb60eae7980c93e657faca274",
+      "after_sha256": "3962318eea8a71382c6fb2c31550904c8f6434014873ba1868a760b5c955c591"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/assistant/page.tsx",
+      "before_sha256": "ff2184607d1f89bad101e681f43f70b59d26a7d861f7a1ff946732e97df02e30",
+      "after_sha256": "8960187289ef279fc965e03baa86b8abd78937bff6fa65adf1db1bf8ebcefa62"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/case/[consultation_id]/close/page.tsx",
+      "before_sha256": "433d40b99f824f10f31514366e70b887580965e110e166b9b11c2eb8124ea19b",
+      "after_sha256": "0bd0844d2dbcdbcc026f2f628c8af6b9baa2bdd3cfd0875b1fbfb0149329e9ac"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/case/[consultation_id]/page.tsx",
+      "before_sha256": "493453972f042fc240eddb9c9603d2f5279a763dca027b1be91d05c2d178fcb2",
+      "after_sha256": "727a9155559c46a48003f85dc263250d33c8ab3a22c56c7aa495031f617a069a"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/diagnostics/[order_id]/page.tsx",
+      "before_sha256": "8a681087b41d2505b798c322bed995bc7eb2a4021f7e1108701f5a72c13728d6",
+      "after_sha256": "cfb7c56dd8025c09e1014126e60c68e26272b8473b8c0831265769292c36e40f"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/diagnostics/page.tsx",
+      "before_sha256": "001e97c09fd34830407648436d9d375a2fe6629ae637ba14670f8b48e734c392",
+      "after_sha256": "eb6df476915077bec270c95451fc8ca90f17b0f8478e099ebd2a36926f033a2e"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/education/page.tsx",
+      "before_sha256": "74c081784e6745c0296116c66c5491d3aae3285e7a7a41b3138045852aa5b10e",
+      "after_sha256": "3bff02945d163b10135f409c62eddea03f953a1f32fe86a13ff7e73eb305c22d"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/families/page.tsx",
+      "before_sha256": "7f5f37c9667112264dd8c34a43487b5a814676cdcbd1112708ab9a69fded8de9",
+      "after_sha256": "0c854fb82f31c86a5bc02fb870b80accbefc5a3398479a5cc9c3b18668f4c27e"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/network/[discussion_id]/page.tsx",
+      "before_sha256": "dd9dbbfc3c6e09f5eb131d0d39b9fd58aff0082b5d88badcb9d6c1113fbe4006",
+      "after_sha256": "fb6f81c6dd9b06d2305c907915946d0cf5cbd7118025ed950c69214b9ddc27bf"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/network/page.tsx",
+      "before_sha256": "fce7a90cb25bf6bbf8075aac87bb3b1ea61302c4326f886aab03cd75deb23574",
+      "after_sha256": "eebe25b86621fddea81b10dfe08e87250c8fd71d0fcb8e166ed6d6864afb20e9"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/patients/[patient_profile_id]/page.tsx",
+      "before_sha256": "34a558e7e846dabf26cddef87603f7d882d8de122501089c8724bf4125acf325",
+      "after_sha256": "a133e6d4e92e1b5778baa4752bc2d568a418f9d17184839d2cca732730614c5e"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/pharmacy/page.tsx",
+      "before_sha256": "8d42912c7436a0b30be3eb20b0ccdf5d7192911510bc704fcdc5baa6113cb595",
+      "after_sha256": "961ff70f1aa0baa69f2d667230ea29a0f1944f2169071d6772cb94eccc57b2eb"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/profile/page.tsx",
+      "before_sha256": "beaf2a07d8260fa5a080e7b96fa8d666db7db75cae22154e8eb959be363536db",
+      "after_sha256": "ce570460eac609d0df95e3064c05c11a5e61079994b3bd63f220da497210567a"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/queue/page.tsx",
+      "before_sha256": "b2d71d331e179f1eaca77828782dd272da7e35ccd32d7bcddea1d7505e3f9e75",
+      "after_sha256": "deac6a105bad1431b2dbd3ec7f8943afe52a5880977a04019670b6c9391df5c7"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/second-opinions/page.tsx",
+      "before_sha256": "2888a8b6cce4241af3dc06ca92281c81191e34372240b77818d5d944090f29a3",
+      "after_sha256": "3c77667f8e4d9a75c50168046c5ca8dda1e0077f1dbabb1a027069aa6190c7d3"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/settings/page.tsx",
+      "before_sha256": "c182bc393814fd57910f241b4b47806af97fac0a01e1cace0ebf3b771b4ffb3c",
+      "after_sha256": "a1d8165125093c81acd52dbae18a8158cf6b2e056d5834f8d4ac3eac754423cd"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/slots/page.tsx",
+      "before_sha256": "814a5f69d4c067c9803413da64a4b12420815f6674af6eb6d910f1b9119cfd82",
+      "after_sha256": "b8f5060bb33cc266b8918b79f933830060185d8f6597e4bfa32bfc6cc0fa487e"
+    },
+    {
+      "path": "apps/staff-web/app/doctor/work-history/page.tsx",
+      "before_sha256": "1e41612cc0d3979d64aa2efcc42af121251e4787d94daa2ffcfbb4936fcc8105",
+      "after_sha256": "a1c5e3b13c4aa1fcd54a56cf930cf241e050b0c91391987c06274f0f7ee01751"
+    },
+    {
+      "path": "apps/staff-web/app/layout.tsx",
+      "before_sha256": "8437d92ce876352ce5c9d9a261f3270295a80827ae49160bab00dc14a7e7e475",
+      "after_sha256": "82016bf20de88a3a09764bf4fa2249e0646259ee21f9f36b1a00fe97441254eb"
+    },
+    {
+      "path": "apps/staff-web/app/login/page.tsx",
+      "before_sha256": "1802221e1250dae2fe1148cf71804e99d5d5643613a73cc57d7a3a427b93a3c6",
+      "after_sha256": "aa2996eac8fbd594370092b9f2782d4641d5e3aa59fc5af3c53748ffdda1d97c"
+    },
+    {
+      "path": "apps/staff-web/app/pharmacy/page.tsx",
+      "before_sha256": "44284eea1345096b9e8982730c06ab70c901c29383ea06d8712d212e1f2c665f",
+      "after_sha256": "079290639bda439b253b2642970c45a7538209b14b22d9d083c00feda971639c"
+    },
+    {
+      "path": "apps/staff-web/app/premium-clinical.css",
+      "before_sha256": null,
+      "after_sha256": "fe5d9bc03b43fcb7f1d86fa31aea68a404c90c95c3a8d7ed011ea25afa6e9855"
+    },
+    {
+      "path": "apps/staff-web/components/CareContinuityWorkspace.tsx",
+      "before_sha256": "1f2a19ccb0e7f68fb05690dd11e7282418aef7c131d72266691310fc1bbc9b76",
+      "after_sha256": "32e63e6d89f918bbfd3782ff9adc03fcbbc7b4a72a89e23194b157cdde98ea4c"
+    },
+    {
+      "path": "apps/staff-web/components/DigitalReferralWorkspace.tsx",
+      "before_sha256": "2c902369cfce8f80d1f680385acabb23cac3845f713431d684373aab0a010706",
+      "after_sha256": "f123fe9465b89b052281c631c6551e54b541c467cf00d832cc8c1ec050fe3a54"
+    },
+    {
+      "path": "apps/staff-web/components/InteropConsole.tsx",
+      "before_sha256": "55cd8f8a98c06dd33828aede91867cfc3f85f4bb6b1f42819d965ececa0e895d",
+      "after_sha256": "f7cf25d189945b067f8ea3c0dd9434434ca9c3275962db8e7cb9248a68452750"
+    },
+    {
+      "path": "apps/staff-web/components/MedicationTimingWorkspace.tsx",
+      "before_sha256": "5d6f821070b44df83c01cc751be1871239d91790a816dbf3cc1b4a8be728e844",
+      "after_sha256": "c5e335584fa2905b1b2a792654ba93648cdf6cf57a023b6f6aa4fccaefdae1d3"
+    },
+    {
+      "path": "apps/staff-web/components/PharmacistWorkspace.tsx",
+      "before_sha256": "6b47212d929f002d2e526e010d27d9724356365f67851ab07cf372093c8d755b",
+      "after_sha256": "cfc9379a2e93a5c8a88789edd77c268ca5bd0212588fe6c00c8de58c43e990df"
+    },
+    {
+      "path": "apps/staff-web/components/QueueView.tsx",
+      "before_sha256": "b6bebb138cd2b49ccf3b19b16289b9c605cb1c47f4e408f8bdefdfdaad82763c",
+      "after_sha256": "fc0239ef52c2de183fb0a23477348cbac47e7a3f497313dc8956df5eb8a339c4"
+    },
+    {
+      "path": "apps/staff-web/components/premium/ClinicalHero.tsx",
+      "before_sha256": null,
+      "after_sha256": "e80f437a5081e36eb45709455138bc4764e42ab3203bae544df7d7fd6d83034c"
+    },
+    {
+      "path": "apps/staff-web/components/premium/DiagnosticsTable.tsx",
+      "before_sha256": null,
+      "after_sha256": "eb2cf6419850b312bc0eb109746d866acec8146e073948a040d55fe135d3b003"
+    },
+    {
+      "path": "apps/staff-web/components/premium/DisplayPreferences.tsx",
+      "before_sha256": null,
+      "after_sha256": "2607feb75e411117b26c76e037e64a8608749a96bd1caf5d1c2cc518ecbc2186"
+    },
+    {
+      "path": "apps/staff-web/components/premium/HealthTimeline.tsx",
+      "before_sha256": null,
+      "after_sha256": "f12f32dd54f342c36c0e5a95ad2c5ae200f3e9f0a780285cb491c4106f294c3b"
+    },
+    {
+      "path": "apps/staff-web/components/premium/Icon.tsx",
+      "before_sha256": null,
+      "after_sha256": "c2b91bd6e8e5978eededbb7d44a1efdf015a085ef7f31ca7ef7092d2527ec312"
+    },
+    {
+      "path": "apps/staff-web/components/premium/MetricBars.tsx",
+      "before_sha256": null,
+      "after_sha256": "8b125f9a9e0775917b3bd817cfc946e29868c9f310e75948e101a0c25a48cb49"
+    },
+    {
+      "path": "apps/staff-web/components/premium/StaffShell.tsx",
+      "before_sha256": null,
+      "after_sha256": "0137c69b6473f409d0b56d376a49db9db24aa2742b2735a969043db2d632e69a"
+    },
+    {
+      "path": "apps/staff-web/components/ui.tsx",
+      "before_sha256": "d43e71cff5878e698f8e54dcfde448374c013f1089d4254937bbe91de20d8986",
+      "after_sha256": "0b5b3dfc85997033d4541563f98bc6cf4634056209fd5c29650f89b4fa5a1ba2"
+    },
+    {
+      "path": "apps/staff-web/lib/premium/artwork.ts",
+      "before_sha256": null,
+      "after_sha256": "ddf64bbd72acb9aeda8d49271df47ad8eb182c81a96d897f768fafa7e2a645a0"
+    },
+    {
+      "path": "apps/staff-web/lib/premium/navigation.ts",
+      "before_sha256": null,
+      "after_sha256": "bad110b9110584e7f1904bf306b888f14cc8ce69b314666439d474983fe511b2"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/README.md",
+      "before_sha256": null,
+      "after_sha256": "c052897300af54976b9e4e2c97053c5f913b9fdfe3cea20d7c0e1e68afc67f23"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/analytics.svg",
+      "before_sha256": null,
+      "after_sha256": "cbacfcb6633d2f79531bc8c4b90da260a6fec0b6f19d7bef7371b93e4a44c6d2"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/diagnostics.svg",
+      "before_sha256": null,
+      "after_sha256": "fcd2065df25f95289a3c97c221ac485ee41ba07878f9b224ba1215b90678e1dd"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/followup.webp",
+      "before_sha256": null,
+      "after_sha256": "40188e854462c8771179b48f52ad24b7dac84c5a60d3928fa694e125f131a93f"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/network.svg",
+      "before_sha256": null,
+      "after_sha256": "9c842fd3e3fd0f1cf2c0b7a1b4d19f84884b3ad93f091ac5c143c8c5e0a3ed51"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/overview.svg",
+      "before_sha256": null,
+      "after_sha256": "1340ba5cb13b94777f8ec10e9424fdf7d855197d2de561988aa6afa59010fa12"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/pharmacy.svg",
+      "before_sha256": null,
+      "after_sha256": "05c28cc4b1ac89b6691e553249d698de1c1695ce4213d9baed328b5eaae7c5e3"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/records.svg",
+      "before_sha256": null,
+      "after_sha256": "602ec5d9ba4afe6fbdbb0aaf6620ead0a920436822f33464582190efa94f604a"
+    },
+    {
+      "path": "apps/staff-web/public/design/clinical/referrals.svg",
+      "before_sha256": null,
+      "after_sha256": "385a69b7e0dbe98e33e27ed5dc39c6c493411bca0d996be84cecfc6cfc738ddf"
+    },
+    {
+      "path": "apps/staff-web/tests/e2e/digital-referral-network.spec.ts",
+      "before_sha256": "1e0a19fd53e1f9500d7f484c7e45c9a6cf58b1a3ea5005a9c7814c66de04f41a",
+      "after_sha256": "479083bd2541b17da8470c94852b4d23177fa518731d45ae9ddad03730ea5ac9"
+    },
+    {
+      "path": "apps/staff-web/tests/e2e/staff-acceptance.spec.ts",
+      "before_sha256": "561fff57cc13b6f6d8ab5c492a2a73ad688f5064413b1ef1f19906358a6eb7c7",
+      "after_sha256": "e742ffcbd0079ad73b7fcb0c37d2ea1e078e1a19180aa57f970c6908d40ca7c2"
+    },
+    {
+      "path": "apps/staff-web/tests/e2e/unified-clinical-ui.spec.ts",
+      "before_sha256": null,
+      "after_sha256": "e7f55967568f7511269ba02a60897d5d99ac76a7cc5bce9c9c389f79c97e954a"
+    },
+    {
+      "path": "docs/UNIFIED-CLINICAL-UI-20261022.md",
+      "before_sha256": null,
+      "after_sha256": "3433c27b0bd4e727f6a47d4849f256088e88e994b2992f201043c7ef672398b0"
+    },
+    {
+      "path": "docs/unified-ui/BASELINE-SHA256SUMS.txt",
+      "before_sha256": null,
+      "after_sha256": "1adbf2ae1202148bc50a1c416283690b684e195aecace1f738c6872043677229"
+    },
+    {
+      "path": "docs/unified-ui/evidence/clinical-handler-comparison.json",
+      "before_sha256": null,
+      "after_sha256": "d4b9803eaa218297cba62a6e1634266d22f3e4fe3cb592537cacf827cfb4b2f1"
+    },
+    {
+      "path": "docs/unified-ui/evidence/interaction-checks.json",
+      "before_sha256": null,
+      "after_sha256": "906aeb7c7275f4d157fbc16e8314ba107555cdfd0559700c56c53251d34ba2b6"
+    },
+    {
+      "path": "docs/unified-ui/evidence/source-checks.json",
+      "before_sha256": null,
+      "after_sha256": "9b7d1a6f2a0bcef31217578cd09bf87a3deb795de2de9053e6f67feeace0837d"
+    },
+    {
+      "path": "docs/unified-ui/evidence/source-preservation.json",
+      "before_sha256": null,
+      "after_sha256": "82a5d8f5a6903a68dae400b0dbf2eba929f5f6b4ff43e3e490265f01e759d269"
+    },
+    {
+      "path": "docs/unified-ui/evidence/visual-checks.json",
+      "before_sha256": null,
+      "after_sha256": "be08e5a9576ff1c1978f73b3afde9a7d82224da4b54ac82dceb2c98cf2fc2492"
+    },
+    {
+      "path": "verification/unified-clinical-ui/source-check.cjs",
+      "before_sha256": null,
+      "after_sha256": "097a942fb456dcec38c56d07798f6a0ecc69ab9f63e0d92d19abdf11c9dc20fb"
+    }
+  ]
+}

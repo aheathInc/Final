@@ -16,6 +16,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const _localTesterPhone = '+255749900006';
   final _controller = TextEditingController();
   String? _error;
   bool _busy = false;
@@ -38,10 +39,12 @@ class _LoginScreenState extends State<LoginScreen> {
       final data = await Api.post('/auth/otp/request',
           {'phone_number': e164, 'channel': 'sms'});
       if (!mounted) return;
+      final echoedCode = data['dev_code'];
       Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => VerifyScreen(
           challengeId: data['challenge_id'] as String,
           maskedTo: (data['masked_destination'] as String?) ?? e164,
+          developmentCode: kDebugMode && echoedCode is String ? echoedCode : null,
         ),
       ));
     } on ApiException catch (e) {
@@ -56,16 +59,19 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _devLogin() async {
     setState(() => _busy = true);
     try {
-      // We use the real verify endpoint but with 000000 if we had a challenge,
-      // but for a true bypass we'd need a challenge first.
-      // Instead, let's just mock a session if the backend isn't ready,
-      // or better, actually request a challenge for a test number.
       final data = await Api.post('/auth/otp/request',
-          {'phone_number': '+255000000000', 'channel': 'sms'});
+          {'phone_number': _localTesterPhone, 'channel': 'sms'});
+      final code = data['dev_code'];
+      if (code is! String || !RegExp(r'^\d{6}$').hasMatch(code)) {
+        if (mounted) {
+          setState(() => _error = 'Local OTP echo haijawashwa. Tumia akaunti iliyosajiliwa na namba halisi ya OTP.');
+        }
+        return;
+      }
       final deviceId = await Session.deviceId();
       final session = await Api.post('/auth/otp/verify', {
         'challenge_id': data['challenge_id'],
-        'code': '000000',
+        'code': code,
         'device_id': deviceId,
       });
 
@@ -133,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 20),
                   TextButton(
                     onPressed: _busy ? null : _devLogin,
-                    child: const Text('INGIA KAMA TESTER (Bypass OTP)'),
+                    child: const Text('INGIA KAMA TESTER (OTP YA NDANI)'),
                   ),
                 ],
               ],

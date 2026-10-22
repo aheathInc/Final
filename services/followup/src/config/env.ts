@@ -14,6 +14,9 @@ const envSchema = z.object({
   ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().default(900),
   IDEMPOTENCY_TTL_HOURS: z.coerce.number().default(24),
 
+  CARE_REMINDER_INTERVAL_SECONDS: z.coerce.number().int().min(10).max(300).default(30),
+  CARE_REMINDER_WINDOW_MINUTES: z.coerce.number().int().min(1).max(240).default(120),
+  CARE_REMINDER_BATCH: z.coerce.number().int().min(1).max(200).default(100),
   SCHEDULER_INTERVAL_MINUTES: z.coerce.number().default(15),
   SCHEDULE_HORIZON_DAYS: z.coerce.number().default(2),
   MISSED_AFTER_HOURS: z.coerce.number().default(24),

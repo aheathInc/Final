@@ -13,7 +13,7 @@ export interface SendResult {
 
 export interface NotificationProvider {
   readonly name: string;
-  send(to: string, body: string): Promise<SendResult>;
+  send(to: string, body: string, options?: { idempotencyKey: string }): Promise<SendResult>;
 }
 
 /** Development. Prints the message so a flow can be followed without a gateway. */
@@ -34,12 +34,13 @@ export const consoleProvider: NotificationProvider = {
  */
 export const httpProvider: NotificationProvider = {
   name: 'http',
-  async send(to, body) {
+  async send(to, body, options) {
     try {
       const response = await fetch(env.SMS_GATEWAY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(options ? { 'Idempotency-Key': options.idempotencyKey } : {}),
           Authorization: `Bearer ${env.SMS_GATEWAY_KEY}`,
         },
         body: JSON.stringify({ to, from: env.SMS_SENDER_ID, message: body }),

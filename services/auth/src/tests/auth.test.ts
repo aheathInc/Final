@@ -2,6 +2,7 @@ import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import { appendAudit, canonical, sha256 } from '@a-health/http';
 import * as auth from '../services/auth.service.js';
 import { env } from '../config/env.js';
@@ -11,6 +12,9 @@ import { AppError } from '../utils/errors.js';
 import { assertSafeDatabase, cleanupPhone, codeOf, meta, testPhone, wrongOtpCode } from './helpers.js';
 
 assertSafeDatabase();
+const testTarget = assertIsolatedLocalTestTarget(process.env);
+
+before(async () => { await verifyLocalTestIdentity(prisma, testTarget); });
 
 const created: string[] = [];
 const track = (phone: string) => {

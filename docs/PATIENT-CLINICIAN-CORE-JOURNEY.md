@@ -58,7 +58,7 @@ passed, but no full mobile visual E2E was performed. The local app packaging
 currently references a missing `assets/first_aid/` directory, which prevents
 the executable mobile visual flow from starting.
 
-Run patient tests from `Mobile app/patient_app`:
+Run patient tests from `apps/patient-mobile`:
 
 ```powershell
 flutter test --no-pub
@@ -66,7 +66,7 @@ flutter test --no-pub
 
 The focused patient-care tests cover profile version payload construction, persisted consultation identifiers, status mapping/history partition, queue and note routes, prescription reads, durable thread-message request shape, and signed-note display.
 
-Run the pure consultation contract/engine checks and type-check the affected service from `Web/`:
+Run the pure consultation contract/engine checks and type-check the affected service from ``:
 
 ```powershell
 corepack pnpm --filter @a-health/consultation exec node --import tsx --test --test-force-exit src/tests/engine.test.ts

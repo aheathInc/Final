@@ -1,22 +1,16 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import { verifyAuditChain, type AppError } from '@a-health/http';
 import * as referrals from '../services/referral.service.js';
 import * as patientConsents from '../../../patient/src/services/consent.service.js';
 import { listLedgerEvents, verifyLedger } from '../../../auth/src/services/ledger.service.js';
 
-const databaseUrl = process.env.DATABASE_URL ?? '';
-let testDatabase: URL;
-try { testDatabase = new URL(databaseUrl); } catch {
-  throw new Error('Refusing digital referral tests without a valid local ahealth_test DATABASE_URL.');
-}
-if (decodeURIComponent(testDatabase.pathname.replace(/^\//, '')) !== 'ahealth_test' ||
-    !['localhost', '127.0.0.1', '::1'].includes(testDatabase.hostname) ||
-    (testDatabase.port || '5432') === '5432') {
-  throw new Error('Refusing digital referral tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
-}
+const testTarget = assertIsolatedLocalTestTarget(process.env);
+
+before(async () => { await verifyLocalTestIdentity(prisma, testTarget); });
 
 const meta = { ip: '127.0.0.1', requestId: 'digital-referral-test' };
 const userIds: string[] = [];

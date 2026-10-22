@@ -82,7 +82,7 @@ async function assertDatabaseIdentity(): Promise<void> {
 async function loadOrCreateCredentials(): Promise<FixtureCredentials> {
   const ignoreRules = await readFile(resolve(root, '.gitignore'), 'utf8');
   if (!ignoreRules.split(/\r?\n/).includes('.local/')) {
-    throw new Error('Refusing to store fixture credentials because Web/.local is not gitignored.');
+    throw new Error('Refusing to store fixture credentials because .local is not gitignored.');
   }
 
   let contents: string;

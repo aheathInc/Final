@@ -1,24 +1,15 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import type { AppError } from '@a-health/http';
 import * as discussions from '../services/discussion.service.js';
 import * as opinions from '../services/secondOpinion.service.js';
 
-const testDatabaseUrl = process.env.DATABASE_URL ?? '';
-let testDatabase: URL;
-try { testDatabase = new URL(testDatabaseUrl); } catch {
-  throw new Error('Refusing network tests without a valid local ahealth_test DATABASE_URL.');
-}
-const testDatabaseName = decodeURIComponent(testDatabase.pathname.replace(/^\//, ''));
-if (
-  testDatabaseName !== 'ahealth_test' ||
-  !['localhost', '127.0.0.1', '::1'].includes(testDatabase.hostname) ||
-  (testDatabase.port || '5432') === '5432'
-) {
-  throw new Error('Refusing network tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
-}
+const testTarget = assertIsolatedLocalTestTarget(process.env);
+
+before(async () => { await verifyLocalTestIdentity(prisma, testTarget); });
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
 const users: string[] = [];

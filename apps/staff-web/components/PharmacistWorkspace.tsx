@@ -88,7 +88,7 @@ export function PharmacistWorkspace() {
   if (loading) return <p className="mt-6 text-sm text-ink-soft">Loading verified pharmacy membership...</p>;
 
   return (
-    <div className="mt-6 max-w-3xl space-y-5">
+    <div className="ahp-pharmacy-workspace mt-6 max-w-4xl space-y-5">
       {error && <Notice>{error}</Notice>}
       {notice && <p role="status" className="rounded-md border border-teal/30 bg-teal/10 p-3 text-sm text-petrol">{notice}</p>}
       <Card>

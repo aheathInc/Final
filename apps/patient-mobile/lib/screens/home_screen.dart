@@ -31,6 +31,8 @@ import 'insurance_payments_screen.dart';
 import 'assistant_screen.dart';
 import 'referrals_screen.dart';
 import 'health_history_screen.dart';
+import 'front_desk_screen.dart';
+import 'care_continuity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -319,6 +321,8 @@ class _HomeScreenState extends State<HomeScreen> {
               'Miadi',
               const AppointmentsScreen(),
             ),
+            _tile(Icons.local_hospital_outlined, 'Huduma hospitalini', const FrontDeskScreen()),
+            _tile(Icons.notifications_active_outlined, 'Ufuatiliaji wangu', const CareContinuityScreen()),
             _tile(Icons.alt_route, 'Rufaa Zangu', const ReferralsScreen()),
             _tile(
               Icons.biotech_outlined,

@@ -14,10 +14,25 @@ function homeFor(role?: string) {
   return '/login';
 }
 
+function within(path: string, root: string) {
+  return path === root || path.startsWith(`${root}/`);
+}
+
+function allowedAdmin(path: string, role?: string) {
+  if (role === 'platform_admin') return true;
+  if (role === 'facility_admin') {
+    return ['/admin/facilities', '/admin/incidents', '/admin/settings'].some((root) => within(path, root));
+  }
+  if (role === 'dispatcher') {
+    return ['/admin/emergency', '/admin/devices'].some((root) => within(path, root));
+  }
+  return false;
+}
+
 function allowed(path: string, role?: string) {
   if (path.startsWith('/pharmacy')) return role === 'pharmacist';
   if (path.startsWith('/doctor')) return role === 'clinician';
-  if (path.startsWith('/admin')) return ['platform_admin', 'dispatcher', 'facility_admin'].includes(role ?? '');
+  if (path === '/admin' || path.startsWith('/admin/')) return allowedAdmin(path, role);
   if (path.startsWith('/analytics')) return ['platform_admin', 'researcher'].includes(role ?? '');
   return true;
 }

@@ -12,7 +12,6 @@ const NS = 'AHP_STAFF_DEMO_V1';
 const CONFIRM = 'write-local-ahealth_dev';
 const SPECIALIST_EMAIL = 'ahp.staff.demo.specialist@dev.local';
 const UNRELATED_EMAIL = 'ahp.staff.demo.unrelated@dev.local';
-const SPECIALIST_PASSWORD = process.env.AHP_STAFF_DEMO_PASSWORD?.trim();
 
 const ids = {
   facility: '11111111-1111-4111-8111-111111111111',
@@ -105,7 +104,10 @@ async function adminUserId() {
 
 async function seed() {
   assertSafeTarget();
-  if (!SPECIALIST_PASSWORD) throw new Error('Set AHP_STAFF_DEMO_PASSWORD in Web/.env before seeding.');
+  const existingDemoPayment = await prisma.payment.findUnique({ where: { id: ids.payment } });
+  if (existingDemoPayment) {
+    throw new Error('An existing AHP_STAFF_DEMO_V1 settled payment record was found. Refusing to alter or reclassify settlement data.');
+  }
   const [clinician, adminId] = await Promise.all([mainClinician(), adminUserId()]);
   if (!clinician.user.passwordHash) throw new Error('The dev clinician must have a password hash.');
   const now = new Date();
@@ -581,7 +583,7 @@ async function seed() {
 
   await prisma.paymentIntent.upsert({
     where: { id: ids.paymentIntent },
-    update: {},
+    update: { status: 'pending', providerReference: null, paymentId: null },
     create: {
       id: ids.paymentIntent,
       amount: 15000,
@@ -589,31 +591,10 @@ async function seed() {
       method: 'mobile_money',
       provider: 'manual',
       purpose: 'consultation_fee',
-      status: 'succeeded',
+      status: 'pending',
       consultationId: ids.consultationActive,
       payerUserId: ids.patientUserA,
       payerPhone: '+255700000904',
-      providerReference: `${NS}-LOCAL-PAY-001`,
-      paymentId: ids.payment,
-    },
-  });
-  await prisma.payment.upsert({
-    where: { id: ids.payment },
-    update: {},
-    create: {
-      id: ids.payment,
-      paymentIntentId: ids.paymentIntent,
-      amount: 15000,
-      currency: 'TZS',
-      method: 'mobile_money',
-      provider: 'manual',
-      providerReference: `${NS}-LOCAL-PAY-001`,
-      purpose: 'consultation_fee',
-      status: 'succeeded',
-      consultationId: ids.consultationActive,
-      payerUserId: ids.patientUserA,
-      refundedAmount: 0,
-      settledAt: minutes(-35),
     },
   });
 
@@ -707,7 +688,6 @@ async function seed() {
       platformAdmin: 'msimamizi@dev.local',
       demoSpecialist: SPECIALIST_EMAIL,
       demoUnrelatedClinician: UNRELATED_EMAIL,
-      demoClinicianPassword: SPECIALIST_PASSWORD,
     },
     seededAt: now.toISOString(),
   };

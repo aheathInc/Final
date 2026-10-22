@@ -15,6 +15,7 @@ const envSchema = z.object({
   SMS_SENDER_ID: z.string().default('A-HEALTH'),
 
   DISPATCH_INTERVAL_SECONDS: z.coerce.number().default(10),
+  DISPATCH_LEASE_SECONDS: z.coerce.number().int().min(60).max(600).default(120),
   DISPATCH_BATCH_SIZE: z.coerce.number().default(50),
 
   /**

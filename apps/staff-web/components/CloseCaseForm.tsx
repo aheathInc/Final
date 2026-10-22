@@ -59,7 +59,7 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
         ...(scheduling ? { follow_up_cycle: { frequency, duration_days: days } } : {}),
         close_care_thread: closeThread,
       }, idem());
-      router.push('/doctor/queue');
+      router.push(prescribing ? '/doctor/follow-up/medication-times' : scheduling ? '/doctor/follow-up' : '/doctor/queue');
       router.refresh();
     } catch (e) {
       setError(errorMessage(e, 'Kesi haikufungwa. Hakuna kilichohifadhiwa — jaribu tena.'));
@@ -126,10 +126,11 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
                 </Field>
                 <input value={it.instructions} onChange={(e) => patch(i, { instructions: e.target.value })}
                   placeholder="Maelekezo (baada ya chakula)" className={`${inputClass} mt-2`} />
-                {/* This is literally how many reminder rows the backend creates. */}
+                {/* Frequency alone is not consent to an inferred clock-time reminder. */}
                 <p className="mt-2 text-xs text-ink-soft">
                   Mara {it.frequency_per_day} kwa siku kwa siku {it.duration_days} — jumla ya
-                  vikumbusho {it.frequency_per_day * it.duration_days}.
+                  dozi zilizopangwa {it.frequency_per_day * it.duration_days}. Weka muda wa vikumbusho
+                  uliokubaliwa na mgonjwa kwenye Follow-up baada ya kusaini.
                 </p>
               </div>
             ))}

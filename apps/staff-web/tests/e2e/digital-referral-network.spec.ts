@@ -51,7 +51,7 @@ test('real Firefox referral submission, receiving workflow, feedback and facilit
 
   await login(page, doctorA);
   await page.goto('/doctor/referrals');
-  await expect(page.getByRole('heading', { name: 'Digital referrals' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create a referral', exact: true })).toBeVisible();
   await page.getByLabel('Case').selectOption(consultationId!);
   const destination = page.getByLabel('Patient-authorized destination facility');
   await expect(destination.locator('option')).toHaveCount(2);

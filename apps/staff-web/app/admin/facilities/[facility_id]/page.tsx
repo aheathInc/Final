@@ -21,11 +21,11 @@ export default async function FacilityPage({ params }: { params: { facility_id: 
   ]);
 
   if (!facility) {
-    return <div className="mx-auto max-w-3xl px-6 py-8"><Notice>Kituo hiki hakikupatikana.</Notice></div>;
+    return <div className="staff-page ahp-page"><Notice>Kituo hiki hakikupatikana.</Notice></div>;
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <Link href="/admin/" className="text-sm text-petrol underline underline-offset-4">
         Rudi kwenye vituo
       </Link>

@@ -5,7 +5,7 @@
 Last updated: 2026-09-13.
 
 Main local web entry: `http://localhost:3000/login`.
-Current start command from `Web/`: `bash dev-web.sh web` (starts the required local services and unified app), or `pnpm --filter a-health-web dev` when services are already running. The historical `scripts/local/start.sh` helper is not present in Final.
+Current start command from ``: `bash dev-web.sh web` (starts the required local services and unified app), or `pnpm --filter a-health-web dev` when services are already running. The historical `scripts/local/start.sh` helper is not present in Final.
 
 Executor note: browser verification used temporary `http://127.0.0.1:3001` inside one foreground shell because this managed executor cannot reliably expose detached tmux/nohup listeners across command namespaces and port 3000 was held by an invisible listener. The app package itself runs on port 3000 by default.
 

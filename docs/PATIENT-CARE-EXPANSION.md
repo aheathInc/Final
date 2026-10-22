@@ -8,12 +8,12 @@ Branch: `feat/patient-care-expansion`, based on `eb59bc0`.
 - A second booking attempt for the occupied slot was rejected with the backend conflict response. The client preserves the conflict rather than reporting success.
 - Firefox Staff Web showed the same appointment under `/doctor/appointments`. The patient cancelled that appointment and confirmed the cancelled state on read-back.
 - Verified endpoints/services: doctor (4003), appointment (4004), Staff Web BFF. Mobile rescheduling is NOT SUPPORTED because no backend operation exists.
-- Git-ignored Staff Web evidence: `Web/.local/evidence/doctor-appointments.png`.
+- Git-ignored Staff Web evidence: `.local/evidence/doctor-appointments.png`.
 
 ## Diagnostics and results - WORKING (acceptance), with access-control fix
 
 - The development clinician created one synthetic point-of-care order on an existing synthetic care context. The patient authenticated through development OTP and read the same persisted order and result.
-- The ordering clinician's Firefox Staff Web diagnostics list and detail showed that same order/result. Evidence is in `Web/.local/evidence/doctor-diagnostics.png` and `Web/.local/evidence/doctor-diagnostic-result.png`.
+- The ordering clinician's Firefox Staff Web diagnostics list and detail showed that same order/result. Evidence is in `.local/evidence/doctor-diagnostics.png` and `.local/evidence/doctor-diagnostic-result.png`.
 - The patient was denied result filing. Database-backed regression tests also deny an unrelated clinician and unrelated patient access. Patient responses omit clinician-only `clinical_notes`; the ordering clinician retains access to those notes.
 - Result entry uses the existing diagnostics API, which authorizes the ordering clinician or platform admin. Staff Web currently has no result-entry control. No medical interpretation was created.
 - Diagnostics build/type-check passed. Database-backed suite passed 17/17 against verified `ahealth_test`.
@@ -37,6 +37,6 @@ Branch: `feat/patient-care-expansion`, based on `eb59bc0`.
 - `flutter test --no-pub`: 32 passed, 1 local live-acceptance test skipped without an acceptance session. The live acceptance test separately passed via the local harness. Flutter reports the existing missing `assets/first_aid/` directory; it does not fail the suite and was not changed.
 - Diagnostics `tsc --noEmit` passed. Diagnostics database tests: 17/17 passed on `ahealth_test` after asserting its localhost port and database target.
 - Staff Web Firefox acceptance passed for appointment visibility and diagnostic order/result visibility.
-- Local routes: diagnostics 4013 and pharmacy 4011. Test-only live API payload and cache evidence remain under ignored `Web/.local/`.
+- Local routes: diagnostics 4013 and pharmacy 4011. Test-only live API payload and cache evidence remain under ignored `.local/`.
 - `flutter pub get` and locked `pnpm install --frozen-lockfile` resolved existing dependencies without dependency version edits. Generated Flutter plugin registrants and bootstrap-rewritten `.env.example` line-ending noise were restored.
 - Test identities, local database data, logs, browser evidence and tokens remain local/ignored. No commit, push or merge was made.

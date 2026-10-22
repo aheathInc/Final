@@ -1,0 +1,5 @@
+Repository: https://github.com/aheathInc/Final.git
+Branch: main
+Commit: 901dc9366f2eeb524fb04329eb95e7576e60201b
+Security fix ancestor: ee3a562cb32aa1f363fe5721fa97980f6362bbd0
+Archive source was produced from the verified main commit. Local static DB URL password components were normalized in archive copies only.

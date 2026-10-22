@@ -1,0 +1,15 @@
+{
+  "new_operations": 16,
+  "new_paths": 15,
+  "new_schemas": 21,
+  "yaml_local_reference_and_router_parity_errors": [],
+  "existing_migrations_byte_preserved": true,
+  "migration_directories": 21,
+  "lockfile_byte_preservation": {
+    "pnpm-lock.yaml": true,
+    "apps/patient-mobile/pubspec.lock": true
+  },
+  "prisma_validation": "NOT_RUN",
+  "semantic_openapi_lint": "NOT_RUN",
+  "openapi_generated_types": "NOT_REGENERATED_TOOLCHAIN_UNAVAILABLE; regenerate before merge"
+}

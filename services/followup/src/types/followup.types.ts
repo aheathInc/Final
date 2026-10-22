@@ -12,6 +12,7 @@ export const closeCycleSchema = z.object({
 });
 
 export const confirmAdherenceSchema = z.object({
+  base_version: z.number().int().positive().optional(),
   reported_status: z.enum(['taken', 'missed', 'delayed']),
   channel: z.enum(['app', 'sms', 'ussd', 'voice', 'web']).optional(),
   note: z.string().max(500).optional(),

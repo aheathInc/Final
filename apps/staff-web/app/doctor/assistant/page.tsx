@@ -16,7 +16,7 @@ export default async function AssistantPage() {
   const active = (models?.data ?? []).filter((m) => m.status === 'active');
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <PageHeader
         title="Msaidizi"
         lede="Msaidizi hautoi utambuzi. Anachotoa ni mapendekezo ya kuzingatia, na uamuzi unabaki wako."

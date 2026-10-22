@@ -15,7 +15,7 @@ export default async function EmergencyDetail({ params }: { params: { emergency_
 
   const e = await serverGet<EmergencyRequest>(`/emergency-requests/${params.emergency_id}`);
   if (!e) {
-    return <div className="mx-auto max-w-3xl px-6 py-8"><Notice>Dharura hii haikupatikana.</Notice></div>;
+    return <div className="staff-page ahp-page"><Notice>Dharura hii haikupatikana.</Notice></div>;
   }
 
   const [units, facilities] = await Promise.all([
@@ -26,7 +26,7 @@ export default async function EmergencyDetail({ params }: { params: { emergency_
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <Link href="/admin/" className="text-sm text-petrol underline underline-offset-4">
         Rudi kwenye ubao
       </Link>

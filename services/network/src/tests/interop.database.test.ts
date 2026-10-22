@@ -1,4 +1,4 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
@@ -16,13 +16,29 @@ try { target = new URL(rawDatabaseUrl); } catch {
   throw new Error('Refusing interoperability database tests without a configured isolated ahealth_test DATABASE_URL.');
 }
 const targetDatabase = decodeURIComponent(target.pathname.replace(/^\//, ''));
+const targetSchema = target.searchParams.get('schema');
+const isolatedTarget = (targetDatabase === 'ahealth_test' && targetSchema === 'public') ||
+  (targetDatabase === 'ahealth_dev' && /^ahp_test_[a-z0-9_]+$/.test(targetSchema ?? ''));
 if (
-  targetDatabase !== 'ahealth_test' ||
+  !isolatedTarget || target.searchParams.getAll('schema').length !== 1 ||
   !['localhost', '127.0.0.1', '::1'].includes(target.hostname) ||
   (target.port || '5432') === '5432'
 ) {
-  throw new Error('Refusing interoperability database tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
+  throw new Error('Refusing interoperability tests unless DATABASE_URL targets an isolated local test database/schema on a non-5432 port.');
 }
+
+before(async () => {
+  const [identity] = await prisma.$queryRaw<Array<{ db: string; schema: string; schemaOwner: string; role: string; port: number; address: string }>>`
+    SELECT current_database() AS db, current_schema()::text AS schema,
+           (SELECT pg_get_userbyid(nspowner)::text FROM pg_namespace WHERE nspname = current_schema()) AS "schemaOwner",
+           current_user::text AS role, inet_server_port() AS port, inet_server_addr()::text AS address`;
+  const address = (identity?.address ?? '').toLowerCase().replace(/^::ffff:/, '').replace(/\/\d+$/, '');
+  if (!identity || identity.db !== targetDatabase || identity.schema !== targetSchema ||
+      identity.schemaOwner !== identity.role || identity.port !== Number(target.port) ||
+      !(/^(127\.\d+\.\d+\.\d+|::1)$/.test(address))) {
+    throw new Error('Interoperability database/schema identity or ownership check failed.');
+  }
+});
 
 const meta = { ip: '127.0.0.1', requestId: 'interop-test' };
 const cleanup = { externalSystemId: '', facilityId: '', userIds: [] as string[], clinicianIds: [] as string[], profileIds: [] as string[], consentIds: [] as string[] };

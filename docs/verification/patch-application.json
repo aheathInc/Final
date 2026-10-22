@@ -1,0 +1,6 @@
+{
+  "apply_check": "PASS",
+  "apply_bytes": "PASS",
+  "reverse_check": "PASS",
+  "scope": "8 logical code/test/config paths; normalized uploaded baseline only; no original checkout edited"
+}

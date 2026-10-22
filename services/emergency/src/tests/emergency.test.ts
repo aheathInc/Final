@@ -1,26 +1,15 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import type { AppError } from '@a-health/http';
 import { bus } from '../events.js';
 import * as emergencies from '../services/emergencyRequest.service.js';
 import * as units from '../services/transportUnit.service.js';
 import { isLegalStatusTransition, canDispatch } from '../services/transition.js';
 
-let testDatabase: URL;
-try {
-  testDatabase = new URL(process.env.DATABASE_URL ?? '');
-} catch {
-  throw new Error('Refusing emergency tests without a valid local ahealth_test DATABASE_URL.');
-}
-if (
-  decodeURIComponent(testDatabase.pathname.replace(/^\//, '')) !== 'ahealth_test' ||
-  !['localhost', '127.0.0.1', '::1'].includes(testDatabase.hostname) ||
-  (testDatabase.port || '5432') === '5432'
-) {
-  throw new Error('Refusing emergency tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
-}
+const testTarget = assertIsolatedLocalTestTarget(process.env);
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
 const dispatcher = { sub: randomUUID(), role: 'dispatcher' };
@@ -28,6 +17,8 @@ const users: string[] = [];
 const emergencyIds: string[] = [];
 const unitIds: string[] = [];
 const facilityIds: string[] = [];
+
+before(async () => { await verifyLocalTestIdentity(prisma, testTarget); });
 
 after(async () => {
   for (const id of emergencyIds) {

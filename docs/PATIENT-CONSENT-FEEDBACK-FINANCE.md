@@ -20,7 +20,7 @@ This milestone connects the patient Flutter app to the existing patient, quality
 
 ## Staff visibility
 
-The existing Staff Web page at `/admin/incidents` displays incident reports to platform administrators. It does not resolve or close them. The acceptance screenshot is stored in the ignored local path `Web/.local/evidence/admin-same-patient-incident.png` and is not part of Git changes.
+The existing Staff Web page at `/admin/incidents` displays incident reports to platform administrators. It does not resolve or close them. The acceptance screenshot is stored in the ignored local path `.local/evidence/admin-same-patient-incident.png` and is not part of Git changes.
 
 ## Verification record
 

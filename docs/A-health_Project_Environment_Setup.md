@@ -341,7 +341,7 @@ IMPORTANT INTEGRATIONS:
        - name: Run tests  
          run: npm test  
          env:  
-           DATABASE_URL: postgres://postgres:postgres@localhost:5432/a_health_test  
+           DATABASE_URL: postgres://postgres:LOCAL_DB_PASSWORD_REQUIRED@localhost:5432/a_health_test
          
        - name: Upload coverage  
          uses: codecov/codecov-action@v3  
@@ -935,7 +935,7 @@ CREATE FILE: .env.example (checked into Git)
  BACKEND:  
  NODE_ENV=development  
  PORT=5000  
- DATABASE_URL=postgresql://user:pass@localhost:5432/a_health_dev  
+ DATABASE_URL=postgresql://user:LOCAL_DB_PASSWORD_REQUIRED@localhost:5432/a_health_dev
  REDIS_URL=redis://localhost:6379/0  
    
  AUTHENTICATION:  

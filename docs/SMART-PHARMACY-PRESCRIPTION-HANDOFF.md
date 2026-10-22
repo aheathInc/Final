@@ -66,7 +66,7 @@ Pharmacy routes added or extended:
 - `POST /dispensing/{dispensing_id}/complete`
 - `GET /pharmacies/medication-search` accepts optional coordinates, radius, and required quantity
 
-The prescription contract includes optional `quantity_prescribed` and `valid_until`; the clinician UI requires these when creating prescription items. OpenAPI generated types are in `Web/packages/api/src/generated/schema.d.ts`.
+The prescription contract includes optional `quantity_prescribed` and `valid_until`; the clinician UI requires these when creating prescription items. OpenAPI generated types are in `packages/api/src/generated/schema.d.ts`.
 
 ## Audit and notifications
 
@@ -92,14 +92,14 @@ Automated database tests were executed against the isolated PostgreSQL 17 `aheal
 
 ### Live synthetic acceptance — 2026-10-13
 
-- A guarded local-only fixture provisioner created synthetic patients, a verified test clinician, three pharmacist identities, and three synthetic pharmacy memberships. It refuses production targets and PostgreSQL `5432`, verifies the connected database identity before writes, uses the existing password hash function, and stores credentials only in ignored `Web/.local/pharmacy-acceptance.env`. This fixture metadata is for isolated acceptance only; it is not a real-world professional-license verification process.
+- A guarded local-only fixture provisioner created synthetic patients, a verified test clinician, three pharmacist identities, and three synthetic pharmacy memberships. It refuses production targets and PostgreSQL `5432`, verifies the connected database identity before writes, uses the existing password hash function, and stores credentials only in ignored `.local/pharmacy-acceptance.env`. This fixture metadata is for isolated acceptance only; it is not a real-world professional-license verification process.
 - Real Firefox Staff Web logins passed for Pharmacist A, Pharmacist B, Pharmacist C, the synthetic clinician, and a synthetic `platform_admin`. A and B accessed their own memberships. C's attempt to use A's pharmacy was denied with HTTP 403 and no prescription details. Patient, clinician, and platform-admin dispensing writes were denied with HTTP 403; platform admin does not inherit pharmacist rights.
 - One synthetic consultation was created and completed through the existing clinician workflow, producing one signed synthetic prescription. Pharmacist A recorded a partial dispense of 4/10; Patient A read back 4 dispensed, 6 remaining, and one history event. Pharmacist B dispensed the remaining 6. Patient A then read back the completed prescription, 10 dispensed, 0 remaining, and two persisted history events. Inventory read-back was A=1, B=14, C=20.
 - Re-verification after completion was denied with HTTP 409 `PRESCRIPTION_NOT_ACTIVE` and returned no prescription details. An invalid reference returned HTTP 401 `HANDOFF_REFERENCE_INVALID`; after Patient A revoked the reference, lookup returned HTTP 401 `HANDOFF_REFERENCE_REVOKED`.
 - Patient B's own prescription-list endpoint returned HTTP 200 without Patient A's prescription. Patient B's direct prescription, other-patient list, fulfilment/history, and handoff requests each returned HTTP 403 `NOT_RESOURCE_OWNER`. This is live server-side isolation evidence. Patient B's authenticated list also drove a Flutter empty-list assertion. A separate deterministic widget transition verified screen/cache isolation and late-response rejection; live OTP-driven in-app switching remains **NOT EXERCISED**.
 - Patient A's authenticated Flutter widget read-back rendered the completed prescription, facility availability, and both dispensing-history entries. Patient B's authenticated Flutter widget assertion rendered the authorized empty prescription list without Patient A's synthetic medication or facility data. Both used minimized live API snapshots. The snapshots contain no handoff reference, access token, or patient identity. This is widget acceptance, not a physical-device run or a Flutter network login.
 - Auth Audit Ledger verification against live `ahealth_dev` returned `VALID` for 60 checked events.
-- The latest acceptance artifacts and screenshots are ignored under `Web/.local/evidence`; none are intended for commit.
+- The latest acceptance artifacts and screenshots are ignored under `.local/evidence`; none are intended for commit.
 ## Unsupported clinical and governance rules
 
 - Professional pharmacist license verification and pharmacy-membership provisioning need an approved operational policy.

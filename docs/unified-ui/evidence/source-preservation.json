@@ -1,0 +1,14 @@
+{
+  "baseline_sha256": "446e1e67d8dbb1bf1a2bbda92189bf3b3909ba2701a7d1bbb4d37bda22f7deb3",
+  "protected_non_staff_files_byte_identical": 968,
+  "removed_existing_files": [],
+  "backend_changed": false,
+  "flutter_changed": false,
+  "auth_middleware_bff_changed": false,
+  "lockfiles_changed": false,
+  "migrations_preserved": 22,
+  "modified_frontend_files": 46,
+  "new_files_before_metadata": 28,
+  "new_additions_high_risk_key_patterns": [],
+  "scope": "Byte comparison and pattern scan; not complete security or semantic PHI certification."
+}

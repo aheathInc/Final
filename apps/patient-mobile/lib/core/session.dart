@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -7,6 +8,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// On a shared or lost phone that is the difference between a session and a
 /// stranger's access to someone's medical history.
 class Session {
+  // Sensitive screens can invalidate in-flight work synchronously when logout
+  // or explicit account login begins. Refresh without user data is not a switch.
+  static final _identityRevision = ValueNotifier<int>(0);
+  static ValueListenable<int> get identityChanges => _identityRevision;
+
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
@@ -21,6 +27,7 @@ class Session {
     required String refreshToken,
     Map<String, dynamic>? user,
   }) async {
+    if (user != null) _identityRevision.value += 1;
     await _storage.write(key: _access, value: accessToken);
     await _storage.write(key: _refresh, value: refreshToken);
     if (user != null) {
@@ -52,6 +59,7 @@ class Session {
   }
 
   static Future<void> clear() async {
+    _identityRevision.value += 1;
     await _storage.delete(key: _access);
     await _storage.delete(key: _refresh);
     await _storage.delete(key: _profile);

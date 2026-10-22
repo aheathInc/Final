@@ -5,6 +5,7 @@ import { api, errorMessage, idem, type DigitalReferral, type Page,
   type ReferralAuthorization, type ReferralCase } from '@/lib/api';
 import { Badge, Button, Card, Empty, Field, Notice, PageHeader, PageShell, areaClass, inputClass } from './ui';
 import { dateTime } from '@/lib/format';
+import { Icon } from './premium/Icon';
 
 const statusLabels: Record<DigitalReferral['status'], string> = {
   draft: 'Draft', submitted: 'Submitted — awaiting facility receipt', received: 'Received — awaiting clinician decision',
@@ -210,15 +211,16 @@ export function DigitalReferralWorkspace() {
 
   return (
     <PageShell>
-      <PageHeader title="Digital referrals" lede="Refer a case only to a facility the patient authorized for this exact care thread. Submitted, accepted and care started are separate states." action={<Button variant="quiet" onClick={() => void load()}>Refresh</Button>} />
+      <PageHeader title="Create a referral" lede="Send a secure, patient-authorized handoff with the clinical context the receiving team needs." action={<Button variant="quiet" onClick={() => void load()}>Refresh</Button>} />
       <div className="mt-5 space-y-4">
         {error && <Notice>{error}</Notice>}
         {notice && <p role="status" className="rounded border border-teal/30 bg-teal/5 p-3 text-sm">{notice}</p>}
       </div>
-      <Card className="mt-5">
-        <h2 className="text-lg font-semibold">Create referral</h2>
-        <p className="mb-4 text-sm text-ink-soft">Only your assigned or primary-clinician cases appear. Destination options are limited to active exact-thread facility consents.</p>
-        <form className="grid gap-4" onSubmit={submitNewReferral}>
+      <div className="ahp-referral-layout">
+      <Card className="ahp-referral-card">
+        <div className="ahp-toolbar"><h2>Referral details</h2><span className="ahp-caption">Patient-authorized information only</span></div>
+        <form className="ahp-referral-form" onSubmit={submitNewReferral}>
+          <h3 className="ahp-form-section-line"><span className="ahp-step-number">1</span>Case & destination</h3>
           <Field label="Case" htmlFor="referral-case-select">
             <select id="referral-case-select" className={inputClass} value={selectedCase} onChange={(event) => void chooseCase(event.target.value)} required>
               <option value="">Select a case</option>
@@ -238,25 +240,29 @@ export function DigitalReferralWorkspace() {
               {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
             </select>
           </Field>}
-          <Field label="Referral purpose" htmlFor="referral-purpose"><textarea id="referral-purpose" className={areaClass} value={purpose} minLength={5} maxLength={1000} required onChange={(event) => setPurpose(event.target.value)} /></Field>
-          <Field label="Minimum necessary summary — review and edit before sending" htmlFor="referral-summary"><textarea id="referral-summary" className={areaClass} value={summary} minLength={5} maxLength={4000} required onChange={(event) => setSummary(event.target.value)} /></Field>
+          <h3 className="ahp-form-section-line"><span className="ahp-step-number">2</span>Clinical context</h3>
+          <div className="ahp-full"><Field label="Referral purpose" htmlFor="referral-purpose"><textarea id="referral-purpose" className={areaClass} value={purpose} minLength={5} maxLength={1000} required rows={2} onChange={(event) => setPurpose(event.target.value)} /></Field></div>
+          <div className="ahp-full"><Field label="Minimum necessary summary — review and edit before sending" htmlFor="referral-summary"><textarea id="referral-summary" className={areaClass} value={summary} minLength={5} maxLength={4000} required rows={3} onChange={(event) => setSummary(event.target.value)} /></Field></div>
           <Field label="Priority" htmlFor="referral-priority">
             <select id="referral-priority" className={inputClass} value={priority} onChange={(event) => setPriority(event.target.value as typeof priority)}>
               <option value="routine">Routine</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option>
             </select>
           </Field>
-          <div><Button disabled={busyId === 'create' || !selectedAuthorization}>{busyId === 'create' ? 'Saving…' : 'Confirm and submit referral'}</Button></div>
+          <div className="ahp-form-actions"><Button disabled={loading || busyId === 'create' || !selectedAuthorization}>{busyId === 'create' ? 'Saving…' : 'Confirm and submit referral'}</Button></div>
         </form>
       </Card>
-
-      <section className="mt-8 space-y-3">
+      <aside className="ahp-context"><Icon name="shield" size={27}/><h2>Patient consent sets the boundary.</h2><p>Only your assigned cases and active, exact-thread facility consents are available.</p><hr/><strong>Share the minimum necessary</strong><p>Review the summary before sending. A referral never grants unrestricted access to a patient’s record.</p><hr/><strong>Keep each stage clear</strong><p>Submitted, accepted and care started are separate states.</p></aside>
+      </div>
+      <div className="ahp-referral-lists">
+      <section className="ahp-card space-y-3">
         <h2 className="text-lg font-semibold">Receiving facility inbox</h2>
         {loading ? <p>Loading referrals…</p> : inbox.length ? <div className="space-y-3">{inbox.map((item) => referralCard(item, 'inbox'))}</div> : <Empty>No authorized incoming referrals are waiting.</Empty>}
       </section>
-      <section className="mt-8 space-y-3">
+      <section className="ahp-card space-y-3">
         <h2 className="text-lg font-semibold">Referrals I sent</h2>
         {loading ? <p>Loading referrals…</p> : source.length ? <div className="space-y-3">{source.map((item) => referralCard(item, 'source'))}</div> : <Empty>You have not sent any referrals.</Empty>}
       </section>
+      </div>
     </PageShell>
   );
 }

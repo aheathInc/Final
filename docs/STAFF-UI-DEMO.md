@@ -1,6 +1,6 @@
 # AHP Staff UI Demo Milestone
 
-> **Final recovery status (2026-09-29):** This is historical AHP demo documentation. Its browser/test evidence and listed database backup describe the old AHP environment, not this Final worktree. The seed source is recovered at `Web/scripts/seed-staff-demo.ts`, adapted to Final’s `Web/` workspace, and has not been run.
+> **Final recovery status (2026-09-29):** This is historical AHP demo documentation. Its browser/test evidence and listed database backup describe the old AHP environment, not this Final worktree. The seed source is recovered at `scripts/seed-staff-demo.ts`, adapted to Final’s `` workspace, and has not been run.
 
 Feature branch: `feat/ahp-staff-ui-demo-20260913`
 
@@ -25,7 +25,7 @@ Pre-seed private database backup:
 
 `/home/kali/ahp-local-backups/ahp-staff-ui-demo-preseed-20260913-150843/`
 
-Commands below run from `Web/`. The seed script type-checks without database access; actual seeding has not been run during recovery and requires configured backend service `.env` files, app `.env.local`, and a verified local database target.
+Commands below run from ``. The seed script type-checks without database access; actual seeding has not been run during recovery and requires configured backend service `.env` files, app `.env.local`, and a verified local database target.
 
 Seed command:
 
@@ -42,13 +42,12 @@ Manifest:
 
 Demo login notes:
 
-Set `AHP_STAFF_DEMO_PASSWORD` in the gitignored `Web/.env` before running the seed. The demo specialist reuses the existing local clinician password hash, so supply that account's local password. The seed stops if the variable is missing. Keep its value out of tracked files.
+The seed reuses the verified local clinician's password hash for its synthetic specialist account. It does not accept, print, or write a password to the manifest. Use the existing clinician credential through the real Auth endpoint.
 
 - Main clinician: `daktari@dev.local`
 - Platform admin: `msimamizi@dev.local`
 - Demo specialist clinician: `ahp.staff.demo.specialist@dev.local`
 - Demo unrelated clinician: `ahp.staff.demo.unrelated@dev.local`
-- Demo clinician password: supplied through gitignored `Web/.env` as `AHP_STAFF_DEMO_PASSWORD`
 
 ## Demo Coverage
 
@@ -61,7 +60,7 @@ The dataset adds fictional local records for:
 - Prescription-test-template and adherence records.
 - Family assignment and professional network records.
 - Second-opinion request.
-- Facility, device, emergency request, incident, transport unit and local/mock payment.
+- Facility, device, emergency request, incident, transport unit and a pending local payment intent. The demo does not create a settled `Payment` row or claim provider confirmation.
 - Aggregate research dataset/query and surveillance rollups.
 
 ## Undo
@@ -78,7 +77,7 @@ The undo deletes only deterministic IDs in namespace `AHP_STAFF_DEMO_V1`. It doe
 
 ## Current Implementation Notes
 
-- Shared `apps/web` UI primitives now provide wider staff pages, refined cards, badges and a soft A-health product surface.
+- Shared `apps/staff-web` UI primitives now provide wider staff pages, refined cards, badges and a soft A-health product surface.
 - Doctor queue has a navy-to-teal clinical header with a restrained line/dot pattern behind header content only.
 - Unified links were corrected where old single-app routes missed `/doctor` or `/admin` prefixes.
 - Follow-up adherence visibility now includes clinicians attached to the relevant care thread through primary or assigned consultation ownership.

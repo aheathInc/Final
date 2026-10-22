@@ -80,9 +80,14 @@ export function QueueView() {
 
   return (
     <div>
+      <section className="ahp-stat-grid" aria-label="Loaded queue summary">
+        {[{label:scope==='offered'?'Available offers':'My active cases',value:visibleEntries.length},{label:'Urgent requests',value:visibleEntries.filter(e=>e.consultation.urgency_level==='urgent').length},{label:'Emergency requests',value:visibleEntries.filter(e=>e.consultation.urgency_level==='emergency').length},{label:'Records returned',value:entries.length}].map(stat=><div key={stat.label} className="ahp-stat"><span className="ahp-stat-label">{stat.label}</span><strong className="ahp-stat-value">{loading||error?'—':stat.value}</strong><span className="ahp-stat-note">Current page, not a hospital total</span></div>)}
+      </section>
+      <section className="ahp-card p-0 ahp-queue-body">
+      <div className="ahp-toolbar"><h2>Consultation queue</h2><span className="ahp-caption">{loading ? 'Loading…' : error ? 'Queue unavailable' : `${visibleEntries.length} ${scope==='offered'?'available offers':'active cases'} on this page`} · refreshes every 15 seconds</span></div>
       <div className="flex gap-1 border-b border-line bg-paper-sunk/60 px-3 pt-3">
         {(['offered', 'mine'] as const).map((s) => (
-          <button key={s} onClick={() => setScope(s)}
+          <button key={s} aria-pressed={scope===s} onClick={() => setScope(s)}
             className={`min-h-11 rounded-t-md px-4 text-[0.95rem] transition-colors ${
               scope === s ? 'border-b-2 border-petrol bg-white font-semibold text-petrol shadow-sm' : 'text-ink-soft hover:bg-white/70 hover:text-ink'
             }`}>
@@ -93,7 +98,7 @@ export function QueueView() {
 
       {error && <div className="mt-4"><Notice>{error}</Notice></div>}
 
-      {loading ? <Loading /> : visibleEntries.length === 0 ? (
+      {loading ? <Loading /> : error ? null : visibleEntries.length === 0 ? (
         <Empty>
           {scope === 'offered' ? 'No offered cases are waiting right now.' : 'You do not have active cases assigned.'}
         </Empty>
@@ -107,6 +112,7 @@ export function QueueView() {
           ))}
         </ul>
       )}
+      </section>
     </div>
   );
 }

@@ -17,7 +17,7 @@ Safe variable names and placeholders are in the tracked `.env.example` files. Au
 
 ## Locked dependency and build checks
 
-From `Web/`:
+From ``:
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -29,19 +29,19 @@ pnpm exec turbo run build --concurrency=2
 For the Staff Web app:
 
 ```powershell
-Set-Location apps/web
+Set-Location apps/staff-web
 pnpm run type-check
 pnpm run build
 pnpm start
 ```
 
-Run Firefox acceptance against the production server with release credentials held in the ignored `apps/web/.env.local` only in a local test environment:
+Run Firefox acceptance against the production server with release credentials held in the ignored `apps/staff-web/.env.local` only in a local test environment:
 
 ```powershell
 pnpm exec playwright test tests/e2e/staff-acceptance.spec.ts --project=firefox
 ```
 
-For the patient app, from `Mobile app/patient_app/`:
+For the patient app, from `apps/patient-mobile/`:
 
 ```powershell
 flutter pub get --enforce-lockfile
@@ -69,7 +69,7 @@ Use a release signing key only in the approved signing pipeline. The acceptance 
 
 1. Confirm the exact application release and migration set. Confirm the deployed app version is compatible with the new schema.
 2. Re-run `prisma validate`, `prisma migrate status`, and a schema-drift check against an isolated production-like database first.
-3. Apply migrations from `Web/packages/database/` using the production `DATABASE_URL` supplied only in the process environment/secret manager:
+3. Apply migrations from `packages/database/` using the production `DATABASE_URL` supplied only in the process environment/secret manager:
 
    ```powershell
    pnpm exec prisma migrate deploy

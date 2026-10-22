@@ -34,11 +34,16 @@ info:
 
     ## Idempotency
 
-    Every POST that creates or transitions clinical state requires an
+    Except for the explicitly documented Digital Front Desk endpoints, every
+    POST that creates or transitions clinical state requires an
     `Idempotency-Key` header. The key is generated on the client, before the
     first send attempt, and reused across retries. The server stores the first
     response against the key for 24 hours and replays it on repeat. Without
     this, offline sync produces duplicate clinical records.
+
+    Digital Front Desk uses a durable body `request_key` for creation and
+    optimistic `base_version` for actions; stale action retries return 409.
+    It is online-only and never feeds the offline write outbox.
 
     ## Pagination
 
@@ -106,6 +111,8 @@ servers:
     description: Local development
 
 tags:
+  - name: front-desk
+    description: Patient pre-registration and scoped administrative queues; human clinical clearance required.
   - name: auth
     description: Registration, OTP, login, token lifecycle. Phase 0.
   - name: users
@@ -423,6 +430,43 @@ paths:
         '204':
           description: Session revoked
         '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /auth/password/set:
+    post:
+      tags: [auth]
+      summary: Set, change, or reset a password
+      description: |
+        Set a password after OTP verification, or change a password after a
+        password login by supplying the current password. Patient accounts
+        cannot use password authentication. All active refresh sessions are
+        revoked after a successful change.
+      operationId: setPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_password]
+              properties:
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 12
+                current_password:
+                  type: string
+                  format: password
+                  description: Required for password-authenticated sessions; omit after OTP verification.
+      responses:
+        '204':
+          description: Password set or changed; active refresh sessions revoked
+        '401':
+          description: Not authenticated, or current password is incorrect
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /audit/ledger:
     get:
@@ -1944,12 +1988,13 @@ paths:
       tags: [medications]
       summary: Report whether a scheduled dose was taken
       description: |
-        Reachable from an app notification, an SMS reply, or a USSD menu — the
-        gateway translates all three into this same call.
-
-        Repeated missed doses on the same prescription raise a task for the
-        assigned clinician. That escalation is the whole point of the feature:
-        recording non-adherence without acting on it changes nothing.
+        Patient-reported taken/skipped/delayed status. Silence is never converted to
+        a skipped dose. A final report cannot be silently overwritten; delayed may
+        later be confirmed taken or skipped. Same-payload retry is idempotent.
+        Consecutive explicitly reported missed doses create an audit marker; this
+        does not claim a clinical alert or a staffed escalation task was delivered.
+        The new care-continuity mobile screen writes online only. Existing offline
+        outbox behavior is separate and must pass regression before rollout.
       operationId: confirmAdherence
       parameters:
         - $ref: '#/components/parameters/AdherenceLogId'
@@ -1963,7 +2008,9 @@ paths:
               required: [reported_status]
               properties:
                 reported_status:
-                  $ref: '#/components/schemas/AdherenceStatus'
+                  type: string
+                  enum: [taken, missed, delayed]
+                base_version: { type: integer, minimum: 1 }
                 channel:
                   $ref: '#/components/schemas/Channel'
                 note:
@@ -5282,6 +5329,1641 @@ paths:
         '200': { description: Authorized imported details and source provenance. }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /front-desk/facilities:
+    get:
+      tags:
+      - front-desk
+      summary: List enabled digital front desks
+      description: Authenticated directory. Platform administrators also see active
+        disabled facilities for opt-in. Availability is not a hospital partnership claim.
+      operationId: listFrontDeskFacilities
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskFacilityList'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+  /front-desk/facilities/{facility_id}/policy:
+    patch:
+      tags:
+      - front-desk
+      summary: Configure facility administrative requirements
+      description: Platform administrator only. Disabled by default. Manual requirement
+        settings apply to future visits; current visits retain their policy snapshot.
+        Clinical assessment is always required.
+      operationId: configureFrontDeskPolicy
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskPolicyResult'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskPolicyInput'
+  /front-desk/facilities/{facility_id}/departments:
+    get:
+      tags:
+      - front-desk
+      summary: List active facility departments
+      description: Lists actual departments. Does not infer or create a specialty.
+      operationId: listFrontDeskDepartments
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskDepartmentList'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /front-desk/facilities/{facility_id}/departments/{department_id}/navigation:
+    patch:
+      tags:
+      - front-desk
+      summary: Configure directory terms
+      description: Platform administrator only. Directory labels are not diagnostic
+        or triage rules.
+      operationId: configureFrontDeskAliases
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskAliasResult'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: department_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskAliasesInput'
+  /front-desk/facilities/{facility_id}/navigation:
+    post:
+      tags:
+      - front-desk
+      summary: Suggest directory matches without clinical inference
+      description: Explicit keyword match only. Not AI, diagnosis or triage. Text is
+        not persisted. Patient must confirm a department. No state mutation; no Idempotency-Key
+        required.
+      operationId: navigateFrontDeskDepartment
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskNavigation'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskNavigationInput'
+  /front-desk/facilities/{facility_id}/departments/{department_id}/queue:
+    get:
+      tags:
+      - front-desk
+      summary: Read scoped queue and provider snapshot
+      description: Counts cover AHP-registered waiting visits only. Maximum 100 verified
+        clinicians. Does not promise wait time, full hospital census or external capacity.
+      operationId: getFrontDeskDepartmentBoard
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskBoard'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: facility_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: department_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /front-desk/visits:
+    get:
+      tags:
+      - front-desk
+      summary: Read own hospital visits
+      description: Patient or existing authorized guardian ownership, not staff listing.
+      operationId: listMyFrontDeskVisits
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisitList'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: patient_profile_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+    post:
+      tags:
+      - front-desk
+      summary: Pre-register a hospital visit
+      description: Patient only. Uses durable body request_key rather than the generic
+        24-hour Idempotency-Key middleware. Same key and input returns the same visit;
+        changed input returns 409. Urgent help never creates an ordinary queue ticket.
+        One active visit per patient/facility.
+      operationId: createFrontDeskVisit
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisit'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskCreateInput'
+  /front-desk/staff/visits:
+    get:
+      tags:
+      - front-desk
+      summary: Read authorized facility intake queue
+      description: Platform administrator for administrative data; verified clinician
+        for their actual active facility and department. No automatic facility_admin
+        privilege. Clinical purpose excluded from admin responses.
+      operationId: listStaffFrontDeskVisits
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisitList'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: facility_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: department_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/FrontDeskStatus'
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+  /front-desk/visits/{visit_id}:
+    get:
+      tags:
+      - front-desk
+      summary: Read visit and scoped administrative position
+      description: Only owner/guardian or authorized staff. FIFO position is a point-in-time
+        administration aid in the same facility, department and selected-doctor/pool,
+        not a care priority decision.
+      operationId: getFrontDeskVisit
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisitDetail'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: visit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /front-desk/visits/{visit_id}/check-in:
+    post:
+      tags:
+      - front-desk
+      summary: Declare arrival at the facility
+      description: Patient only; self-reported arrival, not GPS or staff confirmation.
+        Requires base_version. Retry with a stale version returns 409; reload instead
+        of repeating the action. No generic Idempotency-Key is used.
+      operationId: checkInFrontDeskVisit
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisit'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: visit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskVersionInput'
+  /front-desk/visits/{visit_id}/administrative-review:
+    post:
+      tags:
+      - front-desk
+      summary: Record actual manual administrative verification
+      description: Platform administrator only. Requires genuine registration/payment/insurance
+        review; this endpoint does not charge or query an insurer. Requires base_version.
+        Retry with a stale version returns 409; reload instead of repeating the action.
+        No generic Idempotency-Key is used.
+      operationId: reviewFrontDeskAdministration
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisit'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: visit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskAdministrativeInput'
+  /front-desk/visits/{visit_id}/clinical-review:
+    post:
+      tags:
+      - front-desk
+      summary: Record clinician assessment for routine queue or escalation
+      description: Verified clinician in the selected department. Explicit human action;
+        not algorithmic triage. Escalated remains outside routine queue. No dispatch
+        occurs. Requires base_version. Retry with a stale version returns 409; reload
+        instead of repeating the action. No generic Idempotency-Key is used.
+      operationId: reviewFrontDeskClinicalReadiness
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisit'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: visit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskClinicalInput'
+  /front-desk/visits/{visit_id}/call:
+    post:
+      tags:
+      - front-desk
+      summary: Call a ready patient
+      description: Verified available department clinician; respects requested clinician.
+        One called/in-care front-desk patient per clinician. Requires base_version.
+        Retry with a stale version returns 409; reload instead of repeating the action.
+        No generic Idempotency-Key is used.
+      operationId: callFrontDeskVisit
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisit'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: visit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskVersionInput'
+  /front-desk/visits/{visit_id}/start:
+    post:
+      tags:
+      - front-desk
+      summary: Start existing consultation workflow
+      description: Assigned available clinician only. Creates linked care thread and
+        in-progress chat-capable consultation atomically, without a routing offer or
+        additional payment claim. Requires base_version. Retry with a stale version
+        returns 409; reload instead of repeating the action. No generic Idempotency-Key
+        is used.
+      operationId: startFrontDeskConsultation
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisit'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: visit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskVersionInput'
+  /front-desk/visits/{visit_id}/cancel:
+    post:
+      tags:
+      - front-desk
+      summary: Cancel a visit before consultation starts
+      description: Owner/guardian or authorized staff only. Preserves history. Not allowed
+        during or after consultation. Requires base_version. Retry with a stale version
+        returns 409; reload instead of repeating the action. No generic Idempotency-Key
+        is used.
+      operationId: cancelFrontDeskVisit
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Persisted response. No-store; no insurer, payment or AI verification
+            is implied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontDeskVisit'
+        '401':
+          description: Invalid or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Ownership, active account, role, membership or intake-sharing
+            denial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Resource or active department not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Disabled desk, stale version, active-visit conflict, unavailable
+            clinician, urgent-help request or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Invalid input or incomplete manual verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      parameters:
+      - name: visit_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontDeskVersionInput'
+
+  /care-continuity/me:
+    get:
+      tags:
+      - care-continuity
+      operationId: getMyCareContinuity
+      summary: Patient-owned doses, follow-up and in-app reminders
+      security:
+      - bearerAuth: []
+      description: Owner/guardian only. Doses cover the current minus/plus seven-day window and are cursor-paginated;
+        plans/cycles are bounded at 50, reminders at 50. Check-in/contact lists per cycle are limited to 20. A missed
+        check-in is not a missed dose. Legacy schedules are marked timing_not_confirmed. No private clinician notes
+        are returned.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityPatientOverview'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: patient_profile_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+  /care-continuity/worklist:
+    get:
+      tags:
+      - care-continuity
+      operationId: getClinicianContinuityWorklist
+      summary: Assigned clinician follow-up worklist
+      security:
+      - bearerAuth: []
+      description: Authenticated care coordination. Server-side current role, ownership and clinician assignment checks
+        apply.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityWorklist'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - active
+          - completed
+          - cancelled
+          default: active
+  /care-continuity/prescriptions:
+    get:
+      tags:
+      - care-continuity
+      operationId: getClinicianMedicationTimings
+      summary: Prescriber-owned signed prescriptions independent of follow-up cycles
+      security:
+      - bearerAuth: []
+      description: Authenticated care coordination. Server-side current role, ownership and clinician assignment checks
+        apply.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityPrescriptionPage'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      parameters:
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+  /care-continuity/cycles/{id}:
+    get:
+      tags:
+      - care-continuity
+      operationId: getClinicianContinuityDetail
+      summary: Assigned clinician review, timing and contact detail
+      security:
+      - bearerAuth: []
+      description: Verified assigned clinician only. Latest 100 check-ins, 20 prescriptions, 100 last-seven-day dose
+        rows per prescription and 50 contacts; truncation flags indicate bounded detail. These are not universal patient-record
+        permissions.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityCycleDetail'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /care-continuity/patients/{id}/preferences:
+    post:
+      tags:
+      - care-continuity
+      operationId: setCareReminderPreference
+      summary: Patient opt-in or opt-out for generic SMS reminders
+      security:
+      - bearerAuth: []
+      description: Owner/guardian only. Default SMS is off. Opt-out suppresses queued unsent care messages at dispatch
+        but cannot recall a message already accepted by a provider.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityPreferenceResult'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuityPreferenceRequest'
+  /care-continuity/reminders/{id}/read:
+    post:
+      tags:
+      - care-continuity
+      operationId: markCareReminderRead
+      summary: Mark an owned reminder read
+      security:
+      - bearerAuth: []
+      description: Owner/guardian only. Idempotent read acknowledgment does not confirm medication intake.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityReadResult'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+  /care-continuity/items/{id}/schedule:
+    post:
+      tags:
+      - care-continuity
+      operationId: setMedicationReminderTimes
+      summary: Prescribing clinician selects explicit reminder times
+      security:
+      - bearerAuth: []
+      description: Verified prescriber of a signed, completed consultation and non-discontinued prescription only.
+        Times must be distinct and match the prescribed frequency. Existing reported doses prevent rescheduling. Calendar
+        date, IANA zone and DST ambiguity are validated. No dose/frequency/duration is changed. base_version=0 creates;
+        later edits require the latest version. Prior unreported slots are preserved as superseded.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityScheduleResult'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuityScheduleRequest'
+  /care-continuity/plans/{id}/state:
+    post:
+      tags:
+      - care-continuity
+      operationId: setMedicationReminderState
+      summary: Prescriber pauses, resumes or cancels reminders
+      security:
+      - bearerAuth: []
+      description: Changes reminder delivery only; never changes the prescription. Cancelled plans cannot reopen.
+        Required base_version prevents stale edits.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityPlan'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuityPlanStateRequest'
+  /care-continuity/check-ins/{id}/review:
+    post:
+      tags:
+      - care-continuity
+      operationId: reviewContinuityCheckIn
+      summary: Assigned clinician reviews patient check-in
+      security:
+      - bearerAuth: []
+      description: Records a private review note and recomputes pending flagged check-ins. No recovery outcome is
+        inferred. A late patient answer invalidates an earlier review.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityReviewResult'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuityReviewRequest'
+  /care-continuity/cycles/{id}/contacts:
+    post:
+      tags:
+      - care-continuity
+      operationId: scheduleCareContact
+      summary: Plan a phone or care-thread contact
+      security:
+      - bearerAuth: []
+      description: Assigned clinician and active cycle required. Durable request_key makes retries safe. Purpose is
+        patient-visible, notes are private. This records an appointment, not an actual phone call or video session.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityClinicianContact'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuityContactRequest'
+  /care-continuity/contacts/{id}/outcome:
+    post:
+      tags:
+      - care-continuity
+      operationId: recordCareContactOutcome
+      summary: Record the observed outcome of a planned contact
+      security:
+      - bearerAuth: []
+      description: Assigned clinician only, scheduled contact and current base_version required. Completion is clinician-reported
+        and does not imply patient recovery.
+      responses:
+        '200':
+          description: Persisted authorized result. No clinical outcome is inferred.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContinuityClinicianContact'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinuityContactOutcomeRequest'
+
 components:
 
   securitySchemes:
@@ -5511,6 +7193,859 @@ components:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
 
   schemas:
+    ContinuityPageMeta:
+      type: object
+      properties:
+        has_more:
+          type: boolean
+        next_cursor:
+          type:
+          - string
+          - 'null'
+          format: uuid
+      required:
+      - has_more
+      - next_cursor
+    ContinuityPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prescription_item_id:
+          type: string
+          format: uuid
+        timezone:
+          type: string
+        start_date:
+          type: string
+          format: date
+        times:
+          type: array
+          items:
+            type: string
+            pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - cancelled
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - id
+      - prescription_item_id
+      - timezone
+      - start_date
+      - times
+      - status
+      - version
+    ContinuityScheduleRequest:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 0
+        start_date:
+          type: string
+          format: date
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 80
+        times:
+          type: array
+          items:
+            type: string
+            pattern: ^([01]\d|2[0-3]):[0-5]\d$
+          minItems: 1
+          maxItems: 12
+          uniqueItems: true
+      required:
+      - base_version
+      - start_date
+      - timezone
+      - times
+      additionalProperties: false
+    ContinuityScheduleResult:
+      allOf:
+      - $ref: '#/components/schemas/ContinuityPlan'
+      - type: object
+        properties:
+          dose_count:
+            type: integer
+            minimum: 1
+        required:
+        - dose_count
+    ContinuityPlanStateRequest:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - cancelled
+      required:
+      - base_version
+      - status
+      additionalProperties: false
+    ContinuityPreferenceRequest:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 0
+        sms_enabled:
+          type: boolean
+      required:
+      - base_version
+      - sms_enabled
+      additionalProperties: false
+    ContinuityPreference:
+      type: object
+      properties:
+        sms_enabled:
+          type: boolean
+        version:
+          type: integer
+          minimum: 0
+      required:
+      - sms_enabled
+      - version
+    ContinuityPreferenceResult:
+      allOf:
+      - $ref: '#/components/schemas/ContinuityPreference'
+      - type: object
+        properties:
+          patient_profile_id:
+            type: string
+            format: uuid
+        required:
+        - patient_profile_id
+    ContinuityReviewRequest:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+        note:
+          type: string
+          maxLength: 2000
+      required:
+      - base_version
+      additionalProperties: false
+    ContinuityReviewResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reviewed:
+          type: boolean
+        open_deviation_count:
+          type: integer
+          minimum: 0
+      required:
+      - id
+      - reviewed
+      - open_deviation_count
+    ContinuityContactRequest:
+      type: object
+      properties:
+        request_key:
+          type: string
+          format: uuid
+        scheduled_at:
+          type: string
+          format: date-time
+        channel:
+          type: string
+          enum:
+          - phone
+          - chat
+        purpose:
+          type: string
+          minLength: 1
+          maxLength: 500
+      required:
+      - request_key
+      - scheduled_at
+      - channel
+      - purpose
+      additionalProperties: false
+    ContinuityContactOutcomeRequest:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+          - completed
+          - no_answer
+          - cancelled
+        note:
+          type: string
+          maxLength: 2000
+      required:
+      - base_version
+      - status
+      additionalProperties: false
+    ContinuityPatientContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        follow_up_cycle_id:
+          type: string
+          format: uuid
+        scheduled_at:
+          type: string
+          format: date-time
+        channel:
+          type: string
+          enum:
+          - phone
+          - chat
+        purpose:
+          type: string
+        status:
+          type: string
+          enum:
+          - scheduled
+          - completed
+          - no_answer
+          - cancelled
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - id
+      - follow_up_cycle_id
+      - scheduled_at
+      - channel
+      - purpose
+      - status
+      - completed_at
+      - version
+    ContinuityClinicianContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        follow_up_cycle_id:
+          type: string
+          format: uuid
+        scheduled_at:
+          type: string
+          format: date-time
+        channel:
+          type: string
+          enum:
+          - phone
+          - chat
+        purpose:
+          type: string
+        status:
+          type: string
+          enum:
+          - scheduled
+          - completed
+          - no_answer
+          - cancelled
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+        note:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - follow_up_cycle_id
+      - scheduled_at
+      - channel
+      - purpose
+      - status
+      - completed_at
+      - version
+      - note
+    ContinuityDose:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prescription_id:
+          type: string
+          format: uuid
+        prescription_item_id:
+          type: string
+          format: uuid
+        medication_name:
+          type: string
+        dosage:
+          type: string
+        scheduled_at:
+          type: string
+          format: date-time
+        reported_status:
+          type: string
+          enum:
+          - unreported
+          - taken
+          - missed
+          - delayed
+        reported_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        state:
+          type: string
+          enum:
+          - upcoming
+          - not_confirmed
+          - taken
+          - patient_reported_skipped
+          - patient_reported_delayed
+        version:
+          type: integer
+          minimum: 1
+        schedule_status:
+          type: string
+          enum:
+          - active
+          - paused
+          - cancelled
+          - timing_not_confirmed
+        timezone:
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - prescription_id
+      - prescription_item_id
+      - medication_name
+      - dosage
+      - scheduled_at
+      - reported_status
+      - reported_at
+      - state
+      - version
+      - schedule_status
+      - timezone
+    ContinuityPatientCycle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        care_thread_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - active
+          - completed
+          - cancelled
+        end_date:
+          type: string
+          format: date-time
+        review_due:
+          type: boolean
+        outcome:
+          type:
+          - string
+          - 'null'
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityPatientContact'
+        checkins:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              scheduled_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+            required:
+            - id
+            - scheduled_at
+            - status
+      required:
+      - id
+      - care_thread_id
+      - status
+      - end_date
+      - review_due
+      - outcome
+      - contacts
+      - checkins
+    ContinuityWorklistCycle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        care_thread_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - active
+          - completed
+          - cancelled
+        end_date:
+          type: string
+          format: date-time
+        review_due:
+          type: boolean
+        outcome:
+          type:
+          - string
+          - 'null'
+        patient_profile_id:
+          type: string
+          format: uuid
+        patient_name:
+          type: string
+        start_date:
+          type: string
+          format: date-time
+        unreviewed_checkins:
+          type: integer
+          minimum: 0
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - id
+      - care_thread_id
+      - status
+      - end_date
+      - review_due
+      - outcome
+      - patient_profile_id
+      - patient_name
+      - start_date
+      - unreviewed_checkins
+      - version
+    ContinuityReminder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        adherence_log_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        check_in_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        due_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        read_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        delivery:
+          type: string
+          enum:
+          - in_app_only
+          - queued
+          - accepted_by_provider
+          - delivered
+          - failed
+          - simulated
+          - suppressed
+      required:
+      - id
+      - adherence_log_id
+      - check_in_id
+      - due_at
+      - expires_at
+      - read_at
+      - delivery
+    ContinuityMedicationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        medication_name:
+          type: string
+        dosage:
+          type: string
+        frequency_per_day:
+          type: integer
+          minimum: 1
+        duration_days:
+          type: integer
+          minimum: 1
+        has_reports:
+          type: boolean
+        plan:
+          anyOf:
+          - $ref: '#/components/schemas/ContinuityPlan'
+          - type: 'null'
+      required:
+      - id
+      - medication_name
+      - dosage
+      - frequency_per_day
+      - duration_days
+      - has_reports
+      - plan
+    ContinuityPrescriptionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_name:
+          type: string
+        consultation_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityMedicationItem'
+      required:
+      - id
+      - patient_name
+      - consultation_id
+      - created_at
+      - status
+      - items
+    ContinuityPatientOverview:
+      type: object
+      properties:
+        patient:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            full_name:
+              type: string
+          required:
+          - id
+          - full_name
+        profiles:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              full_name:
+                type: string
+            required:
+            - id
+            - full_name
+        as_of:
+          type: string
+          format: date-time
+        window:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date-time
+            to:
+              type: string
+              format: date-time
+          required:
+          - from
+          - to
+        doses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityDose'
+        meta:
+          $ref: '#/components/schemas/ContinuityPageMeta'
+        preference:
+          $ref: '#/components/schemas/ContinuityPreference'
+        plans:
+          type: array
+          items:
+            type: object
+            properties:
+              prescription_item_id:
+                type: string
+                format: uuid
+              medication_name:
+                type: string
+              dosage:
+                type: string
+              plan:
+                anyOf:
+                - $ref: '#/components/schemas/ContinuityPlan'
+                - type: 'null'
+            required:
+            - prescription_item_id
+            - medication_name
+            - dosage
+            - plan
+        plans_truncated:
+          type: boolean
+        cycles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityPatientCycle'
+        cycles_truncated:
+          type: boolean
+        reminders:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityReminder'
+        message:
+          type: string
+      required:
+      - patient
+      - profiles
+      - as_of
+      - window
+      - doses
+      - meta
+      - preference
+      - plans
+      - plans_truncated
+      - cycles
+      - cycles_truncated
+      - reminders
+      - message
+    ContinuityCycleDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        care_thread_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - active
+          - completed
+          - cancelled
+        end_date:
+          type: string
+          format: date-time
+        review_due:
+          type: boolean
+        outcome:
+          type:
+          - string
+          - 'null'
+        source_consultation_id:
+          type: string
+          format: uuid
+        patient_profile_id:
+          type: string
+          format: uuid
+        patient_name:
+          type: string
+        contact_phone:
+          type:
+          - string
+          - 'null'
+        version:
+          type: integer
+          minimum: 1
+        checkins:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              scheduled_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+              is_deviation:
+                type: boolean
+              responses: {}
+              deviation_reasons: {}
+              reviewed_at:
+                type:
+                - string
+                - 'null'
+                format: date-time
+              review_note:
+                type:
+                - string
+                - 'null'
+              version:
+                type: integer
+                minimum: 1
+            required:
+            - id
+            - scheduled_at
+            - status
+            - is_deviation
+            - responses
+            - deviation_reasons
+            - reviewed_at
+            - review_note
+            - version
+        checkins_truncated:
+          type: boolean
+        prescriptions:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              status:
+                type: string
+              can_schedule:
+                type: boolean
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContinuityMedicationItem'
+              recent_doses:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    medication_name:
+                      type: string
+                    scheduled_at:
+                      type: string
+                      format: date-time
+                    state:
+                      type: string
+                  required:
+                  - id
+                  - medication_name
+                  - scheduled_at
+                  - state
+              doses_truncated:
+                type: boolean
+            required:
+            - id
+            - status
+            - can_schedule
+            - items
+            - recent_doses
+            - doses_truncated
+        prescriptions_truncated:
+          type: boolean
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityClinicianContact'
+        contacts_truncated:
+          type: boolean
+      required:
+      - id
+      - care_thread_id
+      - status
+      - end_date
+      - review_due
+      - outcome
+      - source_consultation_id
+      - patient_profile_id
+      - patient_name
+      - contact_phone
+      - version
+      - checkins
+      - checkins_truncated
+      - prescriptions
+      - prescriptions_truncated
+      - contacts
+      - contacts_truncated
+    ContinuityReadResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        read:
+          type: boolean
+      required:
+      - id
+      - read
+    ContinuityWorklist:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityWorklistCycle'
+        meta:
+          $ref: '#/components/schemas/ContinuityPageMeta'
+      required:
+      - data
+      - meta
+    ContinuityPrescriptionPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContinuityPrescriptionSummary'
+        meta:
+          $ref: '#/components/schemas/ContinuityPageMeta'
+      required:
+      - data
+      - meta
 
     RegisterExternalHealthSystem:
       type: object
@@ -5762,6 +8297,9 @@ components:
         - NOT_RESOURCE_OWNER
         - NOT_FOUND
         - IDEMPOTENCY_KEY_CONFLICT
+        - FRONT_DESK_DISABLED
+        - FRONT_DESK_URGENT_REVIEW
+        - FRONT_DESK_VISIT_EXISTS
         - VERSION_CONFLICT
         - STATE_TRANSITION_INVALID
         - CLINICIAN_NOT_VERIFIED
@@ -7878,3 +10416,590 @@ components:
         issued_by_id: { type: [string, 'null'], format: uuid }
         provider_reference: { type: [string, 'null'] }
         created_at: { type: string, format: date-time }
+
+    FrontDeskStatus:
+      type: string
+      enum:
+      - preregistered
+      - awaiting_review
+      - waiting
+      - called
+      - in_consultation
+      - completed
+      - cancelled
+    FrontDeskNamedEntity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+      - id
+      - name
+    FrontDeskPagination:
+      type: object
+      properties:
+        has_more:
+          type: boolean
+        next_cursor:
+          type:
+          - string
+          - 'null'
+          format: uuid
+      required:
+      - has_more
+      - next_cursor
+    FrontDeskPolicyInput:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+        enabled:
+          type: boolean
+        payment_required:
+          type: boolean
+        insurance_required:
+          type: boolean
+      required:
+      - base_version
+      - enabled
+      - payment_required
+      - insurance_required
+      additionalProperties: false
+    FrontDeskPolicyResult:
+      type: object
+      properties:
+        facility_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - facility_id
+      - version
+    FrontDeskFacility:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        region_code:
+          type:
+          - string
+          - 'null'
+        version:
+          type: integer
+          minimum: 1
+        enabled:
+          type: boolean
+        payment_required:
+          type: boolean
+        insurance_required:
+          type: boolean
+        clinical_review_required:
+          const: true
+        coverage:
+          const: AHP_REGISTERED_VISITS_ONLY
+      required:
+      - id
+      - name
+      - version
+      - enabled
+      - payment_required
+      - insurance_required
+      - clinical_review_required
+      - coverage
+    FrontDeskDepartment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        specialty:
+          type:
+          - string
+          - 'null'
+        version:
+          type: integer
+          minimum: 1
+        navigation_aliases:
+          type: array
+          items:
+            type: string
+      required:
+      - id
+      - name
+      - specialty
+      - version
+    FrontDeskAliasesInput:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+        aliases:
+          type: array
+          maxItems: 30
+          items:
+            type: string
+            minLength: 2
+            maxLength: 60
+      required:
+      - base_version
+      - aliases
+      additionalProperties: false
+    FrontDeskAliasResult:
+      type: object
+      properties:
+        department_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - department_id
+      - version
+    FrontDeskNavigationInput:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required:
+      - text
+      additionalProperties: false
+    FrontDeskNavigation:
+      type: object
+      properties:
+        mode:
+          const: directory_navigation
+        outcome:
+          type: string
+          enum:
+          - manual_selection_required
+          - suggestion_available
+          - multiple_matches
+        suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              department_id:
+                type: string
+                format: uuid
+              department_name:
+                type: string
+              basis:
+                const: facility_directory_term
+            required:
+            - department_id
+            - department_name
+            - basis
+        patient_confirmation_required:
+          const: true
+        clinical_triage_performed:
+          const: false
+      required:
+      - mode
+      - outcome
+      - suggestions
+      - patient_confirmation_required
+      - clinical_triage_performed
+    FrontDeskCreateInput:
+      type: object
+      properties:
+        request_key:
+          type: string
+          format: uuid
+          description: Generate once for a frozen request. Reuse after transport uncertainty;
+            stored durably with the ticket.
+        patient_profile_id:
+          type: string
+          format: uuid
+        facility_id:
+          type: string
+          format: uuid
+        department_id:
+          type: string
+          format: uuid
+        requested_clinician_id:
+          type: string
+          format: uuid
+        purpose:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        share_with_department:
+          const: true
+        urgent_help_requested:
+          type: boolean
+      required:
+      - request_key
+      - facility_id
+      - department_id
+      - purpose
+      - share_with_department
+      - urgent_help_requested
+      additionalProperties: false
+    FrontDeskVersionInput:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+      required:
+      - base_version
+      additionalProperties: false
+    FrontDeskAdministrativeInput:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+        registration_confirmed:
+          const: true
+        payment_check:
+          enum:
+          - manually_verified
+          - not_required
+        insurance_check:
+          enum:
+          - manually_verified
+          - not_required
+        payment_reference:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Required for manual verification. Non-sensitive facility reference
+            only; never an account/card/member number.
+        insurance_reference:
+          type: string
+          minLength: 1
+          maxLength: 120
+      required:
+      - base_version
+      - registration_confirmed
+      - payment_check
+      - insurance_check
+      additionalProperties: false
+    FrontDeskClinicalInput:
+      type: object
+      properties:
+        base_version:
+          type: integer
+          minimum: 1
+        decision:
+          enum:
+          - cleared
+          - escalated
+      required:
+      - base_version
+      - decision
+      additionalProperties: false
+    FrontDeskVisit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ticket:
+          type: string
+        status:
+          $ref: '#/components/schemas/FrontDeskStatus'
+        version:
+          type: integer
+          minimum: 1
+        patient_profile_id:
+          type: string
+          format: uuid
+        patient_name:
+          type: string
+        purpose:
+          type: string
+          description: Patient/guardian and authorized department clinician only; omitted
+            from platform-admin DTO.
+        facility:
+          $ref: '#/components/schemas/FrontDeskNamedEntity'
+        department:
+          $ref: '#/components/schemas/FrontDeskNamedEntity'
+        requested_clinician:
+          anyOf:
+          - type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type:
+                - string
+                - 'null'
+            required:
+            - id
+            - name
+          - type: 'null'
+        assigned_clinician:
+          anyOf:
+          - type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type:
+                - string
+                - 'null'
+            required:
+            - id
+            - name
+          - type: 'null'
+        consultation_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        care_thread_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        consultation_status:
+          type:
+          - string
+          - 'null'
+        requirements:
+          type: object
+          properties:
+            payment:
+              type: boolean
+            insurance:
+              type: boolean
+            clinical_review:
+              const: true
+          required:
+          - payment
+          - insurance
+          - clinical_review
+        clearance:
+          type: object
+          properties:
+            registration:
+              enum:
+              - pending
+              - manually_confirmed
+            payment:
+              type: string
+              enum:
+              - pending
+              - manually_verified
+              - not_required
+            insurance:
+              type: string
+              enum:
+              - pending
+              - manually_verified
+              - not_required
+            clinical_review:
+              enum:
+              - pending
+              - cleared
+              - escalated
+            method:
+              const: manual_facility_review
+          required:
+          - registration
+          - payment
+          - insurance
+          - clinical_review
+          - method
+        coverage:
+          const: AHP_REGISTERED_VISITS_ONLY
+        estimated_wait_minutes:
+          type: 'null'
+        checked_in_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        ready_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        called_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        started_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - ticket
+      - status
+      - version
+      - patient_profile_id
+      - patient_name
+      - facility
+      - department
+      - requested_clinician
+      - assigned_clinician
+      - consultation_id
+      - care_thread_id
+      - consultation_status
+      - requirements
+      - clearance
+      - coverage
+      - estimated_wait_minutes
+      - checked_in_at
+      - ready_at
+      - called_at
+      - started_at
+      - completed_at
+      - created_at
+      - updated_at
+    FrontDeskVisitDetail:
+      allOf:
+      - $ref: '#/components/schemas/FrontDeskVisit'
+      - type: object
+        properties:
+          queue_position:
+            type:
+            - integer
+            - 'null'
+            minimum: 1
+          ahead_of_you:
+            type:
+            - integer
+            - 'null'
+            minimum: 0
+          queue_scope:
+            enum:
+            - facility_department_requested_clinician
+            - facility_department_pool
+          observed_at:
+            type: string
+            format: date-time
+        required:
+        - queue_position
+        - ahead_of_you
+        - queue_scope
+        - observed_at
+    FrontDeskBoard:
+      type: object
+      properties:
+        facility_id:
+          type: string
+          format: uuid
+        department_id:
+          type: string
+          format: uuid
+        observed_at:
+          type: string
+          format: date-time
+        coverage:
+          const: AHP_REGISTERED_VISITS_ONLY
+        estimated_wait_minutes:
+          type: 'null'
+        department_pool_waiting:
+          type: integer
+          minimum: 0
+        providers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              full_name:
+                type:
+                - string
+                - 'null'
+              specialty:
+                type: string
+              receiving_new_patients:
+                type: boolean
+              available_until:
+                type:
+                - string
+                - 'null'
+                format: date-time
+              waiting_for_this_clinician:
+                type: integer
+                minimum: 0
+              active_ahp_consultations:
+                type: integer
+                minimum: 0
+            required:
+            - id
+            - full_name
+            - specialty
+            - receiving_new_patients
+            - available_until
+            - waiting_for_this_clinician
+            - active_ahp_consultations
+      required:
+      - facility_id
+      - department_id
+      - observed_at
+      - coverage
+      - estimated_wait_minutes
+      - department_pool_waiting
+      - providers
+    FrontDeskFacilityList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrontDeskFacility'
+        meta:
+          $ref: '#/components/schemas/FrontDeskPagination'
+      required:
+      - data
+      - meta
+    FrontDeskVisitList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrontDeskVisit'
+        meta:
+          $ref: '#/components/schemas/FrontDeskPagination'
+      required:
+      - data
+      - meta
+    FrontDeskDepartmentList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrontDeskDepartment'
+      required:
+      - data

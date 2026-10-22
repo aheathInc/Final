@@ -3,9 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { serverGet } from '@/lib/serverToken';
 import type { Page } from '@/lib/api';
-import { Card, Empty, PageHeader } from '@/components/ui';
+import { Card, Empty, Notice, PageHeader, PageShell } from '@/components/ui';
 import { dateOnly, dateTime } from '@/lib/format';
 import { ComputeRisk } from '@/components/ComputeRisk';
+import { HealthTimeline } from '@/components/premium/HealthTimeline';
 
 interface RiskScore {
   id: string; condition_code: string; score: number; band: string;
@@ -45,12 +46,14 @@ export default async function PatientPage({ params }: { params: { patient_profil
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
-      <PageHeader title="Rekodi ya mgonjwa" lede="Inaonekana kwa sababu umekubali kesi ya mgonjwa huyu." />
-
+    <PageShell>
+      <PageHeader title="Patient health history" lede="One authorized care story, with each source clearly identified. Clinical access stays within the permitted care scope." />
+      <div className="ahp-history-grid"><HealthTimeline entries={history?.data ?? []} unavailable={!history}/>
+      <aside className="ahp-card ahp-patient-summary">
+        <h2>Clinical context</h2><p className="ahp-caption">Patient reference: <code className="break-all">{id}</code></p>
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">Hatari za magonjwa</h2>
-        {(risk?.data ?? []).length === 0 ? (
+        {!risk ? <Notice>Risk information is unavailable for this view.</Notice> : (risk.data).length === 0 ? (
           <Empty>Hakuna alama za hatari zilizohesabiwa.</Empty>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
@@ -84,7 +87,7 @@ export default async function PatientPage({ params }: { params: { patient_profil
 
       <section className="mt-10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">Chanjo</h2>
-        {(vaccinations?.data ?? []).length === 0 ? (
+        {!vaccinations ? <Notice>Vaccination information is unavailable for this view.</Notice> : vaccinations.data.length === 0 ? (
           <Empty>Hakuna rekodi ya chanjo.</Empty>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
@@ -99,33 +102,8 @@ export default async function PatientPage({ params }: { params: { patient_profil
       </section>
 
       <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">Historia ya muda ya afya</h2>
-        <p className="mt-1 text-xs text-ink-soft">Rekodi za nje zimewekewa alama kama zilizoingizwa; si uthibitisho wa utambuzi wa AHP.</p>
-        {(history?.data ?? []).length === 0 ? (
-          <Empty>Hakuna rekodi za historia zinazoweza kuonyeshwa kwa ruhusa ya sasa.</Empty>
-        ) : (
-          <ul className="mt-3 flex flex-col gap-3">
-            {(history?.data ?? []).map((entry) => (
-              <li key={`${entry.source.type}-${entry.id}`} className="border border-line bg-white p-3">
-                <div className="flex flex-wrap justify-between gap-2">
-                  <span className="font-medium">{entry.summary}</span>
-                  <span className="text-xs text-ink-soft">{new Date(entry.occurred_at).toLocaleString()}</span>
-                </div>
-                <p className="mt-1 text-sm text-ink-soft">{entry.category.replace(/_/g, ' ')} · {entry.status} · {entry.source.name}{entry.source.facility_name ? ` / ${entry.source.facility_name}` : ''}</p>
-                {entry.source.type === 'external' && <p className="mt-1 text-xs font-medium text-amber">Imported — clinician verification not recorded</p>}
-                {Object.keys(entry.detail).length > 0 && <dl className="mt-2 grid gap-1 text-sm">{Object.entries(entry.detail).map(([key, value]) => (
-                  <div key={key}><dt className="inline font-medium">{key.replace(/_/g, ' ')}: </dt><dd className="inline text-ink-soft">{typeof value === 'string' ? value : JSON.stringify(value)}</dd></div>
-                ))}</dl>}
-                {entry.provenance && <p className="mt-1 break-all text-xs text-ink-soft">Provenance: v{entry.provenance.source_version ?? 'unknown'} · {entry.provenance.transformation_version} · {entry.provenance.payload_hash}</p>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="mt-10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">Dawa alizoandikiwa</h2>
-        {(prescriptions?.data ?? []).length === 0 ? (
+        {!prescriptions ? <Notice>Prescription information is unavailable for this view.</Notice> : prescriptions.data.length === 0 ? (
           <Empty>Hakuna dawa zilizoandikwa.</Empty>
         ) : (
           <ul className="mt-3 flex flex-col gap-3">
@@ -146,6 +124,7 @@ export default async function PatientPage({ params }: { params: { patient_profil
           </ul>
         )}
       </section>
-    </div>
+      </aside></div>
+    </PageShell>
   );
 }

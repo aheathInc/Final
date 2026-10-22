@@ -1,0 +1,214 @@
+TAP version 13
+# Subtest: clinician resolves to the existing role-specific home
+ok 1 - clinician resolves to the existing role-specific home
+  ---
+  duration_ms: 48.130134
+  type: 'test'
+  ...
+# Subtest: pharmacist resolves to the existing role-specific home
+not ok 2 - pharmacist resolves to the existing role-specific home
+  ---
+  duration_ms: 7.95297
+  type: 'test'
+  location: '/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:24:2'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '/login'
+    - '/pharmacy'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '/pharmacy'
+  actual: '/login'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:24:72)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: platform_admin resolves to the existing role-specific home
+ok 3 - platform_admin resolves to the existing role-specific home
+  ---
+  duration_ms: 8.420703
+  type: 'test'
+  ...
+# Subtest: dispatcher resolves to the existing role-specific home
+ok 4 - dispatcher resolves to the existing role-specific home
+  ---
+  duration_ms: 5.222453
+  type: 'test'
+  ...
+# Subtest: facility_admin resolves to the existing role-specific home
+ok 5 - facility_admin resolves to the existing role-specific home
+  ---
+  duration_ms: 5.712883
+  type: 'test'
+  ...
+# Subtest: researcher resolves to the existing role-specific home
+ok 6 - researcher resolves to the existing role-specific home
+  ---
+  duration_ms: 7.647094
+  type: 'test'
+  ...
+# Subtest: unrecognized role undefined falls back to login
+ok 7 - unrecognized role undefined falls back to login
+  ---
+  duration_ms: 4.135842
+  type: 'test'
+  ...
+# Subtest: unrecognized role null falls back to login
+ok 8 - unrecognized role null falls back to login
+  ---
+  duration_ms: 3.741116
+  type: 'test'
+  ...
+# Subtest: unrecognized role  falls back to login
+ok 9 - unrecognized role  falls back to login
+  ---
+  duration_ms: 6.953488
+  type: 'test'
+  ...
+# Subtest: unrecognized role unknown falls back to login
+ok 10 - unrecognized role unknown falls back to login
+  ---
+  duration_ms: 6.6423
+  type: 'test'
+  ...
+# Subtest: unrecognized role patient falls back to login
+ok 11 - unrecognized role patient falls back to login
+  ---
+  duration_ms: 4.31841
+  type: 'test'
+  ...
+# Subtest: unrecognized role __proto__ falls back to login
+not ok 12 - unrecognized role __proto__ falls back to login
+  ---
+  duration_ms: 4.713297
+  type: 'test'
+  location: '/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:27:2'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + [Object: null prototype] {}
+    - '/login'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '/login'
+  actual:
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:27:74)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unrecognized role constructor falls back to login
+not ok 13 - unrecognized role constructor falls back to login
+  ---
+  duration_ms: 5.518136
+  type: 'test'
+  location: '/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:27:2'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + [Function: Object]
+    - '/login'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  stack: |-
+    TestContext.<anonymous> (/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:27:74)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unrecognized role toString falls back to login
+not ok 14 - unrecognized role toString falls back to login
+  ---
+  duration_ms: 10.875519
+  type: 'test'
+  location: '/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:27:2'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + [Function: toString]
+    - '/login'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  stack: |-
+    TestContext.<anonymous> (/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:27:74)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unauthenticated requireRole still redirects to login
+ok 15 - unauthenticated requireRole still redirects to login
+  ---
+  duration_ms: 4.58743
+  type: 'test'
+  ...
+# Subtest: pharmacist cannot inherit Admin route permission
+not ok 16 - pharmacist cannot inherit Admin route permission
+  ---
+  duration_ms: 3.57519
+  type: 'test'
+  location: '/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:32:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The validation function is expected to return "true". Received false
+    
+    Caught error:
+    
+    Error: Synthetic redirect
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  stack: |-
+    async TestContext.<anonymous> (/mnt/data/ahp_work/candidate/Final/verification/staff-role-routing.test.cjs:33:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: Doctor cannot inherit pharmacy route permission
+ok 17 - Doctor cannot inherit pharmacy route permission
+  ---
+  duration_ms: 3.417775
+  type: 'test'
+  ...
+# Subtest: explicitly allowed session is returned unchanged
+ok 18 - explicitly allowed session is returned unchanged
+  ---
+  duration_ms: 5.993895
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 13
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 453.105946

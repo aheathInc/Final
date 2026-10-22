@@ -1,0 +1,22 @@
+{
+  "scope": "new/modified authored text pattern review only, not full history or semantic PHI certification",
+  "text_files_reviewed": 51,
+  "candidate_findings": [],
+  "original_archives_unchanged": {
+    "AHP-Final-Complete-Source.zip": true,
+    "AHP-Premium-Web-UI-pending.zip": true,
+    "AHP-integrated-demo-pending.zip": true,
+    "AHP_Integrated_Candidate_005_Digital_Front_Desk.zip": true
+  },
+  "private_runtime_directories_excluded": [
+    ".dart_tool",
+    ".git",
+    ".local",
+    ".next",
+    "__pycache__",
+    "node_modules"
+  ],
+  "git_operations": "NONE",
+  "database_connections": "NONE",
+  "whitespace_findings": []
+}

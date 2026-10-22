@@ -13,14 +13,14 @@ export default async function QueryPage({ params }: { params: { query_id: string
 
   const q = await serverGet<ResearchQuery>(`/research/queries/${params.query_id}`);
   if (!q) {
-    return <div className="mx-auto max-w-3xl px-6 py-8"><Notice>Swali hili halikupatikana.</Notice></div>;
+    return <div className="staff-page ahp-page"><Notice>Swali hili halikupatikana.</Notice></div>;
   }
 
   const rows = q.rows ?? [];
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <Link href="/analytics/" className="text-sm text-petrol underline underline-offset-4">
         Rudi kwenye utafiti
       </Link>

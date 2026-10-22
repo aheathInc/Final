@@ -20,3 +20,36 @@ build/
 key.properties
 local.properties
 .~lock.*
+
+# Original workspace ignore rules
+node_modules/
+.dev-logs/
+.env
+.env.*
+!.env.example
+dist/
+build/
+.next/
+.turbo/
+coverage/
+.local/
+test-results/
+playwright-report/
+.playwright/
+playwright/.auth/
+*.auth-state.json
+
+# Flutter, Gradle and generated platform files
+.gradle/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/flutter_export_environment.sh
+**/GeneratedPluginRegistrant.java
+**/GeneratedPluginRegistrant.h
+**/GeneratedPluginRegistrant.m
+**/GeneratedPluginRegistrant.swift
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake

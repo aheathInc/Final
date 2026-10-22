@@ -1,0 +1,462 @@
+[
+  {
+    "area": "services",
+    "path": "services/ai",
+    "package": "@a-health/ai",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts",
+      "seed:models": "node --import tsx src/scripts/seed-models.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/appointment",
+    "package": "@a-health/appointment",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/auth",
+    "package": "@a-health/auth",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc",
+      "start": "node dist/index.js",
+      "test": "node --import tsx --test src/tests/*.test.ts",
+      "test:watch": "node --import tsx --test --watch src/tests/*.test.ts",
+      "seed:pharmacy-acceptance": "tsx scripts/seed-pharmacy-acceptance.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/consultation",
+    "package": "@a-health/consultation",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/devices",
+    "package": "@a-health/devices",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/diagnostics",
+    "package": "@a-health/diagnostics",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/doctor",
+    "package": "@a-health/doctor",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/education",
+    "package": "@a-health/education",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/emergency",
+    "package": "@a-health/emergency",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/facilities",
+    "package": "@a-health/facilities",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/families",
+    "package": "@a-health/families",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/followup",
+    "package": "@a-health/followup",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/gateway",
+    "package": "@a-health/gateway",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/insurance",
+    "package": "@a-health/insurance",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/messaging",
+    "package": "@a-health/messaging",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/network",
+    "package": "@a-health/network",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/notification",
+    "package": "@a-health/notification",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/patient",
+    "package": "@a-health/patient",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/payment",
+    "package": "@a-health/payment",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/pharmacy",
+    "package": "@a-health/pharmacy",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/prevention",
+    "package": "@a-health/prevention",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts",
+      "seed:programmes": "node --import tsx src/scripts/seed-programmes.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/quality",
+    "package": "@a-health/quality",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/research",
+    "package": "@a-health/research",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts",
+      "seed:datasets": "node --import tsx src/scripts/seed-datasets.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/surveillance",
+    "package": "@a-health/surveillance",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "services",
+    "path": "services/sync",
+    "package": "@a-health/sync",
+    "scripts": {
+      "dev": "tsx watch src/index.ts",
+      "build": "tsc --noEmit",
+      "start": "node --import tsx src/index.ts",
+      "test": "node --import tsx --test src/tests/*.test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/api",
+    "package": "@a-health/api",
+    "scripts": {
+      "lint": "redocly lint openapi/a-health-api-v1.yaml",
+      "mock": "prism mock openapi/a-health-api-v1.yaml --port 4010 --errors",
+      "docs": "redocly preview-docs openapi/a-health-api-v1.yaml",
+      "generate": "openapi-typescript openapi/a-health-api-v1.yaml -o src/generated/schema.d.ts",
+      "build": "pnpm run generate"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/config",
+    "package": "@a-health/config",
+    "scripts": {},
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/database",
+    "package": "@a-health/database",
+    "scripts": {
+      "generate": "prisma generate",
+      "migrate": "prisma migrate dev",
+      "studio": "prisma studio",
+      "test": "tsx src/test.ts"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/http",
+    "package": "@a-health/http",
+    "scripts": {},
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/logger",
+    "package": "@a-health/logger",
+    "scripts": {},
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/types",
+    "package": "@a-health/types",
+    "scripts": {},
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/ui",
+    "package": "@a-health/ui",
+    "scripts": {},
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "packages",
+    "path": "packages/utils",
+    "package": "@a-health/utils",
+    "scripts": {},
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "apps",
+    "path": "apps/admin",
+    "package": "admin-console",
+    "scripts": {
+      "dev": "next dev -p 3200",
+      "build": "next build",
+      "start": "next start -p 3200",
+      "lint": "next lint",
+      "type-check": "tsc --noEmit"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "apps",
+    "path": "apps/analytics",
+    "package": "analytics-portal",
+    "scripts": {
+      "dev": "next dev -p 3300",
+      "build": "next build",
+      "start": "next start -p 3300",
+      "type-check": "tsc --noEmit"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "apps",
+    "path": "apps/doctor-admin",
+    "package": "doctor-dashboard",
+    "scripts": {
+      "dev": "next dev -p 3100",
+      "build": "next build",
+      "start": "next start -p 3100",
+      "lint": "next lint",
+      "type-check": "tsc --noEmit"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  },
+  {
+    "area": "apps",
+    "path": "apps/staff-web",
+    "package": "a-health-web",
+    "scripts": {
+      "dev": "next dev -p 3000",
+      "build": "next build",
+      "start": "next start -p 3000",
+      "lint": "next lint",
+      "type-check": "tsc --noEmit"
+    },
+    "locked_build_this_pass": "NOT_RUN",
+    "live_acceptance_this_pass": "NOT_RUN"
+  }
+]

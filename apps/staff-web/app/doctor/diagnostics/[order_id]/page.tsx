@@ -16,14 +16,14 @@ export default async function OrderPage({ params }: { params: { order_id: string
   const o = await serverGet<InvestigationOrder>(`/investigation-orders/${params.order_id}`);
   if (!o) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="staff-page ahp-page">
         <Notice>Kipimo hiki hakikupatikana.</Notice>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <Link href="/doctor/" className="text-sm text-petrol underline underline-offset-4">
         Rudi kwenye vipimo
       </Link>

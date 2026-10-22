@@ -1,7 +1,8 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID, createHmac } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import type { AppError } from '@a-health/http';
 import * as intents from '../services/intent.service.js';
 import * as refunds from '../services/refund.service.js';
@@ -10,13 +11,13 @@ import { verifyHmacSignature } from '../services/webhookAuth.js';
 import { createConsoleAdapter, type ProviderAdapter } from '../adapters/provider.js';
 import { env } from '../config/env.js';
 
-if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
-  throw new Error('Refusing to run tests outside a development database');
-}
+const testTarget = assertIsolatedLocalTestTarget(process.env);
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
 const users: string[] = [];
 const intentIds: string[] = [];
+
+before(async () => { await verifyLocalTestIdentity(prisma, testTarget); });
 
 after(async () => {
   for (const id of intentIds) {
@@ -98,6 +99,10 @@ describe('mobile money', () => {
       ),
       (e: AppError) => e.code === 'PAYMENT_METHOD_UNAVAILABLE',
     );
+    const failed = await prisma.paymentIntent.findFirstOrThrow({
+      where: { payerUserId: user.id, status: 'failed' },
+    });
+    intentIds.push(failed.id);
   });
 });
 

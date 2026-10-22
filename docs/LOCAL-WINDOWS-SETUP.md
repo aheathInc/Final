@@ -1,127 +1,86 @@
 # Local Windows setup
 
-This checkout uses local-only development credentials and a separate database. Never copy its `.env` files into production. The environment bootstrap refuses to overwrite any existing local `.env` file.
+This checkout is configured for development against the isolated PostgreSQL 17 instance at `127.0.0.1:55432`, database `ahealth_dev`, user `ahealth`. The local environment file is ignored by Git. These routines do not connect to PostgreSQL 5432, reset a database, or stop unrelated processes.
 
 ## Prerequisites
 
-- Node.js and pnpm as declared by the workspace.
-- Git Bash for `dev-web.sh`.
-- PostgreSQL 17 client/server tools at `C:\Program Files\PostgreSQL\17\bin`, or Docker Desktop as an alternative.
+- Node.js 22 and pnpm 10
+- PostgreSQL 17 client tools in `C:\Program Files\PostgreSQL\17\bin`
+- The isolated AHP database initialized under `%LOCALAPPDATA%\AHP\postgres17-data` with database `ahealth_dev`
+- Flutter SDK 3.24+ and Android SDK only for Patient Mobile
 
-The Windows PostgreSQL service on port 5432 is not used. The native local cluster binds only to `127.0.0.1:55432`, with data under the Git-ignored `Web/.local/postgres/data` directory. Docker is optional; if used, its database also binds only to loopback on port 55432 and uses a separately named Compose volume.
-
-## Create local environment files
-
-Run once from PowerShell in `Web/`:
-
-```powershell
-.\scripts\local\bootstrap-env.ps1
-```
-
-It creates ignored `.env` files for the services used by the unified launcher and `apps/web/.env.local`. It generates local database, shared JWT, gateway and NextAuth secrets. Each generated env file has a sibling `.env.example` with placeholders. Existing local env files are preserved; if only some exist, the script stops for manual review.
-
-Auth requires an explicit `NODE_ENV`. Its local template separately opts into `AUTH_LOCAL_OTP_MODE=true` and `OTP_ECHO_IN_RESPONSE=true` so developers can receive an OTP through the local response flow. `OTP_LOG_TO_CONSOLE` remains false. Echo and plaintext logging are independent, disabled by default, and accepted only in an explicitly configured development/test process using local `ahealth_dev` or `ahealth_test` on a non-5432 port. Missing or invalid `NODE_ENV` fails Auth startup; it never enables development OTP behavior. Do not copy these settings into production.
-
-Install the locked workspace dependencies:
+Install the locked JavaScript dependencies:
 
 ```powershell
 pnpm install --frozen-lockfile
 ```
 
-## Create the isolated PostgreSQL cluster
+## Configure local credentials
 
-Run from `Web/` in PowerShell after env bootstrap. These commands initialize only the ignored worktree-local cluster; they do not connect to or change the Windows PostgreSQL service on port 5432.
-
-```powershell
-$line = Get-Content .env | Where-Object { $_ -like 'POSTGRES_PASSWORD=*' } | Select-Object -First 1
-$dbPassword = $line.Substring('POSTGRES_PASSWORD='.Length)
-New-Item -ItemType Directory -Path .local\postgres -Force | Out-Null
-[System.IO.File]::WriteAllText((Join-Path (Get-Location) '.local\postgres\initdb-password.tmp'), $dbPassword)
-& 'C:\Program Files\PostgreSQL\17\bin\initdb.exe' -D .local\postgres\data --username=ahealth --pwfile=.local\postgres\initdb-password.tmp --auth-local=trust --auth-host=scram-sha-256 --encoding=UTF8 --no-instructions
-Remove-Item .local\postgres\initdb-password.tmp -Force
-& 'C:\Program Files\PostgreSQL\17\bin\pg_ctl.exe' -D .local\postgres\data -l .local\postgres\server.log -o '-p 55432 -h 127.0.0.1' -w start
-$env:PGPASSWORD = $dbPassword
-$psql = 'C:\Program Files\PostgreSQL\17\bin\psql.exe'
-& $psql -X -w -h 127.0.0.1 -p 55432 -U ahealth -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ahealth_dev'
-& $psql -X -w -h 127.0.0.1 -p 55432 -U ahealth -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ahealth_test'
-Remove-Item Env:\PGPASSWORD
-```
-
-For Docker Desktop instead, first stop the native cluster if it is running. The Compose project name isolates its volume from other projects; the mapped database port is `127.0.0.1:55432`:
+Start the isolated database on loopback port 55432, then run:
 
 ```powershell
-docker compose --project-name ahealth-integration -f docker-compose.dev.yml up -d postgres
+.\scripts\configure-local.ps1
 ```
 
-Stop that database without removing its volume:
+The script securely prompts for the existing local database password and JWT secret. Keep the existing JWT secret when recovering an established database. The script writes a root `.env` only when none exists, generates separate development-only credentials, and never displays secret values. It refuses to overwrite a partial or complete existing `.env`.
+
+The local provider settings are explicit simulations: OTP is returned through the local development response, SMS uses the console adapter, mobile-money uses local callback/signature handling, and AI/transcription use stubs. These settings are not suitable for production.
+
+Create the marked synthetic role accounts:
 
 ```powershell
-docker compose --project-name ahealth-integration -f docker-compose.dev.yml stop postgres
+pnpm seed:local
 ```
 
-## Migrate and seed development accounts
+Six accounts are provisioned: `platform_admin`, `facility_admin`, `clinician`, `lab_technician`, `pharmacist`, and `patient`. The shared generated password is held only in the ignored `.env`. Patient access uses OTP. The schema does not define a nurse role; `facility_admin` is the supported hospital/facility administrator role.
 
-The development and test databases start empty. Apply the existing migrations to both; no migration files are created by this setup:
-
-Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, require explicit development/test mode plus a local non-5432 `ahealth_dev` or `ahealth_test` database, and do not print the passwords.
+## Start and inspect the platform
 
 ```powershell
-$line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1
-$env:DATABASE_URL = $line.Substring('DATABASE_URL='.Length)
-pnpm --filter @a-health/database exec prisma migrate deploy
-$env:DATABASE_URL = $env:DATABASE_URL.Replace('/ahealth_dev?', '/ahealth_test?')
-pnpm --filter @a-health/database exec prisma migrate deploy
-Remove-Item Env:\DATABASE_URL
+pnpm dev:local
+pnpm dev:local:status
+pnpm dev:local:stop
 ```
 
-Only after confirming the next commands target `ahealth_dev`, run the two existing auth-service development seeds. They create the clinician/admin accounts and related local queue/admin fixtures. Do not run them against the test database. The `AHP_STAFF_DEMO_V1` seed is separate and is not part of this bootstrap.
+The launcher starts PostgreSQL only if it finds the configured isolated cluster stopped, verifies the database identity, deploys migrations, and starts all 25 backend APIs and four web applications. It checks every `/health` endpoint and each `/login` route. Stop targets only the recorded launcher process tree and stops PostgreSQL only if that launcher started it. The database and its contents are preserved.
 
-Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, require explicit development/test mode plus a local non-5432 `ahealth_dev` or `ahealth_test` database, and do not print the passwords.
+| Application | URL |
+|---|---|
+| Staff Web | <http://localhost:3000/login> |
+| Doctor Admin | <http://localhost:3100/login> |
+| Operations Admin | <http://localhost:3200/login> |
+| Analytics | <http://localhost:3300/login> |
+
+The 25 backend services occupy ports 4001–4025; the complete port and readiness matrix is in [local-dev-readiness.md](local-dev-readiness.md).
+
+## Patient Mobile
+
+Use a physical Android phone over Wi-Fi; an emulator is not required. Enable Developer options > Wireless debugging. Pair this computer once using the temporary pairing address/code shown on the phone, then connect using the phone's separate wireless-debugging connection address:
 
 ```powershell
-$line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1
-$env:DATABASE_URL = $line.Substring('DATABASE_URL='.Length)
-pnpm --filter @a-health/auth exec tsx scripts/seed-dev.ts
-pnpm --filter @a-health/auth exec tsx scripts/seed-admin.ts
-Remove-Item Env:\DATABASE_URL
+adb pair <PHONE_IP>:<PAIRING_PORT>
+adb connect <PHONE_IP>:<CONNECT_PORT>
+flutter devices
+cd apps/patient-mobile
+flutter run -d <PHONE_IP>:<CONNECT_PORT> --dart-define=API_HOST=<PC_LAN_IPV4>
 ```
 
-The safe local stubs are explicit in code: AI and transcription use `stub`, mobile money uses `console`, and Auth returns development OTPs only through the explicit local settings above. OTP verification always compares the issued code; no static development verification bypass exists. No real AI, SMS or payment credentials are needed. External delivery and provider calls are not tested by this setup.
+Use the PC's current Wi-Fi IPv4 address from `ipconfig` for `API_HOST` and the phone's current wireless-debugging address for `CONNECT_PORT`; both can change between networks. The phone and PC must be on a network that permits device-to-device traffic. The dev API processes bind to interfaces reachable on the LAN. Keep PostgreSQL bound to loopback; the phone connects only to the API ports. Never use a production endpoint for this local debug build.
 
-## Start and stop the unified stack
-
-From `Web/` in Git Bash:
-
-```bash
-bash dev-web.sh web
-```
-
-This starts the unified staff app at <http://localhost:3000> and its 21 required Final services, including patient profile service `4002` and pharmacy `4011`. Press **Ctrl+C** in that terminal to stop the app and services started by the launcher.
-
-To stop only the isolated native database after the app stack is stopped, run from PowerShell in `Web/`:
+## Checks
 
 ```powershell
-& 'C:\Program Files\PostgreSQL\17\bin\pg_ctl.exe' -D .local\postgres\data -m fast -w stop
+pnpm test:local
+pnpm run build
+cd apps/patient-mobile
+flutter analyze
+flutter test
+flutter test integration_test/patient_ai_navigation_live_test.dart -d <PHONE_IP>:<CONNECT_PORT> --dart-define=API_HOST=<PC_LAN_IPV4>
 ```
 
-After code/config changes, run `pnpm --filter a-health-web type-check`. Stop the dev server before `pnpm --filter a-health-web build`; do not build while Next dev is using the same `.next` directory.
+`pnpm test:local` creates fresh uniquely named, owned schemas inside `ahealth_dev`, applies migrations, then runs the monorepo backend suites. The schemas are retained for inspection; there is no reset or cleanup step. The runner refuses nonlocal databases and port 5432.
 
-For the focused follow-up tests, set `DATABASE_URL` to the test database before running them:
+## Logs and recovery
 
-Before running these local synthetic seeds, set `AHP_SEED_CLINICIAN_PASSWORD` and `AHP_SEED_ADMIN_PASSWORD` in the gitignored `services/auth/.env`. The seeds require these values, reject production mode, and do not print them.
-
-```powershell
-$line = Get-Content services\auth\.env | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1
-$env:DATABASE_URL = $line.Substring('DATABASE_URL='.Length).Replace('/ahealth_dev?', '/ahealth_test?')
-if (([uri]$env:DATABASE_URL).AbsolutePath.Trim('/').Split('?')[0] -ne 'ahealth_test') { throw 'Refusing to run tests outside ahealth_test' }
-pnpm --filter @a-health/followup test
-Remove-Item Env:\DATABASE_URL
-```
-
-## Troubleshooting
-
-- If `55432` is busy, inspect its listener first. Do not stop or reconfigure the Windows PostgreSQL service; choose another loopback port and update the local env files and database launch options together.
-- If the local cluster is already initialized, do not rerun `initdb`; start it with the `pg_ctl` command in the stop section, changing `stop` to `start` and omitting `-m fast`.
-- If a service fails, inspect its matching `Web/.dev-logs/<service>.log`. The launcher checks required env files and service ports before it starts the app.
-- If an env file exists already, the bootstrap script leaves it untouched and stops rather than replacing secrets.
-- Prisma migrations must target `ahealth_dev` or `ahealth_test` on port 55432. Never point this workflow at the Windows service on 5432.
+The launcher writes stdout/stderr under the ignored `.local\logs` directory and stores its process identity under `.local\dev-run.json`. If a recorded process is stale, inspect its log and use `pnpm dev:local:stop` only after confirming the recorded PID still belongs to this launcher. Never remove or reinitialize the PostgreSQL data directory as a troubleshooting step.

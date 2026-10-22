@@ -1,0 +1,14 @@
+{
+  "syntaxFiles": 503,
+  "syntaxFailures": [],
+  "jsonFiles": 106,
+  "jsonFailures": [],
+  "shellFiles": 70,
+  "shellFailures": [],
+  "unresolvedLiteralRelativeImports": [],
+  "authPureTests": {
+    "exit": 0,
+    "source": "existing security-config.test.ts; unmodified resolver; transpilation only; no database or auth login",
+    "toolchain": "local global TypeScript 5.8.3"
+  }
+}

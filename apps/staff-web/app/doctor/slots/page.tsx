@@ -9,7 +9,7 @@ export default async function SlotsPage() {
   if (!session) redirect('/login');
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <PageHeader
         title="Ratiba yangu"
         lede="Nafasi unazozitoa kwa miadi. Nafasi ambazo tayari zimewekewa miadi hazitafutwa unapotuma ratiba mpya."

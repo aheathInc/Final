@@ -10,7 +10,7 @@ export default async function CloseCasePage({ params }: { params: { consultation
   if (!session) redirect('/login');
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <Link href={`/doctor/case/${params.consultation_id}`} className="text-sm text-petrol underline underline-offset-4">
         Rudi kwenye kesi
       </Link>

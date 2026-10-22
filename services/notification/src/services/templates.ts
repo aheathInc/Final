@@ -38,6 +38,15 @@ const TEMPLATES: Record<string, Partial<Record<LanguageCode, Template>>> = {
     sw: () => 'A-health: Agizo lako la dawa limesasishwa. Fungua app kwa maelezo salama.',
     en: () => 'A-health: Your prescription fulfilment has changed. Open the app for details.',
   },
+  // No drug/dose instructions, reply promise or unprovisioned short code in these reminders.
+  'care.dose_due': {
+    sw: () => 'A-Health: Una kikumbusho kwenye mpango wako wa huduma. Fungua app kwa maelezo na uthibitisho.',
+    en: () => 'A-Health: You have a care-plan reminder. Open the app for details and confirmation.',
+  },
+  'care.checkin_due': {
+    sw: () => 'A-Health: Ufuatiliaji wako unasubiri jibu. Fungua app kujibu au kuwasiliana na daktari wako.',
+    en: () => 'A-Health: Your follow-up check-in is due. Open the app to respond or contact your care team.',
+  },
   'adherence.reminder': {
     sw: () => 'A-health: Ni wakati wa dawa yako. Jibu 1 ikiwa umetumia, 2 ikiwa hujatumia.',
     en: () => 'A-health: It is time for your medicine. Reply 1 if taken, 2 if not.',

@@ -4,6 +4,7 @@ import { authOptions } from './auth';
 
 export const ROLE_HOME: Record<string, string> = {
   clinician: '/doctor/queue',
+  pharmacist: '/pharmacy',
   dispatcher: '/admin/emergency',
   facility_admin: '/admin/facilities',
   platform_admin: '/admin/dashboard',
@@ -11,7 +12,9 @@ export const ROLE_HOME: Record<string, string> = {
 };
 
 export function homeForRole(role?: string | null) {
-  return (role && ROLE_HOME[role]) || '/login';
+  return role && Object.prototype.hasOwnProperty.call(ROLE_HOME, role)
+    ? ROLE_HOME[role]
+    : '/login';
 }
 
 export async function requireRole(roles: string[]) {

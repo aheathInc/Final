@@ -61,6 +61,7 @@ class Config {
           : 'localhost';
 
   static const _serviceMap = <String, int>{
+    '/front-desk': 4005,
     '/auth': 4001,
     '/users': 4001,
     '/patient-profiles': 4002,
@@ -73,6 +74,7 @@ class Config {
     '/prescriptions': 4005,
     '/messages': 4006,
     '/realtime': 4006,
+    '/care-continuity': 4007,
     '/follow-up-cycles': 4007,
     '/check-ins': 4007,
     '/adherence-logs': 4007,

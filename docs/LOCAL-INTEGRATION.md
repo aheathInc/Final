@@ -1,6 +1,6 @@
 # AHP Local Integration Matrix
 
-> **Historical evidence only:** This matrix records checks run in the AHP repository on 2026-09-12. It is not proof that the recovered Final unified app or current Final services pass those checks. The old `scripts/local/*` lifecycle scripts are not present in Final. Current launcher from `Web/` is `bash dev-web.sh web`; current browser verification is pending.
+> **Historical evidence only:** This matrix records checks run in the AHP repository on 2026-09-12. It is not proof that the recovered Final unified app or current Final services pass those checks. The old `scripts/local/*` lifecycle scripts are not present in Final. Current launcher from `` is `bash dev-web.sh web`; current browser verification is pending.
 
 Last updated: 2026-09-12.
 

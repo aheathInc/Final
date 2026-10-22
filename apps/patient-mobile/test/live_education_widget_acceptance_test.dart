@@ -18,7 +18,7 @@ void main() {
       (tester) async {
     await HttpOverrides.runWithHttpOverrides(() async {
       final sessionFile =
-          File('../../Web/.local/evidence/patient-a-session.json');
+          File('../../.local/evidence/patient-a-session.json');
       expect(sessionFile.existsSync(), isTrue,
           reason: 'Run the legitimate local Patient A OTP flow first.');
       final session =
@@ -112,6 +112,6 @@ void main() {
   },
       skip:
           Platform.environment['AHP_RUN_LIVE_EDUCATION_ACCEPTANCE'] != 'true' ||
-              !File('../../Web/.local/evidence/patient-a-session.json')
+              !File('../../.local/evidence/patient-a-session.json')
                   .existsSync());
 }

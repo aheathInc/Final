@@ -2,27 +2,14 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import type { AppError } from '@a-health/http';
 import { acceptConsultation, declineConsultation, offerConsultation } from '../services/consultation.service.js';
 import { getQueue } from '../services/queue.service.js';
 import { tick } from '../workers/sla.worker.js';
 import { bus } from '../events.js';
 
-const databaseUrl = process.env.DATABASE_URL ?? '';
-let databaseName = '';
-let parsedDatabaseUrl: URL | undefined;
-try {
-  parsedDatabaseUrl = new URL(databaseUrl);
-  databaseName = decodeURIComponent(parsedDatabaseUrl.pathname.split('/').filter(Boolean)[0] ?? '');
-} catch { /* rejected below */ }
-if (
-  databaseName !== 'ahealth_test' ||
-  !parsedDatabaseUrl ||
-  !['localhost', '127.0.0.1', '::1'].includes(parsedDatabaseUrl.hostname) ||
-  (parsedDatabaseUrl.port || '5432') === '5432'
-) {
-  throw new Error('Refusing offer lifecycle DB tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
-}
+const testTarget = assertIsolatedLocalTestTarget(process.env);
 
 type Fixture = { patientUserId: string; patientProfileId: string; clinicianUserId: string; clinicianId: string; threadId: string; consultationId: string };
 const fixtures: Fixture[] = [];
@@ -30,6 +17,7 @@ const extraClinicianUserIds: string[] = [];
 const extraClinicianIds: string[] = [];
 let marketplaceProfiles: Array<{ id: string; isAvailable: boolean }> = [];
 before(async () => {
+  await verifyLocalTestIdentity(prisma, testTarget);
   // The shared test database may also contain the persistent synthetic
   // marketplace clinicians used by the Staff Web acceptance fixture. Keep
   // them out of these routing assertions and restore their original state.

@@ -1,149 +1,85 @@
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import { createLogger } from '@a-health/logger';
 import { env } from '../config/env.js';
 import { resolveProvider } from '../providers/index.js';
 import { render, type LanguageCode } from '../services/templates.js';
-
+import { careDeliveryAllowed } from '../services/care-delivery.js';
 const logger = createLogger('notification.dispatch');
-
-export interface DispatchResult {
-  sent: number;
-  skipped: number;
-  failed: number;
-}
-
+export interface DispatchResult { sent: number; skipped: number; failed: number; simulated: number }
 /**
- * Drains queued notifications.
- *
- * Two rules carry most of the weight:
- *
- * A message the recipient already read is not sent again. Without that check
- * every in-app conversation would also bill an SMS per message, and patients
- * would be woken by texts about messages they had answered an hour earlier.
- *
- * Permanent failures are not retried. A malformed number does not become valid
- * on the fourth attempt, and burning the retry budget on it delays the
- * notifications that would have worked.
+ * Leased claims prevent concurrent workers sending the same row. The HTTP
+ * adapter forwards the stable row ID as an idempotency key. A crash after a
+ * provider accepts but before DB acknowledgement is an at-least-once boundary;
+ * exactly-once delivery requires provider-side idempotency. Never claim receipt.
  */
 export async function dispatchOnce(now = new Date()): Promise<DispatchResult> {
   const provider = resolveProvider();
-
-  const queued = await prisma.notificationLog.findMany({
-    where: {
-      status: 'queued',
-      attempts: { lt: env.MAX_ATTEMPTS },
-      OR: [{ deliverAfter: null }, { deliverAfter: { lte: now } }],
-    },
-    include: {
-      user: { select: { phoneNumber: true, preferredLanguage: true, fullName: true, status: true } },
-    },
-    orderBy: { createdAt: 'asc' },
-    take: env.DISPATCH_BATCH_SIZE,
+  const wallStarted = Date.now();
+  const clock = () => new Date(now.getTime() + Math.max(0, Date.now() - wallStarted));
+  const rows = await prisma.notificationLog.findMany({ where: { status: 'queued', attempts: { lt: env.MAX_ATTEMPTS },
+    AND: [{ OR: [{ deliverAfter: null }, { deliverAfter: { lte: now } }] }, { OR: [{ claimUntil: null }, { claimUntil: { lte: now } }] }] },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: env.DISPATCH_BATCH_SIZE,
   });
-
-  let sent = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  for (const row of queued) {
-    const payload = (row.payload ?? {}) as Record<string, unknown>;
-
-    if (row.user.status !== 'active') {
-      await mark(row.id, 'failed', { failureCode: 'ACCOUNT_INACTIVE' });
-      skipped += 1;
-      continue;
-    }
-
-    // Superseded: the recipient opened the app and read it. Nothing to send.
-    if (row.templateKey === 'thread.message' && typeof payload.messageId === 'string') {
-      const message = await prisma.message.findUnique({
-        where: { id: payload.messageId },
-        select: { readAt: true },
-      });
-      if (message?.readAt) {
-        await mark(row.id, 'delivered', { failureCode: 'SUPERSEDED_READ' });
-        skipped += 1;
-        continue;
+  const result: DispatchResult = { sent: 0, skipped: 0, failed: 0, simulated: 0 };
+  for (const candidate of rows) {
+    const token = randomUUID(), claimedAt = clock();
+    const claim = await prisma.notificationLog.updateMany({ where: { id: candidate.id, status: 'queued', attempts: { lt: env.MAX_ATTEMPTS },
+      AND: [{ OR: [{ claimUntil: null }, { claimUntil: { lte: claimedAt } }] },
+        { OR: [{ deliverAfter: null }, { deliverAfter: { lte: claimedAt } }] }] }, data: {
+      claimToken: token, claimUntil: new Date(claimedAt.getTime() + env.DISPATCH_LEASE_SECONDS * 1000), attempts: { increment: 1 },
+    } });
+    if (!claim.count) continue;
+    const row = await prisma.notificationLog.findUniqueOrThrow({ where: { id: candidate.id }, include: {
+      user: { select: { phoneNumber: true, preferredLanguage: true, status: true } },
+    } });
+    if (row.claimToken !== token) continue;
+    const finish = async (data: { status: 'queued' | 'sent' | 'delivered' | 'failed'; failureCode?: string | null; providerRef?: string | null; sentAt?: Date | null; deliverAfter?: Date | null }) =>
+      prisma.notificationLog.updateMany({ where: { id: row.id, status: 'queued', claimToken: token },
+        data: { ...data, claimToken: null, claimUntil: null } });
+    try {
+      if (row.user.status !== 'active') { await finish({ status: 'failed', failureCode: 'ACCOUNT_INACTIVE' }); result.skipped++; continue; }
+      if (row.templateKey.startsWith('care.') && !await careDeliveryAllowed(row.id, row.userId, clock())) {
+        await finish({ status: 'failed', failureCode: 'SUPERSEDED_CARE' }); result.skipped++; continue;
       }
+      const payload = (row.payload ?? {}) as Record<string, unknown>;
+      if (row.templateKey === 'thread.message' && typeof payload.messageId === 'string') {
+        const message = await prisma.message.findUnique({ where: { id: payload.messageId }, select: { readAt: true } });
+        if (message?.readAt) { await finish({ status: 'delivered', failureCode: 'SUPERSEDED_READ' }); result.skipped++; continue; }
+      }
+      const body = render(row.templateKey, row.user.preferredLanguage as LanguageCode,
+        Object.fromEntries(Object.entries(payload).filter(([, v]) => typeof v === 'string')) as Record<string, string>);
+      if (!body) { await finish({ status: 'failed', failureCode: 'UNKNOWN_TEMPLATE' }); result.failed++; continue; }
+      const sent = await provider.send(row.user.phoneNumber, body, { idempotencyKey: row.id });
+      if (sent.ok) {
+        const acknowledged = await finish({ status: 'sent', failureCode: null, providerRef: sent.providerRef ?? null, sentAt: clock() });
+        if (acknowledged.count) { result.sent++; if (provider.name === 'console') result.simulated++; }
+      } else {
+        const terminal = sent.retryable === false || row.attempts >= env.MAX_ATTEMPTS;
+        await finish({ status: terminal ? 'failed' : 'queued', failureCode: sent.failureCode ?? 'PROVIDER_FAILURE',
+          deliverAfter: terminal ? null : new Date(clock().getTime() + Math.min(2 ** row.attempts, 32) * 30_000) });
+        result.failed++;
+      }
+    } catch {
+      // No exception bodies or provider payloads in ordinary logs.
+      const terminal = row.attempts >= env.MAX_ATTEMPTS;
+      await finish({ status: terminal ? 'failed' : 'queued', failureCode: 'DISPATCH_ERROR',
+        deliverAfter: terminal ? null : new Date(clock().getTime() + Math.min(2 ** row.attempts, 32) * 30_000) });
+      result.failed++;
     }
-
-    const body = render(
-      row.templateKey,
-      row.user.preferredLanguage as LanguageCode,
-      Object.fromEntries(
-        Object.entries(payload).filter(([, v]) => typeof v === 'string'),
-      ) as Record<string, string>,
-    );
-
-    if (!body) {
-      // An unknown template is a bug, not a transient failure. Fail it loudly
-      // rather than retrying something that will never render.
-      logger.error('unknown template', { templateKey: row.templateKey, id: row.id });
-      await mark(row.id, 'failed', { failureCode: 'UNKNOWN_TEMPLATE' });
-      failed += 1;
-      continue;
-    }
-
-    const result = await provider.send(row.user.phoneNumber, body);
-
-    if (result.ok) {
-      await mark(row.id, 'sent', { providerRef: result.providerRef, sentAt: new Date() });
-      sent += 1;
-      continue;
-    }
-
-    const attempts = row.attempts + 1;
-    const permanent = result.retryable === false;
-    const exhausted = attempts >= env.MAX_ATTEMPTS;
-
-    await prisma.notificationLog.update({
-      where: { id: row.id },
-      data: {
-        attempts,
-        failureCode: result.failureCode ?? 'UNKNOWN',
-        status: permanent || exhausted ? 'failed' : 'queued',
-        // Exponential backoff. Retrying a struggling gateway immediately makes
-        // it struggle harder.
-        deliverAfter: permanent || exhausted
-          ? null
-          : new Date(now.getTime() + Math.min(2 ** attempts, 32) * 30_000),
-      },
-    });
-    failed += 1;
   }
-
-  return { sent, skipped, failed };
+  // A crashed final attempt must not leave a queued row permanently stranded.
+  await prisma.notificationLog.updateMany({ where: { status: 'queued', attempts: { gte: env.MAX_ATTEMPTS },
+    OR: [{ claimUntil: null }, { claimUntil: { lte: clock() } }] }, data: { status: 'failed', failureCode: 'ATTEMPTS_EXHAUSTED', claimToken: null, claimUntil: null } });
+  return result;
 }
-
-async function mark(
-  id: string,
-  status: 'sent' | 'delivered' | 'failed',
-  extra: { providerRef?: string; failureCode?: string; sentAt?: Date } = {},
-) {
-  await prisma.notificationLog.update({
-    where: { id },
-    data: {
-      status: status as never,
-      providerRef: extra.providerRef ?? null,
-      failureCode: extra.failureCode ?? null,
-      sentAt: extra.sentAt ?? null,
-      attempts: { increment: 1 },
-    },
-  });
-}
-
 export function startDispatchWorker(): NodeJS.Timeout {
+  let running = false;
   const timer = setInterval(() => {
-    void dispatchOnce()
-      .then((r) => {
-        if (r.sent + r.failed > 0) logger.info('dispatch', { ...r });
-      })
-      .catch((e) => logger.error('dispatch failed', { err: String(e) }));
+    if (running) return;
+    running = true;
+    void dispatchOnce().then(r => { if (r.sent + r.failed) logger.info('dispatch', { ...r }); })
+      .catch(() => logger.error('dispatch failed', { code: 'DISPATCH_TICK_FAILED' })).finally(() => { running = false; });
   }, env.DISPATCH_INTERVAL_SECONDS * 1000);
-  timer.unref();
-  logger.info('dispatch worker started', {
-    provider: env.SMS_PROVIDER,
-    intervalSeconds: env.DISPATCH_INTERVAL_SECONDS,
-  });
-  return timer;
+  timer.unref(); return timer;
 }

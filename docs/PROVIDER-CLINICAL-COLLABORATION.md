@@ -66,7 +66,7 @@ Concurrent requests for the same clinician pair and consultation use a transacti
 - `GET|POST /network/collaborations/{collaboration_id}/messages`
 - `PUT /clinicians/{clinician_id}/assignment` (platform administrator only)
 
-The corresponding OpenAPI operations and response/error schemas are in `Web/packages/api/openapi/a-health-api-v1.yaml`.
+The corresponding OpenAPI operations and response/error schemas are in `packages/api/openapi/a-health-api-v1.yaml`.
 
 ## Audit Ledger
 
@@ -74,9 +74,9 @@ The shared hash-chained Audit Ledger records request, accept, decline, access gr
 
 ## Synthetic development acceptance
 
-The integration fixture `Web/scripts/seed-provider-collaboration-test.ts` creates synthetic Doctor A and Doctor B in the same facility/department, Doctor E at a separate unrelated facility, a synthetic patient, one active consultation, and consent naming only Doctor B. It refuses to run unless `DATABASE_URL` is local `ahealth_test` on a non-5432 port, refuses fixed-ID collisions, and requires `AHP_PROVIDER_COLLABORATION_TEST_PASSWORD`. It was run against the isolated `ahealth_test` database. Doctor C and D relationship scenarios are created independently by the database tests for cross-department and cross-facility coverage.
+The integration fixture `scripts/seed-provider-collaboration-test.ts` creates synthetic Doctor A and Doctor B in the same facility/department, Doctor E at a separate unrelated facility, a synthetic patient, one active consultation, and consent naming only Doctor B. It refuses to run unless `DATABASE_URL` is local `ahealth_test` on a non-5432 port, refuses fixed-ID collisions, and requires `AHP_PROVIDER_COLLABORATION_TEST_PASSWORD`. It was run against the isolated `ahealth_test` database. Doctor C and D relationship scenarios are created independently by the database tests for cross-department and cross-facility coverage.
 
-Copy the variable names from `Web/.env.example` and `Web/apps/web/.env.example` into gitignored local environment files. Never put a real password in either template. The fixture prints only synthetic clinician emails and the consultation ID.
+Copy the variable names from `/.env.example` and `apps/staff-web/.env.example` into gitignored local environment files. Never put a real password in either template. The fixture prints only synthetic clinician emails and the consultation ID.
 
 ## Tests and local commands
 
@@ -102,7 +102,7 @@ pnpm --filter @a-health/api build
 pnpm --filter a-health-web exec playwright test tests/e2e/provider-clinical-collaboration.spec.ts --project=firefox
 ```
 
-The backend database test suites reject non-local databases, databases other than `ahealth_test`, and PostgreSQL port 5432. The Firefox test uses actual Doctor A, Doctor B, and unrelated Doctor E logins through the UI; it does not inject cookies. It checks that Doctor E cannot read the case or discussion, and that Doctor B loses access after revocation. It writes screenshots only under Playwright's configured `Web/test-results` output directory, which is gitignored.
+The backend database test suites reject non-local databases, databases other than `ahealth_test`, and PostgreSQL port 5432. The Firefox test uses actual Doctor A, Doctor B, and unrelated Doctor E logins through the UI; it does not inject cookies. It checks that Doctor E cannot read the case or discussion, and that Doctor B loses access after revocation. It writes screenshots only under Playwright's configured `test-results` output directory, which is gitignored.
 
 The automated network tests cover same-facility/same-department, same-facility/cross-department, and cross-facility cases; exact-consent recipient eligibility; current clinician verification; unrelated clinician isolation; patient consent revocation; decline; expiry; durable message read-back; separation from patient-facing messages; audit events and chain validity; and concurrent duplicate request, accept/revoke, and request/consent-revoke transitions. The Firefox acceptance test covers a real UI request, acceptance, summary read, provider discussion refresh/read-back, outsider denial, and revocation denial.
 
@@ -112,7 +112,7 @@ Runtime acceptance was completed on 12 October 2026 in the isolated feature work
 
 The focused database suites passed against `ahealth_test`: Network 16/16, Doctor 13/13, Patient 14/14, and Auth 20/20. They cover same-facility/same-department, same-facility/cross-department, cross-facility access, named consent, unverified and unrelated-clinician denial, cross-patient isolation, request/accept/decline, discussion persistence, revocation/expiry, concurrent transitions, and audit-chain verification.
 
-Real Firefox Staff Web acceptance passed: Doctor A requested access, Doctor B accepted, both opened the same limited case, Doctor B sent a provider-only reply, and both clinicians read it after reload. Doctor E received 403 for the case and discussion; Doctor A revoked access and Doctor B then received 403. Screenshots are in gitignored `Web/test-results/provider-clinical-collabor-0cf2b-r-discussion-and-revocation-firefox/` (`provider-collaboration-active-case.png` and `provider-collaboration-message-readback.png`). A separate synthetic request/accept/case-read/message-read/revoke operation on `ahealth_dev` produced all seven expected collaboration ledger events; access was denied after revocation and the chain verified `VALID` (7 events checked).
+Real Firefox Staff Web acceptance passed: Doctor A requested access, Doctor B accepted, both opened the same limited case, Doctor B sent a provider-only reply, and both clinicians read it after reload. Doctor E received 403 for the case and discussion; Doctor A revoked access and Doctor B then received 403. Screenshots are in gitignored `test-results/provider-clinical-collabor-0cf2b-r-discussion-and-revocation-firefox/` (`provider-collaboration-active-case.png` and `provider-collaboration-message-readback.png`). A separate synthetic request/accept/case-read/message-read/revoke operation on `ahealth_dev` produced all seven expected collaboration ledger events; access was denied after revocation and the chain verified `VALID` (7 events checked).
 
 Prisma validation, Network/Doctor/Patient/Auth builds, Staff Web type-check and production build all passed. OpenAPI type generation succeeded and Redocly semantic lint validated the document. Its 37 warnings concern path ambiguity and missing-4xx coverage outside the collaboration operations; no collaboration operation produced a lint warning. The first Firefox attempt exposed a test-locator false positive: the reply text matched the textarea before the POST completed. The test now requires a rendered discussion-list item and a cleared input, and the complete Firefox run passed without a product-code fix.
 

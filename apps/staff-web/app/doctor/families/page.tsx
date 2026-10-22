@@ -20,7 +20,7 @@ export default async function FamiliesPage() {
   const family = await serverGet<Family>('/families/me');
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <PageHeader
         title="Familia"
         lede="Mfano wa daktari mmoja kwa familia moja: daktari wa jumla na daktari wa uzazi hupangwa kando."

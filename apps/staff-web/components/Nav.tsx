@@ -14,6 +14,7 @@ const HIDE_ON = ['/login'];
 
 const DOCTOR = [
   { icon: Inbox, label: 'Queue', href: '/doctor/queue' },
+  { icon: Building2, label: 'Hospital intake', href: '/doctor/front-desk' },
   { icon: UserRound, label: 'Provider profile', href: '/doctor/profile' },
   { icon: History, label: 'Work history', href: '/doctor/work-history' },
   { icon: CalendarDays, label: 'Appointments', href: '/doctor/appointments' },
@@ -33,6 +34,7 @@ const DOCTOR = [
 
 const ADMIN = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
+  { icon: Building2, label: 'Digital front desk', href: '/admin/front-desk' },
   { icon: Siren, label: 'Emergency', href: '/admin/emergency' },
   { icon: Radio, label: 'Devices', href: '/admin/devices' },
   { icon: BadgeCheck, label: 'Verification', href: '/admin/verification' },

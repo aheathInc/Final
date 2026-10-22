@@ -2,40 +2,16 @@ import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import { sha256, verifyAuditChain, type AppError } from '@a-health/http';
 import * as pharmacies from '../services/pharmacy.service.js';
 import * as dispensing from '../services/dispensing.service.js';
 
-const configuredDatabaseUrl = process.env.DATABASE_URL;
-if (!configuredDatabaseUrl) {
-  throw new Error('DATABASE_URL is required; configure the isolated local ahealth_test database before running Pharmacy tests.');
-}
-
-let databaseUrl: URL;
-try {
-  databaseUrl = new URL(configuredDatabaseUrl);
-} catch {
-  throw new Error('DATABASE_URL must be a valid PostgreSQL URL for the isolated local ahealth_test database.');
-}
-
-const databaseName = databaseUrl.pathname.replace(/^\//, '');
-const configuredHost = databaseUrl.hostname.replace(/^\[|\]$/g, '').toLowerCase();
-const databasePort = Number(databaseUrl.port);
-const approvedHosts = ['localhost', '127.0.0.1', '::1'];
 const isLoopbackAddress = (address: string | null): boolean => {
   const normalized = (address ?? '').toLowerCase().replace(/^::ffff:/, '').replace(/\/\d+$/, '');
   return normalized === '::1' || normalized.split('.')[0] === '127';
 };
-
-if (
-  !['postgres:', 'postgresql:'].includes(databaseUrl.protocol) ||
-  databaseName !== 'ahealth_test' ||
-  !databaseUrl.port ||
-  databasePort === 5432 ||
-  !approvedHosts.includes(configuredHost)
-) {
-  throw new Error('Pharmacy tests require DATABASE_URL to target local ahealth_test on an explicit non-5432 port.');
-}
+const testTarget = assertIsolatedLocalTestTarget(process.env);
 
 const meta = { ip: '127.0.0.1', requestId: 'smart-pharmacy-test' };
 const userIds: string[] = [];
@@ -47,26 +23,7 @@ const prescriptionIds: string[] = [];
 const threadIds: string[] = [];
 
 before(async () => {
-  let identity: { database_name: string; server_address: string | null; server_port: number } | undefined;
-  try {
-    const rows = await prisma.$queryRaw<Array<{
-      database_name: string;
-      server_address: string | null;
-      server_port: number;
-    }>>`SELECT current_database() AS database_name, inet_server_addr()::text AS server_address, inet_server_port() AS server_port`;
-    identity = rows[0];
-  } catch {
-    throw new Error('Could not verify the Pharmacy test database identity; no Pharmacy tests were run.');
-  }
-
-  if (
-    !identity ||
-    identity.database_name !== 'ahealth_test' ||
-    identity.server_port !== databasePort ||
-    !isLoopbackAddress(identity.server_address)
-  ) {
-    throw new Error('Connected database identity did not match isolated local ahealth_test; no Pharmacy tests were run.');
-  }
+  await verifyLocalTestIdentity(prisma, testTarget);
 });
 
 after(async () => {

@@ -1,0 +1,26 @@
+{
+  "openapi": {
+    "parse": "PASS",
+    "local_reference_count": 1045,
+    "unresolved": [],
+    "operation_id_duplicates": [],
+    "new_operations": 11,
+    "route_contract_parity": true,
+    "semantic_lint": "NOT_RUN",
+    "generated_types": "NOT_RUN"
+  },
+  "lockfiles_unchanged": {
+    "pnpm-lock.yaml": true,
+    "apps/patient-mobile/pubspec.lock": true
+  },
+  "prior_migrations_count": 21,
+  "prior_migrations_byte_preserved": true,
+  "migration_sources_total": 22,
+  "migration_application": "NOT_RUN",
+  "omitted_parent_files": [],
+  "bash_syntax": {
+    "files": 70,
+    "failed": []
+  },
+  "kind": "static checks; not Prisma validation, DB execution, full typecheck or deployment"
+}

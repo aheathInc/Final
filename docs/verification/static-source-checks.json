@@ -1,0 +1,3304 @@
+{
+  "typescript": "5.8.3",
+  "syntax": [
+    {
+      "path": "apps/admin/app/api/auth/[...nextauth]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/bff/[...path]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/devices/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/emergency/[emergency_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/emergency/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/facilities/[facility_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/facilities/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/incidents/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/layout.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/login/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/payments/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/settings/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/triage/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/app/verification/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/DispatchPanel.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/EmergencyBoard.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/Nav.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/ProfileForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/RefundPayment.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/RegisterDevice.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/RevokeDevice.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/RulesetManager.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/VerificationActions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/components/ui.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/lib/api.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/lib/auth.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/lib/emergency.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/lib/format.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/lib/serverToken.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/lib/services.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/next-env.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/tailwind.config.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/admin/types/next-auth.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/api/auth/[...nextauth]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/bff/[...path]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/layout.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/login/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/research/[query_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/research/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/app/surveillance/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/components/Nav.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/components/QueryForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/components/SurveillanceView.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/components/TrendChart.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/components/ui.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/lib/api.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/lib/auth.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/lib/format.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/lib/serverToken.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/lib/services.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/next-env.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/tailwind.config.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/analytics/types/next-auth.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/api/auth/[...nextauth]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/appointments/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/assistant/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/bff/[...path]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/case/[consultation_id]/close/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/case/[consultation_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/diagnostics/[order_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/diagnostics/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/education/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/families/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/follow-up/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/layout.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/login/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/network/[discussion_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/network/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/patients/[patient_profile_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/pharmacy/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/queue/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/second-opinions/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/settings/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/app/slots/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/AcknowledgeResult.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/AppointmentActions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/AssistantChat.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/AvailabilityToggle.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/CloseCaseForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/ComputeRisk.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/DrugInteractions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/MedicationSearch.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/MessageThread.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/Nav.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/NewArticle.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/NewDiscussion.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/OpinionActions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/ProfileForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/QueueCard.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/QueueView.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/ReferForOpinion.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/ReplyForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/SlotPublisher.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/components/ui.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/lib/api.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/lib/auth.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/lib/format.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/lib/serverToken.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/lib/services.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/lib/urgency.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/next-env.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/tailwind.config.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/doctor-admin/types/next-auth.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/audit-ledger/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/dashboard/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/devices/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/emergency/[emergency_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/emergency/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/facilities/[facility_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/facilities/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/incidents/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/interoperability/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/layout.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/payments/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/settings/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/triage/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/admin/verification/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/analytics/dashboard/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/analytics/layout.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/analytics/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/analytics/research/[query_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/analytics/research/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/analytics/surveillance/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/api/auth/[...nextauth]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/api/logout/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/bff/[...path]/route.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/appointments/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/assistant/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/case/[consultation_id]/close/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/case/[consultation_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/clinical-collaboration/[collaboration_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/clinical-collaboration/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/diagnostics/[order_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/diagnostics/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/education/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/families/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/follow-up/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/layout.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/network/[discussion_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/network/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/patients/[patient_profile_id]/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/pharmacy/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/profile/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/queue/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/referrals/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/second-opinions/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/settings/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/slots/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/doctor/work-history/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/layout.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/login/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/app/pharmacy/page.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/AcknowledgeResult.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/AppointmentActions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/AssistantChat.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/AuditLedgerPanel.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/AvailabilityToggle.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/ClinicalCollaborationDetail.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/ClinicalCollaborationWorkspace.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/CloseCaseForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/ComputeRisk.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/DigitalReferralWorkspace.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/DispatchPanel.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/DrugInteractions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/EmergencyBoard.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/InteropConsole.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/MedicationSearch.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/MessageThread.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/Nav.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/NewArticle.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/NewDiscussion.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/OpinionActions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/OrderInvestigation.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/PharmacistWorkspace.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/ProfileForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/Providers.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/QueryForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/QueueCard.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/QueueView.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/ReferForOpinion.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/RefundPayment.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/RegisterDevice.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/ReplyForm.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/RevokeDevice.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/RulesetManager.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/SlotPublisher.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/SurveillanceView.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/TrendChart.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/VerificationActions.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/emergency.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/components/ui.tsx",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/api.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/auth.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/authCookies.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/emergency.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/format.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/roles.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/serverToken.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/services.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/lib/urgency.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/middleware.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/next-env.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/playwright.config.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/tailwind.config.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/tests/e2e/digital-referral-network.spec.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/tests/e2e/provider-clinical-collaboration.spec.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/tests/e2e/provider-marketplace.spec.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/tests/e2e/staff-acceptance.spec.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "apps/staff-web/types/next-auth.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/api/src/generated/schema.d.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/api/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/config/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/database/prisma.config.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/database/src/client.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/database/src/test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/audit.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/changelog.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/createService.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/errors.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/events.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/hash.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/middleware/auth.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/middleware/context.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/middleware/error.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/middleware/gatewaySignature.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/middleware/idempotency.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/pagination.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/params.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/tests/error.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/http/src/tokens.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/logger/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "packages/types/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "scripts/seed-digital-referral-test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "scripts/seed-provider-collaboration-test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "scripts/seed-provider-marketplace-test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "scripts/seed-staff-demo.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/adapters/chat.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/adapters/transcribe.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/controllers/ai.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/routes/ai.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/scripts/seed-models.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/services/clinical.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/services/conversation.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/services/provider-resolver.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/services/registry.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/tests/ai.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/ai/src/types/ai.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/appointment/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/appointment/src/controllers/appointment.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/appointment/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/appointment/src/routes/appointment.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/appointment/src/services/appointment.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/appointment/src/tests/appointment.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/appointment/src/types/appointment.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/scripts/seed-admin.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/scripts/seed-dev.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/scripts/seed-pharmacy-acceptance.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/config/security.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/controllers/auth.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/controllers/ledger.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/middlewares/auth.middleware.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/middlewares/context.middleware.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/middlewares/error.middleware.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/middlewares/idempotency.middleware.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/routes/auth.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/routes/ledger.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/scripts/cleanup.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/services/audit.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/services/auth.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/services/changelog.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/services/ledger.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/services/maintenance.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/tests/auth.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/tests/helpers.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/tests/security-config.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/types/auth.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/utils/errors.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/utils/hash.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/utils/jwt.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/auth/src/utils/password.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/controllers/consultation.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/engine/matching.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/engine/ruleset.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/engine/triage.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/events.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/routes/consultation.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/services/careThread.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/services/consultation.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/services/queue.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/services/ruleset.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/tests/engine.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/tests/offer-lifecycle.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/tests/prescriptions.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/tests/safety-test-target.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/tests/thread-integrity.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/types/consultation.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/consultation/src/workers/sla.worker.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/controllers/devices.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/middleware/deviceCredential.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/routes/devices.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/services/device.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/services/telemetry.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/tests/devices.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/devices/src/types/devices.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/controllers/diagnostics.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/engine/resultFlag.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/routes/diagnostics.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/services/investigation.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/tests/diagnostics.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/diagnostics/src/types/diagnostics.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/controllers/clinician.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/routes/clinician.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/services/clinician.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/services/slot.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/tests/clinician.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/doctor/src/types/doctor.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/education/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/education/src/controllers/education.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/education/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/education/src/routes/education.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/education/src/services/education.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/education/src/tests/education.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/education/src/types/education.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/controllers/emergency.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/events.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/routes/emergency.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/services/consentContext.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/services/emergencyRequest.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/services/transition.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/services/transportUnit.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/tests/emergency.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/emergency/src/types/emergency.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/facilities/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/facilities/src/controllers/facilities.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/facilities/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/facilities/src/routes/facilities.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/facilities/src/services/facility.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/facilities/src/tests/facilities.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/facilities/src/types/facilities.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/families/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/families/src/controllers/families.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/families/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/families/src/routes/families.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/families/src/services/family.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/families/src/tests/families.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/families/src/types/families.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/controllers/followup.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/engine/deviation.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/routes/followup.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/services/adherence.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/services/checkin.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/tests/followup.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/types/followup.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/followup/src/workers/scheduler.worker.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/controllers/gateway.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/middleware/rawBody.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/routes/gateway.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/services/internalAuth.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/services/internalClient.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/services/sms.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/services/ussd.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/tests/gateway.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/gateway/src/types/gateway.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/insurance/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/insurance/src/controllers/insurance.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/insurance/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/insurance/src/routes/insurance.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/insurance/src/services/insurance.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/insurance/src/tests/insurance.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/insurance/src/types/insurance.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/controllers/message.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/realtime/server.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/routes/message.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/services/message.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/services/realtime.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/tests/realtime.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/messaging/src/types/message.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/controllers/interop.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/controllers/network.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/routes/interop.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/routes/network.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/services/collaboration.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/services/discussion.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/services/interop.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/services/referral.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/services/secondOpinion.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/tests/collaboration.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/tests/interop-profile.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/tests/interop.database.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/tests/network.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/tests/referral.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/types/collaboration.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/types/interop.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/types/network.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/network/src/types/referral.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/notification/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/notification/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/notification/src/providers/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/notification/src/services/enqueue.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/notification/src/services/templates.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/notification/src/tests/dispatch.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/notification/src/workers/dispatch.worker.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/controllers/patient.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/routes/patient.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/services/consent.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/services/profile.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/tests/patient.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/patient/src/types/patient.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/adapters/provider.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/controllers/payment.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/routes/payment.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/services/intent.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/services/refund.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/services/webhook.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/services/webhookAuth.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/tests/payment.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/payment/src/types/payment.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/controllers/pharmacy.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/routes/pharmacy.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/services/dispensing.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/services/pharmacy.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/tests/pharmacy.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/pharmacy/src/types/pharmacy.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/controllers/prevention.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/engine/riskScoring.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/routes/prevention.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/scripts/seed-programmes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/services/riskScore.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/services/screening.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/services/seedProgrammes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/services/vaccination.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/tests/prevention.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/prevention/src/types/prevention.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/controllers/quality.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/routes/quality.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/services/incident.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/services/rating.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/tests/quality.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/quality/src/types/quality.types.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/controllers/research.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/engine/datasets.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/routes/research.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/scripts/seed-datasets.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/services/query.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/services/seedDatasets.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/research/src/tests/research.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/surveillance/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/surveillance/src/controllers/surveillance.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/surveillance/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/surveillance/src/routes/surveillance.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/surveillance/src/services/surveillance.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/surveillance/src/tests/surveillance.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/surveillance/src/workers/rollup.worker.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/config/env.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/controllers/sync.controller.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/index.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/routes/sync.routes.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/services/batch.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/services/changes.service.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/services/entityFetchers.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/tests/sync.test.ts",
+      "result": "PASS",
+      "errors": []
+    },
+    {
+      "path": "services/sync/src/types/sync.types.ts",
+      "result": "PASS",
+      "errors": []
+    }
+  ],
+  "json": [
+    {
+      "path": "CANDIDATE.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/patient-mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/patient-mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/patient-mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/patient-mobile/web/manifest.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/admin/.eslintrc.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/admin/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/admin/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/analytics/.eslintrc.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/analytics/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/analytics/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/doctor-admin/.eslintrc.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/doctor-admin/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/doctor-admin/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/staff-web/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "apps/staff-web/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/archive-indicator-scan.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/changed-files.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/environment.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/input-verification.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/package-inventory.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/patch-application.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/pending-demo-comparison.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/pending-ui-comparison.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/previous-changes.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/shell-normalization.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/shell-portability-before-normalization.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/static-source-checks.json",
+      "result": "PASS"
+    },
+    {
+      "path": "docs/verification/static-summary.json",
+      "result": "PASS"
+    },
+    {
+      "path": "package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/api/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/config/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/database/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/http/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/http/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/logger/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/logger/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/types/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/ui/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "packages/utils/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/ai/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/ai/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/appointment/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/appointment/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/auth/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/auth/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/consultation/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/consultation/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/devices/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/devices/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/diagnostics/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/diagnostics/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/doctor/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/doctor/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/education/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/education/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/emergency/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/emergency/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/facilities/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/facilities/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/families/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/families/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/followup/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/followup/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/gateway/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/gateway/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/insurance/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/insurance/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/messaging/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/messaging/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/allergy-intolerance-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/condition-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/diagnostic-report-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/encounter-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/medication-request-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/observation-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/organization.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/patient-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/practitioner.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-a/provenance-a.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-b/observation-b.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-b/organization.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/hospital-b/patient-b.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/src/tests/fixtures/fhir/test-actors.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/network/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/notification/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/notification/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/patient/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/patient/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/payment/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/payment/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/pharmacy/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/pharmacy/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/prevention/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/prevention/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/quality/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/quality/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/research/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/research/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/surveillance/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/surveillance/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/sync/package.json",
+      "result": "PASS"
+    },
+    {
+      "path": "services/sync/tsconfig.json",
+      "result": "PASS"
+    },
+    {
+      "path": "turbo.json",
+      "result": "PASS"
+    },
+    {
+      "path": "verification/requirements.json",
+      "result": "PASS"
+    }
+  ],
+  "shell": [
+    {
+      "path": "dev-web.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "dev.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "diagnose-401.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "expand-contract-payment-v2.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "expand-contract-payment.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "expand-schema-gateway.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "expand-schema-payment.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "expand-schema-triage-rules.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "expand-schema.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "finish-auth.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-ai-conversation-v2.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-ai-conversation.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-consultation-prescriptions-v2.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-consultation-prescriptions.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-consultation-reads.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-consultation.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-deliver-after.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-devices.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-education.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-followup-list-checkins.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-payment.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-pharmacy-v2.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-pharmacy.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-quality.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-research-v2.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-research.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-seed-admin-upsert.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-seed-env.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-token-refresh.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "fix-triage-config-fallout.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "seed-dev-admin.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "seed-dev-clinician-v2.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "seed-dev-clinician.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-admin-triage-screen (1).sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-admin-triage-screen.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-ai-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-appointment-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-auth-rewire.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-auth-service-2.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-auth-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-auth-tests.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-ci.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-consultation-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-devices-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-diagnostics-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-docker-compose.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-doctor-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-education-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-emergency-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-env-files.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-facilities-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-families-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-followup-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-gateway-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-insurance-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-messaging-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-network-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-notification-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-patient-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-payment-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-pharmacy-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-prevention-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-quality-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-research-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-shared-http.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-surveillance-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-sync-service.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "setup-triage-config.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "sync-contract.sh",
+      "result": "PASS",
+      "exit": 0
+    },
+    {
+      "path": "verify-system.sh",
+      "result": "PASS",
+      "exit": 0
+    }
+  ],
+  "relativeImports": [],
+  "authPureTests": {
+    "exit": 0,
+    "source": "existing security-config.test.ts; unmodified resolver; transpilation only; no database or auth login",
+    "toolchain": "local global TypeScript 5.8.3"
+  }
+}

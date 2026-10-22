@@ -236,6 +236,12 @@ export async function createConsultation(
     if (threadId) {
       const thread = await tx.careThread.findUnique({ where: { id: threadId } });
       if (!thread) throw notFound('Care thread not found');
+      // A caller-controlled thread ID must never associate this consultation
+      // with another patient's care history, even for a guardian or admin.
+      // Check before reopening the thread or writing any consultation data.
+      if (thread.patientProfileId !== patientProfileId) {
+        throw forbidden('NOT_RESOURCE_OWNER', 'The care thread does not belong to the selected patient');
+      }
       if (thread.status === 'closed') {
         // A deviation weeks after discharge belongs to the same problem, so a
         // new consultation reopens the thread rather than orphaning itself.
@@ -557,6 +563,23 @@ export async function completeConsultation(
       version: completed.version, patientProfileId: consultation.patientProfileId,
       careThreadId: consultation.careThreadId,
     });
+
+    // Finish the linked hospital visit in the SAME transaction as the signed
+    // consultation outcome. Existing remote consultations have no visit.
+    const deskVisit = await tx.frontDeskVisit.findUnique({ where: { consultationId } });
+    if (deskVisit) {
+      if (deskVisit.status !== 'in_consultation' || deskVisit.assignedClinicianId !== cpid) {
+        throw conflict('STATE_TRANSITION_INVALID', 'Front-desk consultation association is inconsistent');
+      }
+      await tx.frontDeskVisit.update({ where: { id: deskVisit.id }, data: {
+        status: 'completed', completedAt: completed.completedAt ?? new Date(), version: { increment: 1 },
+      } });
+      await appendAudit({ actorUserId: caller.sub, action: 'frontdesk.completed',
+        entityType: 'front_desk_visits', entityId: deskVisit.id,
+        metadata: { consultationId, facilityId: deskVisit.facilityId, departmentId: deskVisit.departmentId },
+        ipAddress: meta.ip, requestId: meta.requestId,
+      }, tx);
+    }
 
     return { completed, note, prescriptionId, followUpCycleId };
   });

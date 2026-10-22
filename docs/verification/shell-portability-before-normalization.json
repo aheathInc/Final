@@ -1,0 +1,422 @@
+[
+  {
+    "path": "dev-web.sh",
+    "crlf": 172,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "dev.sh",
+    "crlf": 117,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "diagnose-401.sh",
+    "crlf": 85,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "expand-contract-payment-v2.sh",
+    "crlf": 474,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "expand-contract-payment.sh",
+    "crlf": 401,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "expand-schema-gateway.sh",
+    "crlf": 74,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "expand-schema-payment.sh",
+    "crlf": 264,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "expand-schema-triage-rules.sh",
+    "crlf": 130,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "expand-schema.sh",
+    "crlf": 1657,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "finish-auth.sh",
+    "crlf": 630,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-ai-conversation-v2.sh",
+    "crlf": 193,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-ai-conversation.sh",
+    "crlf": 184,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-consultation-prescriptions-v2.sh",
+    "crlf": 93,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-consultation-prescriptions.sh",
+    "crlf": 270,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-consultation-reads.sh",
+    "crlf": 184,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-consultation.sh",
+    "crlf": 92,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-deliver-after.sh",
+    "crlf": 91,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-devices.sh",
+    "crlf": 46,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-education.sh",
+    "crlf": 43,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-followup-list-checkins.sh",
+    "crlf": 168,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-payment.sh",
+    "crlf": 147,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-pharmacy-v2.sh",
+    "crlf": 112,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-pharmacy.sh",
+    "crlf": 214,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-quality.sh",
+    "crlf": 54,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-research-v2.sh",
+    "crlf": 82,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-research.sh",
+    "crlf": 175,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-seed-admin-upsert.sh",
+    "crlf": 115,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-seed-env.sh",
+    "crlf": 64,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-token-refresh.sh",
+    "crlf": 142,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "fix-triage-config-fallout.sh",
+    "crlf": 111,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "seed-dev-admin.sh",
+    "crlf": 223,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "seed-dev-clinician-v2.sh",
+    "crlf": 238,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "seed-dev-clinician.sh",
+    "crlf": 200,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-admin-triage-screen (1).sh",
+    "crlf": 306,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-admin-triage-screen.sh",
+    "crlf": 306,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-ai-service.sh",
+    "crlf": 937,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-appointment-service.sh",
+    "crlf": 771,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-auth-rewire.sh",
+    "crlf": 153,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-auth-service-2.sh",
+    "crlf": 818,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-auth-service.sh",
+    "crlf": 723,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-auth-tests.sh",
+    "crlf": 325,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-ci.sh",
+    "crlf": 143,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-consultation-service.sh",
+    "crlf": 1658,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-devices-service.sh",
+    "crlf": 625,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-diagnostics-service.sh",
+    "crlf": 773,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-docker-compose.sh",
+    "crlf": 157,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-doctor-service.sh",
+    "crlf": 1117,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-education-service.sh",
+    "crlf": 714,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-emergency-service.sh",
+    "crlf": 1104,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-env-files.sh",
+    "crlf": 158,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-facilities-service.sh",
+    "crlf": 353,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-families-service.sh",
+    "crlf": 613,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-followup-service.sh",
+    "crlf": 1087,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-gateway-service.sh",
+    "crlf": 661,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-insurance-service.sh",
+    "crlf": 468,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-messaging-service.sh",
+    "crlf": 925,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-network-service.sh",
+    "crlf": 895,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-notification-service.sh",
+    "crlf": 762,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-patient-service.sh",
+    "crlf": 698,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-payment-service.sh",
+    "crlf": 1014,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-pharmacy-service.sh",
+    "crlf": 759,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-prevention-service.sh",
+    "crlf": 780,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-quality-service.sh",
+    "crlf": 574,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-research-service.sh",
+    "crlf": 509,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-shared-http.sh",
+    "crlf": 929,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-surveillance-service.sh",
+    "crlf": 530,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-sync-service.sh",
+    "crlf": 658,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "setup-triage-config.sh",
+    "crlf": 1121,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "sync-contract.sh",
+    "crlf": 58,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  },
+  {
+    "path": "verify-system.sh",
+    "crlf": 116,
+    "normalized_syntax": "PASS",
+    "exit": 0
+  }
+]

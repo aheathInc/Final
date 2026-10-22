@@ -23,7 +23,7 @@ export default async function TriagePage() {
   const list = await serverGet<{ data: Ruleset[] }>('/triage-rulesets');
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <PageHeader
         title="Sheria za triage"
         lede="Kubadilisha kunatengeneza toleo jipya; toleo lililopo halibadilishwi kamwe. Kila kesi inahifadhi toleo lililoiamua, kwa hiyo uamuzi wa mwaka jana bado unaweza kuelezwa."

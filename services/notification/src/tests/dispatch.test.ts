@@ -1,13 +1,33 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import { dispatchOnce } from '../workers/dispatch.worker.js';
 import { render, knownTemplates } from '../services/templates.js';
 
-if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
-  throw new Error('Refusing to run tests outside a development database');
+if (process.env.NODE_ENV !== 'test' || process.env.SMS_PROVIDER !== 'console') {
+  throw new Error('Notification DB tests require NODE_ENV=test and SMS_PROVIDER=console.');
 }
+let target: URL;
+try { target = new URL(process.env.DATABASE_URL ?? ''); } catch { throw new Error('Explicit isolated test DATABASE_URL required.'); }
+const targetDatabase = decodeURIComponent(target.pathname.replace(/^\//, ''));
+const targetSchema = target.searchParams.get('schema');
+if (!['postgres:', 'postgresql:'].includes(target.protocol) ||
+    !((targetDatabase === 'ahealth_test' && targetSchema === 'public') || (targetDatabase === 'ahealth_dev' && /^ahp_test_[a-z0-9_]+$/.test(targetSchema ?? ''))) ||
+    target.searchParams.getAll('schema').length !== 1 || !target.port || target.port === '5432' ||
+    !['localhost','127.0.0.1','[::1]','::1'].includes(target.hostname)) {
+  throw new Error('Notification tests require an explicitly isolated loopback database/schema on a non-5432 port.');
+}
+before(async () => {
+  const [row] = await prisma.$queryRaw<Array<{ db: string; schema: string; schemaOwner: string; role: string; port: number; address: string }>>`
+    SELECT current_database() AS db, current_schema()::text AS schema,
+           (SELECT pg_get_userbyid(nspowner)::text FROM pg_namespace WHERE nspname = current_schema()) AS "schemaOwner",
+           current_user::text AS role, inet_server_port() AS port, inet_server_addr()::text AS address`;
+  if (!row || row.db !== targetDatabase || row.schema !== targetSchema || row.schemaOwner !== row.role ||
+      row.port !== Number(target.port) || !/^(127\.|::1$)/.test(row.address.replace(/^::ffff:/, '').replace(/\/\d+$/, ''))) {
+    throw new Error('Database identity is not the approved isolated test target.');
+  }
+});
 
 const users: string[] = [];
 
@@ -122,5 +142,25 @@ describe('dispatch', () => {
     const row = await prisma.notificationLog.findFirstOrThrow({ where: { userId: user.id } });
     assert.equal(row.status, 'failed');
     assert.equal(row.failureCode, 'UNKNOWN_TEMPLATE');
+  });
+});
+
+
+describe('leased dispatch', () => {
+  it('concurrent workers claim one queued notification at most once', async () => {
+    const user = await makeUser(); const n = await prisma.notificationLog.create({ data: { userId: user.id, channel: 'sms', templateKey: 'consultation.assigned', payload: {}, dedupeKey: `test:${user.id}` } });
+    await Promise.all([dispatchOnce(), dispatchOnce()]);
+    const saved = await prisma.notificationLog.findUniqueOrThrow({ where: { id: n.id } });
+    assert.equal(saved.status, 'sent'); assert.equal(saved.attempts, 1); assert.equal(saved.claimToken, null);
+  });
+  it('suppresses a care notification lacking an active owned reminder', async () => {
+    const user = await makeUser(); const n = await prisma.notificationLog.create({ data: { userId: user.id, channel: 'sms', templateKey: 'care.dose_due', payload: {} } });
+    await dispatchOnce(); const saved = await prisma.notificationLog.findUniqueOrThrow({ where: { id: n.id } });
+    assert.equal(saved.status, 'failed'); assert.equal(saved.failureCode, 'SUPERSEDED_CARE');
+  });
+  it('reclaims an expired lease without an unbounded wait', async () => {
+    const user = await makeUser(); const n = await prisma.notificationLog.create({ data: { userId: user.id, channel: 'sms', templateKey: 'consultation.assigned', payload: {}, claimToken: user.id, claimUntil: new Date(Date.now()-10000), attempts: 1 } });
+    await dispatchOnce(); const saved = await prisma.notificationLog.findUniqueOrThrow({ where: { id: n.id } });
+    assert.equal(saved.status, 'sent'); assert.equal(saved.attempts, 2);
   });
 });

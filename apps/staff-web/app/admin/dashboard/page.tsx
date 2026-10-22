@@ -1,15 +1,17 @@
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Badge, PageHeader, Card, PageShell } from '@/components/ui';
+import { PageHeader, Card, PageShell } from '@/components/ui';
+import { MetricBars } from '@/components/premium/MetricBars';
+import { Icon } from '@/components/premium/Icon';
 import { serverGet } from '@/lib/serverToken';
 import type { ClinicianDirectoryEntry, Device, EmergencyRequest, Facility, IncidentReport, Page, Payment } from '@/lib/api';
 
 function Stat({ label, value, href }: { label: string; value: number | string; href: string }) {
   return (
-    <Link href={href} className="rounded-lg border border-line bg-white/95 p-4 shadow-sm shadow-navy/5 transition-colors hover:border-teal focus-visible:outline-petrol">
-      <span className="text-sm text-ink-soft">{label}</span>
-      <strong className="mt-2 block text-3xl font-semibold text-ink">{value}</strong>
+    <Link href={href} className="ahp-stat">
+      <span className="ahp-stat-label">{label}</span>
+      <strong className="ahp-stat-value">{value}</strong><small className="ahp-stat-note">{value==='Unavailable'?'Source did not respond':'Within returned records'}</small>
     </Link>
   );
 }
@@ -32,44 +34,30 @@ export default async function AdminDashboard() {
 
   return (
     <PageShell>
-      <Card className="bg-gradient-to-br from-white to-teal/10">
-        <PageHeader
-          title="Operations dashboard"
-          lede="Authorised operational queues across emergency response, clinician verification, payments, devices, facilities and quality."
-          action={<Badge tone="good">Local staff demo</Badge>}
-        />
-      </Card>
+      <PageHeader title="Service overview" lede="A clear view of operations, outstanding work and the services supporting your care teams." />
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Open emergencies" value={openEmergencies} href="/admin/emergency" />
-        <Stat label="Pending verifications" value={pendingVerifications} href="/admin/verification" />
-        <Stat label="Active devices" value={activeDevices} href="/admin/devices" />
-        <Stat label="Open incidents" value={openIncidents} href="/admin/incidents" />
+      <section className="ahp-stat-grid">
+        <Stat label="Open emergencies" value={emergencies ? openEmergencies : 'Unavailable'} href="/admin/emergency" />
+        <Stat label="Pending verifications" value={verifications ? pendingVerifications : 'Unavailable'} href="/admin/verification" />
+        <Stat label="Active devices" value={devices ? activeDevices : 'Unavailable'} href="/admin/devices" />
+        <Stat label="Open incidents" value={incidents ? openIncidents : 'Unavailable'} href="/admin/incidents" />
       </section>
 
-      <section className="mt-6 grid gap-4 lg:grid-cols-3">
-        <Card>
-          <h2 className="font-semibold">Payments</h2>
-          <p className="mt-2 text-3xl font-semibold">{payments?.data?.length ?? 0}</p>
-          <p className="text-sm text-ink-soft">Recent payment records available to operations.</p>
+      <section className="ahp-bento">
+        <Card><div className="ahp-section-heading"><h2>Care operations</h2><span className="ahp-caption">Choose your next action</span></div>
+          {[
+            {href:'/admin/verification',icon:'shield',title:'Clinician verification',description:verifications ? `${pendingVerifications} pending in returned records`:'Verification service unavailable'},
+            {href:'/admin/facilities',icon:'building',title:'Healthcare facilities',description:facilities ? `${facilities.data.length} facilities in the current page`:'Facilities service unavailable'},
+            {href:'/admin/payments',icon:'credit',title:'Payment records',description:payments ? `${payments.data.length} recent records · not a settlement total`:'Payment service unavailable'},
+          ].map(x=><Link key={x.href} href={x.href} className="ahp-resource-link"><span><Icon name={x.icon}/></span><div><strong>{x.title}</strong><small>{x.description}</small></div><Icon name="chevron" size={16}/></Link>)}
         </Card>
-        <Card>
-          <h2 className="font-semibold">Facilities</h2>
-          <p className="mt-2 text-3xl font-semibold">{facilities?.data?.length ?? 0}</p>
-          <p className="text-sm text-ink-soft">Facilities returned by the facilities service.</p>
-        </Card>
-        <Card>
-          <h2 className="font-semibold">Service health</h2>
-          <p className="mt-2 text-sm text-ink-soft">
-            Empty counts can mean no current work or an unavailable upstream service; detail pages show the authoritative state.
-          </p>
+        <Card><div className="ahp-section-heading"><h2>Connected & accountable</h2></div>
+          {session?.user?.role === 'platform_admin' && <Link className="ahp-resource-link" href="/admin/interoperability"><span><Icon name="network"/></span><div><strong>External health systems</strong><small>Registry and identity review</small></div><Icon name="chevron" size={16}/></Link>}
+          <Link className="ahp-resource-link" href="/admin/audit-ledger"><span><Icon name="history"/></span><div><strong>Audit ledger</strong><small>Inspect events and verify integrity</small></div><Icon name="chevron" size={16}/></Link>
+          <div className="ahp-section-heading ahp-mt"><h2>Queues requiring attention</h2></div><MetricBars rows={[{label:'Emergency requests',value:emergencies?openEmergencies:null},{label:'Clinician verification',value:verifications?pendingVerifications:null},{label:'Open incidents',value:incidents?openIncidents:null}]} caption="Counts within returned records; not facility-wide totals."/>
+          <p className="ahp-caption">Metrics reflect the records returned by each service, not hospital-wide totals. Unavailable sources are never shown as zero.</p>
         </Card>
       </section>
-      {session?.user?.role === 'platform_admin' && (
-        <section className="mt-6">
-          <Stat label="External health systems" value="Registry & identity review" href="/admin/interoperability" />
-        </section>
-      )}
     </PageShell>
   );
 }

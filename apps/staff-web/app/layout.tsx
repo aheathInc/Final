@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
-import { Nav } from '@/components/Nav';
+import { StaffShell } from '@/components/premium/StaffShell';
+import { DisplayProvider } from '@/components/premium/DisplayPreferences';
 import { Providers } from '@/components/Providers';
 import './globals.css';
+import './care-continuity.css';
+import './premium-clinical.css';
 
 /*
  * One family across the scale; weight and size carry the hierarchy. Plex Mono
@@ -16,15 +19,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans">
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('ahp.staff.theme');document.documentElement.dataset.theme=t==='dark'||t==='light'?t:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.density=localStorage.getItem('ahp.staff.density')==='compact'?'compact':'comfortable';}catch(e){}})();` }} />
         <Providers>
-          <div className="flex min-h-screen bg-paper text-ink max-md:flex-col">
-            <Nav />
-            <main className="surface-grid min-w-0 flex-1 bg-[radial-gradient(circle_at_top_right,rgba(43,145,217,0.12),transparent_34rem)]">
-              {children}
-            </main>
-          </div>
+          <DisplayProvider><StaffShell>{children}</StaffShell></DisplayProvider>
         </Providers>
       </body>
     </html>

@@ -1,4 +1,5 @@
 'use client';
+import { PageHeader } from './ui';
 
 import { useEffect, useState } from 'react';
 
@@ -74,11 +75,8 @@ export function InteropConsole({ facilities }: { facilities: Facility[] }) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-6 py-8">
-      <header>
-        <h1 className="text-2xl font-semibold">Health-system interoperability</h1>
-        <p className="mt-2 max-w-3xl text-sm text-ink-soft">FHIR R4 subset for registered synthetic systems. Registration does not activate a source. Configure its secret outside the database before activation.</p>
-      </header>
+    <div className="staff-page ahp-page space-y-8">
+      <PageHeader title="Health-system interoperability" lede="Register approved sources, review identity mappings and keep provenance visible. FHIR R4 subset — not a full FHIR server."/>
       {message && <p role="status" className="rounded border border-line bg-white p-3 text-sm">{message}</p>}
 
       <section className="rounded border border-line bg-white p-5">

@@ -1,4 +1,5 @@
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget } from '@a-health/database/test-safety';
 import { randomInt } from 'node:crypto';
 
 /**
@@ -7,20 +8,7 @@ import { randomInt } from 'node:crypto';
  * difference between a red test and a very bad afternoon.
  */
 export function assertSafeDatabase(): void {
-  let url: URL;
-  try {
-    url = new URL(process.env.DATABASE_URL ?? '');
-  } catch {
-    throw new Error('Refusing auth tests without a valid local ahealth_test DATABASE_URL.');
-  }
-  const database = decodeURIComponent(url.pathname.replace(/^\//, ''));
-  if (
-    database !== 'ahealth_test' ||
-    !['localhost', '127.0.0.1', '::1'].includes(url.hostname) ||
-    (url.port || '5432') === '5432'
-  ) {
-    throw new Error('Refusing auth tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
-  }
+  assertIsolatedLocalTestTarget(process.env);
 }
 
 /** Unique per run, so parallel runs and reruns never collide. */
@@ -41,7 +29,7 @@ export const meta = { ip: '127.0.0.1', requestId: 'test' };
 export function codeOf(challenge: { dev_code?: string }): string {
   if (!challenge.dev_code) {
     throw new Error(
-      'No dev_code in the challenge. For local tests, explicitly enable AUTH_LOCAL_OTP_MODE and OTP_ECHO_IN_RESPONSE with a local ahealth_test database.',
+      'No dev_code in the challenge. For local tests, explicitly enable AUTH_LOCAL_OTP_MODE and OTP_ECHO_IN_RESPONSE with the isolated local test target.',
     );
   }
   return challenge.dev_code;

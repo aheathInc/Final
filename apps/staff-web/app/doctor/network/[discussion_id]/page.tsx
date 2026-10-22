@@ -17,11 +17,11 @@ export default async function DiscussionPage({ params }: { params: { discussion_
 
   const d = await serverGet<WithReplies>(`/network/discussions/${params.discussion_id}`);
   if (!d) {
-    return <div className="mx-auto max-w-3xl px-6 py-8"><Notice>Majadiliano haya hayakupatikana.</Notice></div>;
+    return <div className="staff-page ahp-page"><Notice>Majadiliano haya hayakupatikana.</Notice></div>;
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <Link href="/doctor/" className="text-sm text-petrol underline underline-offset-4">Rudi kwenye jamii</Link>
       <div className="mt-4"><PageHeader title={d.title} lede={dateTime(d.created_at)} /></div>
 

@@ -1,4 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { ClinicalHero } from './premium/ClinicalHero';
+import { Icon } from './premium/Icon';
 
 /**
  * min-height 2.75rem throughout is not a style preference: it is roughly the
@@ -13,11 +15,11 @@ export function Button({
     variant === 'primary' ? 'bg-petrol text-white shadow-sm shadow-petrol/20 hover:bg-petrol-lift'
     : variant === 'danger' ? 'bg-clay text-white shadow-sm shadow-clay/20 hover:opacity-90'
     : 'border border-line bg-white text-petrol shadow-sm hover:border-petrol hover:bg-teal/10 hover:text-petrol-lift';
-  return <button className={`${base} rounded-md ${kind} ${className}`} {...props}>{children}</button>;
+  return <button className={`ahp-button ahp-button--${variant} ${base} rounded-md ${kind} ${className}`} {...props}>{children}</button>;
 }
 
 export function PageShell({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`staff-page px-4 py-6 sm:px-6 lg:px-8 ${className}`}>{children}</div>;
+  return <div className={`staff-page ahp-page ${className}`}>{children}</div>;
 }
 
 /**
@@ -27,26 +29,18 @@ export function PageShell({ children, className = '' }: { children: ReactNode; c
 export function Notice({ tone = 'problem', children }: { tone?: 'attention' | 'problem'; children: ReactNode }) {
   const c = tone === 'problem' ? 'border-clay text-clay' : 'border-amber text-amber';
   return (
-    <p role="alert" className={`rounded-md border-l-4 ${c} bg-paper-sunk py-3 pl-4 pr-3 text-[0.95rem]`}>
+    <p role="alert" className={`ahp-notice ahp-notice--${tone} rounded-md border-l-4 ${c} bg-paper-sunk py-3 pl-4 pr-3 text-[0.95rem]`}>
       {children}
     </p>
   );
 }
 
 export function PageHeader({ title, lede, action }: { title: string; lede?: string; action?: ReactNode }) {
-  return (
-    <header className="flex flex-wrap items-start justify-between gap-4 border-b border-line/80 pb-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
-        {lede && <p className="mt-1 max-w-[62ch] text-[0.95rem] text-ink-soft">{lede}</p>}
-      </div>
-      {action}
-    </header>
-  );
+  return <ClinicalHero title={title} lede={lede} action={action} />;
 }
 
 export function Card({ children, accent = '', className = '' }: { children: ReactNode; accent?: string; className?: string }) {
-  return <article className={`rounded-lg bg-white/95 p-4 shadow-sm shadow-navy/5 ring-1 ring-black/5 ${accent || 'border border-line'} ${className}`}>{children}</article>;
+  return <article className={`ahp-card rounded-lg bg-white/95 p-4 shadow-sm shadow-navy/5 ring-1 ring-black/5 ${accent || 'border border-line'} ${className}`}>{children}</article>;
 }
 
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'good' | 'attention' | 'problem' | 'info' }) {
@@ -57,7 +51,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
     : tone === 'info' ? 'border-blue/40 bg-blue/10 text-blue'
     : 'border-line bg-paper-sunk text-ink-soft';
   return (
-    <span className={`inline-flex min-h-7 items-center rounded-full border px-2.5 text-xs font-semibold uppercase tracking-wide ${toneClass}`}>
+    <span className={`ahp-badge ahp-badge--${tone} inline-flex min-h-7 items-center rounded-full border px-2.5 text-xs font-semibold uppercase tracking-wide ${toneClass}`}>
       {children}
     </span>
   );
@@ -72,11 +66,11 @@ export function SectionTitle({ children }: { children: ReactNode }) {
  * nothing overdue. The copy says so rather than reading like a failure.
  */
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="py-10 text-ink-soft">{children}</p>;
+  return <div className="ahp-empty"><span className="ahp-empty-icon"><Icon name="file" size={24}/></span><p>{children}</p></div>;
 }
 
 export function Loading() {
-  return <p className="py-10 text-ink-soft">Loading...</p>;
+  return <div className="ahp-loading" role="status"><span className="ahp-loading-dot" aria-hidden="true"/>Loading authorized records…</div>;
 }
 
 export function Field({
@@ -91,5 +85,5 @@ export function Field({
   );
 }
 
-export const inputClass = 'min-h-11 w-full rounded-md border border-line bg-white px-3 shadow-sm';
-export const areaClass = 'w-full rounded-md border border-line bg-white p-3 shadow-sm';
+export const inputClass = 'ahp-input min-h-11 w-full rounded-md border border-line bg-white px-3 shadow-sm';
+export const areaClass = 'ahp-textarea w-full rounded-md border border-line bg-white p-3 shadow-sm';

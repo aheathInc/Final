@@ -1,31 +1,22 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import { appendAudit } from '@a-health/http';
 import type { AppError } from '@a-health/http';
 import * as profiles from '../services/profile.service.js';
 import * as consents from '../services/consent.service.js';
 import { grantConsentSchema } from '../types/patient.types.js';
 
-let testDatabase: URL;
-try {
-  testDatabase = new URL(process.env.DATABASE_URL ?? '');
-} catch {
-  throw new Error('Refusing patient tests without a valid local ahealth_test DATABASE_URL.');
-}
-if (
-  decodeURIComponent(testDatabase.pathname.replace(/^\//, '')) !== 'ahealth_test' ||
-  !['localhost', '127.0.0.1', '::1'].includes(testDatabase.hostname) ||
-  (testDatabase.port || '5432') === '5432'
-) {
-  throw new Error('Refusing patient tests unless DATABASE_URL targets local ahealth_test on a non-5432 port.');
-}
+const testTarget = assertIsolatedLocalTestTarget(process.env);
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
 const createdUsers: string[] = [];
 const createdProfiles: string[] = [];
 const createdClinicians: string[] = [];
+
+before(async () => { await verifyLocalTestIdentity(prisma, testTarget); });
 
 after(async () => {
   for (const id of createdProfiles) {

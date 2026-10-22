@@ -13,47 +13,29 @@ const INTERVAL_HOURS: Record<string, number> = {
 export interface SchedulerResult {
   cyclesProcessed: number;
   checkInsCreated: number;
+  /** Compatibility field: the scheduler never determines a clinical outcome. */
   cyclesAutoClosed: number;
 }
 
 /**
- * Generates due check-ins from active cycles, and closes a cycle whose window
- * has ended cleanly — reached its end date with no unresolved deviation.
+ * Generates check-ins within active scheduling windows and marks overdue,
+ * unanswered check-ins as missed. An elapsed window does not establish recovery
+ * or loss to follow-up: clinical outcomes require the explicit close workflow.
+ * Ended cycles retain their status, outcome and care-thread association.
  *
- * Idempotent by construction: each pass only creates a check-in for a slot
- * that does not already have one, so running the tick twice in the same
- * window is harmless.
+ * Sequential ticks skip existing slots. This does not establish safety for
+ * concurrent scheduler instances; that requires separate database guarantees.
  */
 export async function tick(now = new Date()): Promise<SchedulerResult> {
   const cycles = await prisma.followUpCycle.findMany({
-    where: { status: 'active' },
+    // Filter before take: ended cycles awaiting review must not fill the batch
+    // and prevent in-window cycles from receiving scheduled check-ins.
+    where: { status: 'active', endDate: { gte: now } },
     take: 500,
   });
 
   let checkInsCreated = 0;
-  let cyclesAutoClosed = 0;
-
   for (const cycle of cycles) {
-    if (cycle.endDate < now) {
-      if (cycle.openDeviationCount === 0) {
-        await prisma.$transaction([
-          prisma.followUpCycle.update({
-            where: { id: cycle.id },
-            data: { status: 'completed', outcome: 'recovered', version: { increment: 1 } },
-          }),
-          prisma.careThread.updateMany({
-            where: { id: cycle.careThreadId, activeFollowUpCycleId: cycle.id },
-            data: { activeFollowUpCycleId: null },
-          }),
-        ]);
-        cyclesAutoClosed += 1;
-      }
-      // A cycle past its end date with an open deviation is left active
-      // deliberately — a clinical concern that has not been resolved does not
-      // get closed by a timer.
-      continue;
-    }
-
     const intervalHours =
       cycle.frequency === 'custom' ? 24 : (INTERVAL_HOURS[cycle.frequency] ?? 24);
 
@@ -99,14 +81,16 @@ export async function tick(now = new Date()): Promise<SchedulerResult> {
 
   if (missed.count > 0) logger.warn('check-ins marked missed', { count: missed.count });
 
-  return { cyclesProcessed: cycles.length, checkInsCreated, cyclesAutoClosed };
+  // Retain the result shape for existing callers, without reporting a clinical
+  // outcome inferred from a timer.
+  return { cyclesProcessed: cycles.length, checkInsCreated, cyclesAutoClosed: 0 };
 }
 
 export function startScheduler(): NodeJS.Timeout {
   const timer = setInterval(() => {
     void tick()
       .then((r) => {
-        if (r.checkInsCreated + r.cyclesAutoClosed > 0) logger.info('scheduler tick', { ...r });
+        if (r.checkInsCreated > 0) logger.info('scheduler tick', { ...r });
       })
       .catch((e) => logger.error('scheduler tick failed', { err: String(e) }));
   }, env.SCHEDULER_INTERVAL_MINUTES * 60000);

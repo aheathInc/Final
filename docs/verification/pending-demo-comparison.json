@@ -1,0 +1,128 @@
+[
+  {
+    "path": "apps/staff-web/app/login/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "717ce153c6f2318b764d2d923e6c00bc98dc39ca4d4a8a204b0bae6905e2df9d",
+    "base_sha256": "0b91f951167edf55b0b56a32c3ed5421adef871ef013eb5fde5bf9022df51757"
+  },
+  {
+    "path": "apps/staff-web/lib/roles.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "11f8a5859da1f1428035aaef1aca31f371637c74ee90a084505a7c25a07f2134",
+    "base_sha256": "ff5f1cf32a9c32acd5728ca8860025bf8bb8a9285a3d2ea19ea28f127eb8a990"
+  },
+  {
+    "path": "docs/FULL-INTEGRATED-DEMO.md",
+    "status": "NEW",
+    "archive_sha256": "3bc7ae88667e5e6c5d546d8cfdf633658bb6f3a341223de50f6845cb496e8953",
+    "base_sha256": null
+  },
+  {
+    "path": "packages/http/src/createService.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "16a3066453ccc2971035d38f924eaa5cb41b8bb4a4ada6a7cfd0a22233f70fa7",
+    "base_sha256": "729092e847eb6c8be3396609a9ee05cc65d6a3a735361312d058cfc0246b7373"
+  },
+  {
+    "path": "scripts/local/demo-copy-credential.ps1",
+    "status": "NEW",
+    "archive_sha256": "847ed45cdb137db8146ee03e02bb35b6821f54efe378427969758c8ef3e9a0cc",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-copy-otp.ps1",
+    "status": "NEW",
+    "archive_sha256": "ef1029a94f9ab219f9e41a49a67162eb33288ee985b179d0fa214d6fcd3102a5",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-health.ps1",
+    "status": "NEW",
+    "archive_sha256": "5b883cc424a7db50aed4773062dc34da7d90c4037c616f53f6dfee8d05d766a1",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-import-fhir.ps1",
+    "status": "NEW",
+    "archive_sha256": "695a1b40f6e014821a71d68e335cf4dae16fb433b72f48a2273294e8756c5de8",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-init.ps1",
+    "status": "NEW",
+    "archive_sha256": "391668baa4d0b88d6a69e2971beaf42c1371de83ce29211f5bfbb362e4a1b934",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-migrate.ps1",
+    "status": "NEW",
+    "archive_sha256": "5085efecc9b9db1021db1f76c6c4e678fb66320e9580b94d6de14eb4df394f82",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-run-service.ps1",
+    "status": "NEW",
+    "archive_sha256": "c5b77992ff6f93662754c7916417d0c9cc7131e7494597d068fa2bec727f46fa",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-seed.ps1",
+    "status": "NEW",
+    "archive_sha256": "7d4e48fbf2eaf5d998030fb4efe3205e0345031a284939d8edee9c7609c48883",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-start.ps1",
+    "status": "NEW",
+    "archive_sha256": "7ff3afde5cd8d3e815f446c79ef979456515fa78c000f1f75d2f6289c6fe588e",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/local/demo-stop.ps1",
+    "status": "NEW",
+    "archive_sha256": "7fe22c1b7c3710619c4abade987b70a9915ab782f0a4c878ad1a07532fa97e30",
+    "base_sha256": null
+  },
+  {
+    "path": "scripts/seed-staff-demo.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "fe047b5edfe3a986d50d7514e15eadc408a4c93f0a894657fc4a70757d971d8c",
+    "base_sha256": "4539f3d788589c44de84cec7bc4bb4f3baf9d2c5b6cc29ed083fa158fc928d4b"
+  },
+  {
+    "path": "services/auth/scripts/seed-admin.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "c4851d456a6b8ee4936b2e7cfd7edfb86e603ec03d317f09c958e126698c72bd",
+    "base_sha256": "f0b5aae9fe0afca1fd562a2f3ce3f8bdd559d4a41923280b8896cf58731fe6e9"
+  },
+  {
+    "path": "services/auth/scripts/seed-dev.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "acfd2a8cf4dcadccc6a39e3579b017348b7e902a51dca71097e1724edcd30ab2",
+    "base_sha256": "bf443b39d1fc9537b4fca7214e02e8cb5923be6f05d170deb963f340d44dfed2"
+  },
+  {
+    "path": "services/auth/src/config/security.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "f09049e853c8df74f066c06ce6d9bddf7db241e08685ef4c55e9db257a53a199",
+    "base_sha256": "433763c53a7b9d59a922bdddfe299eab998702d819295d4b79d05c9b46539e17"
+  },
+  {
+    "path": "services/auth/src/index.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "29bf0ecc4f311d400f83d1ef32624c65b4e3b3e9e3cb749531594612bcc9174e",
+    "base_sha256": "23a237b49acc411774c709a67d9333ab197e71d97b9e8688caf84a2efe5dab82"
+  },
+  {
+    "path": "services/auth/src/tests/security-config.test.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "95226dbf27288bbe7a470ed23f0ca4009192046f21051cf8fd7bbba0fe0296b0",
+    "base_sha256": "f23e994b90e9f8b3f913673ec185bb87ce5dde26b9118ca8e601c5d08fdc180b"
+  },
+  {
+    "path": "services/network/src/tests/fixtures/fhir/README.md",
+    "status": "DIFFERENT",
+    "archive_sha256": "49edf96ce9854d8a5e03bebf8438c693f3e06b5534427c5a0094da8a343619c8",
+    "base_sha256": "411d05d2a9ee0d50c865bc4240b1569d7979d55b60ebeb87f446affa8b82c6d3"
+  }
+]

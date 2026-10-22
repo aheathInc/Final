@@ -363,6 +363,8 @@ model PatientProfile {
   // an analytics view.
   regionCode        String?   @map("region_code") @db.VarChar(20)
 
+  reminderPreferences CareReminderPreference?
+  careReminders CareReminder[]
   careThreads    CareThread[]
   consultations  ConsultationRequest[]
   appointments   Appointment[]
@@ -372,6 +374,7 @@ model PatientProfile {
   consents       PatientConsent[]
   medicalRecords MedicalRecord[]
   digitalReferrals DigitalReferral[]
+  frontDeskVisits FrontDeskVisit[]
   externalIdentities ExternalPatientIdentity[]
   externalFhirResources ExternalFhirResource[]
 
@@ -426,6 +429,8 @@ model ClinicianProfile {
   offers                ConsultationOffer[]
   assignedConsultations ConsultationRequest[] @relation("AssignedClinician")
   primaryCareThreads    CareThread[]          @relation("PrimaryClinician")
+  requestedFrontDeskVisits FrontDeskVisit[] @relation("DeskRequestedClinician")
+  assignedFrontDeskVisits FrontDeskVisit[] @relation("DeskAssignedClinician")
   signedNotes           ConsultationNote[]    @relation("SignedBy")
   referredNotes         ConsultationNote[]    @relation("ReferredSpecialist")
   prescriptions         Prescription[]
@@ -478,6 +483,13 @@ model Facility {
   regionCode   String?      @map("region_code") @db.VarChar(20)
   contactPhone String?      @map("contact_phone") @db.VarChar(20)
   isActive     Boolean      @default(true) @map("is_active")
+
+  // Digital front desk is explicitly enabled by a platform administrator.
+  // These are administrative requirements, not billing or insurer integration.
+  digitalDeskEnabled    Boolean @default(false) @map("digital_desk_enabled")
+  deskPaymentRequired   Boolean @default(true) @map("desk_payment_required")
+  deskInsuranceRequired Boolean @default(true) @map("desk_insurance_required")
+  frontDeskVisits       FrontDeskVisit[]
 
   clinicians     ClinicianProfile[]
   pharmacies     Pharmacy[]
@@ -708,6 +720,7 @@ model ConsultationRequest {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  frontDeskVisit  FrontDeskVisit?
   rating          ConsultationRating?
   insuranceClaims InsuranceClaim[]
   incidentReports IncidentReport[]
@@ -864,6 +877,7 @@ model PrescriptionItem {
   quantityPrescribed Int? @map("quantity_prescribed")
 
   adherenceLogs AdherenceLog[]
+  reminderPlan MedicationReminderPlan?
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -898,6 +912,11 @@ model AdherenceLog {
   reportedAt     DateTime?       @map("reported_at")
   note           String?         @db.VarChar(500)
   channel        Channel?
+
+  reminderPlanId String? @map("reminder_plan_id") @db.Uuid
+  reminderPlan MedicationReminderPlan? @relation(fields: [reminderPlanId], references: [id], onDelete: Restrict)
+  supersededAt DateTime? @map("superseded_at")
+  careReminder CareReminder?
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -943,6 +962,7 @@ model FollowUpCycle {
   openDeviationCount Int @default(0) @map("open_deviation_count")
 
   checkIns CheckIn[]
+  contacts CareContact[]
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -973,6 +993,9 @@ model CheckIn {
   reviewedById String?           @map("reviewed_by_id") @db.Uuid
   reviewedBy   ClinicianProfile? @relation(fields: [reviewedById], references: [id], onDelete: Restrict)
   reviewedAt   DateTime?         @map("reviewed_at")
+
+  reviewNote String? @map("review_note") @db.VarChar(2000)
+  careReminder CareReminder?
 
   respondedAt DateTime? @map("responded_at")
   channel     Channel?
@@ -1277,6 +1300,11 @@ model NotificationLog {
   /// without this the platform would charge itself, and annoy the patient,
   /// for every message they had already seen.
   deliverAfter DateTime? @map("deliver_after")
+
+  dedupeKey String? @unique @map("dedupe_key") @db.VarChar(180)
+  claimToken String? @map("claim_token") @db.Uuid
+  claimUntil DateTime? @map("claim_until")
+  careReminder CareReminder?
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -1608,6 +1636,9 @@ model Department {
   specialty  Specialty?
   isActive   Boolean    @default(true) @map("is_active")
 
+  // Navigation labels only: no clinical triage/diagnosis rules.
+  navigationAliases Json @default("[]") @map("navigation_aliases")
+  frontDeskVisits FrontDeskVisit[]
   clinicians ClinicianProfile[]
   referralsFrom DigitalReferral[] @relation("ReferralSourceDepartment")
   referralsTo   DigitalReferral[] @relation("ReferralDestinationDepartment")
@@ -3152,4 +3183,151 @@ model TriageRuleset {
 
   @@index([status])
   @@map("triage_rulesets")
+}
+
+
+// Digital front desk: an administrative queue, distinct from remote offers.
+// Admission requires physical check-in declaration, manual administrative
+// review and a verified clinician's explicit clinical-queue clearance.
+enum FrontDeskVisitStatus {
+  preregistered
+  awaiting_review
+  waiting
+  called
+  in_consultation
+  completed
+  cancelled
+}
+
+enum FrontDeskTriageStatus {
+  pending
+  cleared
+  escalated
+}
+
+enum FrontDeskAdministrativeCheck {
+  pending
+  manually_verified
+  not_required
+}
+
+model FrontDeskVisit {
+  id                    String @id @default(uuid()) @db.Uuid
+  ticketNumber          Int @unique @default(autoincrement()) @map("ticket_number")
+  patientProfileId      String @map("patient_profile_id") @db.Uuid
+  patient               PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  createdByUserId        String @map("created_by_user_id") @db.Uuid
+  facilityId            String @map("facility_id") @db.Uuid
+  facility              Facility @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  departmentId          String @map("department_id") @db.Uuid
+  department            Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  requestedClinicianId   String? @map("requested_clinician_id") @db.Uuid
+  requestedClinician    ClinicianProfile? @relation("DeskRequestedClinician", fields: [requestedClinicianId], references: [id], onDelete: Restrict)
+  assignedClinicianId    String? @map("assigned_clinician_id") @db.Uuid
+  assignedClinician     ClinicianProfile? @relation("DeskAssignedClinician", fields: [assignedClinicianId], references: [id], onDelete: Restrict)
+  consultationId        String? @unique @map("consultation_id") @db.Uuid
+  consultation          ConsultationRequest? @relation(fields: [consultationId], references: [id], onDelete: Restrict)
+  status                FrontDeskVisitStatus @default(preregistered)
+  purpose               String @db.VarChar(2000)
+  // Explicit permission for this department to see the intake request only.
+  // Does not grant general medical-record or cross-facility consent.
+  departmentShareAt     DateTime @map("department_share_at")
+  checkedInAt           DateTime? @map("checked_in_at")
+  administrativeAt      DateTime? @map("administrative_at")
+  administrativeBy      String? @map("administrative_by") @db.Uuid
+  paymentRequired       Boolean @map("payment_required")
+  insuranceRequired     Boolean @map("insurance_required")
+  paymentCheck          FrontDeskAdministrativeCheck @default(pending) @map("payment_check")
+  insuranceCheck        FrontDeskAdministrativeCheck @default(pending) @map("insurance_check")
+  // External/manual confirmation references, never card/bank/insurance numbers.
+  paymentReference      String? @map("payment_reference") @db.VarChar(120)
+  insuranceReference    String? @map("insurance_reference") @db.VarChar(120)
+  triageStatus          FrontDeskTriageStatus @default(pending) @map("triage_status")
+  triageBy              String? @map("triage_by") @db.Uuid
+  triageAt              DateTime? @map("triage_at")
+  readyAt               DateTime? @map("ready_at")
+  calledAt              DateTime? @map("called_at")
+  startedAt             DateTime? @map("started_at")
+  completedAt           DateTime? @map("completed_at")
+  cancelledAt           DateTime? @map("cancelled_at")
+  requestKey            String @map("request_key") @db.Uuid
+  requestHash           String @map("request_hash") @db.Char(64)
+  version               Int @default(1)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([patientProfileId, requestKey])
+  @@index([facilityId, departmentId, status, readyAt, id], map: "front_desk_queue_order_idx")
+  @@index([patientProfileId, createdAt])
+  @@index([assignedClinicianId, status])
+  @@map("front_desk_visits")
+}
+
+// Care Continuity: schedules are explicitly chosen by the prescribing clinician.
+// No schedules are inferred for legacy prescriptions by this migration.
+model MedicationReminderPlan {
+  id String @id @default(uuid()) @db.Uuid
+  prescriptionItemId String @unique @map("prescription_item_id") @db.Uuid
+  item PrescriptionItem @relation(fields: [prescriptionItemId], references: [id], onDelete: Restrict)
+  timezone String @db.VarChar(80)
+  startDate DateTime @map("start_date") @db.Date
+  times Json
+  status String @default("active") @db.VarChar(12)
+  configuredById String @map("configured_by_id") @db.Uuid
+  configuredAt DateTime @default(now()) @map("configured_at")
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  doses AdherenceLog[]
+  @@index([status])
+  @@map("medication_reminder_plans")
+}
+
+model CareReminderPreference {
+  id String @id @default(uuid()) @db.Uuid
+  patientProfileId String @unique @map("patient_profile_id") @db.Uuid
+  patient PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  smsEnabled Boolean @default(false) @map("sms_enabled")
+  updatedById String @map("updated_by_id") @db.Uuid
+  version Int @default(1)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("care_reminder_preferences")
+}
+
+model CareReminder {
+  id String @id @default(uuid()) @db.Uuid
+  patientProfileId String @map("patient_profile_id") @db.Uuid
+  patient PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  adherenceLogId String? @unique @map("adherence_log_id") @db.Uuid
+  dose AdherenceLog? @relation(fields: [adherenceLogId], references: [id], onDelete: Cascade)
+  checkInId String? @unique @map("check_in_id") @db.Uuid
+  checkIn CheckIn? @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+  notificationId String? @unique @map("notification_id") @db.Uuid
+  notification NotificationLog? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  dueAt DateTime @map("due_at")
+  expiresAt DateTime @map("expires_at")
+  readAt DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([patientProfileId, dueAt])
+  @@map("care_reminders")
+}
+
+model CareContact {
+  id String @id @default(uuid()) @db.Uuid
+  followUpCycleId String @map("follow_up_cycle_id") @db.Uuid
+  cycle FollowUpCycle @relation(fields: [followUpCycleId], references: [id], onDelete: Restrict)
+  requestKey String @map("request_key") @db.Uuid
+  scheduledAt DateTime @map("scheduled_at")
+  channel String @db.VarChar(12)
+  purpose String @db.VarChar(500)
+  status String @default("scheduled") @db.VarChar(20)
+  note String? @db.VarChar(2000)
+  completedAt DateTime? @map("completed_at")
+  recordedById String @map("recorded_by_id") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([followUpCycleId, requestKey])
+  @@index([followUpCycleId, scheduledAt])
+  @@map("care_contacts")
 }

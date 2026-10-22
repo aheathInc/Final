@@ -1,0 +1,17 @@
+{
+  "kind": "AHP safety integration verification",
+  "mode": "STATIC_CHECK_ONLY",
+  "generated_at": "2026-10-20T21:21:32.671Z",
+  "node": "22.16.0",
+  "preflight": "BLOCKED",
+  "blockers": [
+    "LOCAL_PINNED_DEPENDENCY_UNAVAILABLE: typescript",
+    "LOCAL_PINNED_DEPENDENCY_UNAVAILABLE: tsx",
+    "LOCAL_PINNED_DEPENDENCY_UNAVAILABLE: @prisma/client"
+  ],
+  "database": "NOT_RUN",
+  "tasks": [],
+  "ledger": "NOT_RUN",
+  "status": "BLOCKED"
+}
+Local evidence: /mnt/data/ahp_work/candidate/Final/.local/safety-verification-1792531292673-2b4a89de

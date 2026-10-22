@@ -1114,12 +1114,13 @@ export interface paths {
         put?: never;
         /**
          * Report whether a scheduled dose was taken
-         * @description Reachable from an app notification, an SMS reply, or a USSD menu — the
-         *     gateway translates all three into this same call.
-         *
-         *     Repeated missed doses on the same prescription raise a task for the
-         *     assigned clinician. That escalation is the whole point of the feature:
-         *     recording non-adherence without acting on it changes nothing.
+         * @description Patient-reported taken/skipped/delayed status. Silence is never converted to
+         *     a skipped dose. A final report cannot be silently overwritten; delayed may
+         *     later be confirmed taken or skipped. Same-payload retry is idempotent.
+         *     Consecutive explicitly reported missed doses create an audit marker; this
+         *     does not claim a clinical alert or a staffed escalation task was delivered.
+         *     The new care-continuity mobile screen writes online only. Existing offline
+         *     outbox behavior is separate and must pass regression before rollout.
          */
         post: operations["confirmAdherence"];
         delete?: never;
@@ -3409,10 +3410,836 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/front-desk/facilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List enabled digital front desks
+         * @description Authenticated directory. Platform administrators also see active disabled facilities for opt-in. Availability is not a hospital partnership claim.
+         */
+        get: operations["listFrontDeskFacilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/facilities/{facility_id}/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Configure facility administrative requirements
+         * @description Platform administrator only. Disabled by default. Manual requirement settings apply to future visits; current visits retain their policy snapshot. Clinical assessment is always required.
+         */
+        patch: operations["configureFrontDeskPolicy"];
+        trace?: never;
+    };
+    "/front-desk/facilities/{facility_id}/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active facility departments
+         * @description Lists actual departments. Does not infer or create a specialty.
+         */
+        get: operations["listFrontDeskDepartments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/facilities/{facility_id}/departments/{department_id}/navigation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Configure directory terms
+         * @description Platform administrator only. Directory labels are not diagnostic or triage rules.
+         */
+        patch: operations["configureFrontDeskAliases"];
+        trace?: never;
+    };
+    "/front-desk/facilities/{facility_id}/navigation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suggest directory matches without clinical inference
+         * @description Explicit keyword match only. Not AI, diagnosis or triage. Text is not persisted. Patient must confirm a department. No state mutation; no Idempotency-Key required.
+         */
+        post: operations["navigateFrontDeskDepartment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/facilities/{facility_id}/departments/{department_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read scoped queue and provider snapshot
+         * @description Counts cover AHP-registered waiting visits only. Maximum 100 verified clinicians. Does not promise wait time, full hospital census or external capacity.
+         */
+        get: operations["getFrontDeskDepartmentBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read own hospital visits
+         * @description Patient or existing authorized guardian ownership, not staff listing.
+         */
+        get: operations["listMyFrontDeskVisits"];
+        put?: never;
+        /**
+         * Pre-register a hospital visit
+         * @description Patient only. Uses durable body request_key rather than the generic 24-hour Idempotency-Key middleware. Same key and input returns the same visit; changed input returns 409. Urgent help never creates an ordinary queue ticket. One active visit per patient/facility.
+         */
+        post: operations["createFrontDeskVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/staff/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read authorized facility intake queue
+         * @description Platform administrator for administrative data; verified clinician for their actual active facility and department. No automatic facility_admin privilege. Clinical purpose excluded from admin responses.
+         */
+        get: operations["listStaffFrontDeskVisits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits/{visit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read visit and scoped administrative position
+         * @description Only owner/guardian or authorized staff. FIFO position is a point-in-time administration aid in the same facility, department and selected-doctor/pool, not a care priority decision.
+         */
+        get: operations["getFrontDeskVisit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits/{visit_id}/check-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Declare arrival at the facility
+         * @description Patient only; self-reported arrival, not GPS or staff confirmation. Requires base_version. Retry with a stale version returns 409; reload instead of repeating the action. No generic Idempotency-Key is used.
+         */
+        post: operations["checkInFrontDeskVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits/{visit_id}/administrative-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record actual manual administrative verification
+         * @description Platform administrator only. Requires genuine registration/payment/insurance review; this endpoint does not charge or query an insurer. Requires base_version. Retry with a stale version returns 409; reload instead of repeating the action. No generic Idempotency-Key is used.
+         */
+        post: operations["reviewFrontDeskAdministration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits/{visit_id}/clinical-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record clinician assessment for routine queue or escalation
+         * @description Verified clinician in the selected department. Explicit human action; not algorithmic triage. Escalated remains outside routine queue. No dispatch occurs. Requires base_version. Retry with a stale version returns 409; reload instead of repeating the action. No generic Idempotency-Key is used.
+         */
+        post: operations["reviewFrontDeskClinicalReadiness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits/{visit_id}/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Call a ready patient
+         * @description Verified available department clinician; respects requested clinician. One called/in-care front-desk patient per clinician. Requires base_version. Retry with a stale version returns 409; reload instead of repeating the action. No generic Idempotency-Key is used.
+         */
+        post: operations["callFrontDeskVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits/{visit_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start existing consultation workflow
+         * @description Assigned available clinician only. Creates linked care thread and in-progress chat-capable consultation atomically, without a routing offer or additional payment claim. Requires base_version. Retry with a stale version returns 409; reload instead of repeating the action. No generic Idempotency-Key is used.
+         */
+        post: operations["startFrontDeskConsultation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/front-desk/visits/{visit_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a visit before consultation starts
+         * @description Owner/guardian or authorized staff only. Preserves history. Not allowed during or after consultation. Requires base_version. Retry with a stale version returns 409; reload instead of repeating the action. No generic Idempotency-Key is used.
+         */
+        post: operations["cancelFrontDeskVisit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Patient-owned doses, follow-up and in-app reminders
+         * @description Owner/guardian only. Doses cover the current minus/plus seven-day window and are cursor-paginated; plans/cycles are bounded at 50, reminders at 50. Check-in/contact lists per cycle are limited to 20. A missed check-in is not a missed dose. Legacy schedules are marked timing_not_confirmed. No private clinician notes are returned.
+         */
+        get: operations["getMyCareContinuity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/worklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assigned clinician follow-up worklist
+         * @description Authenticated care coordination. Server-side current role, ownership and clinician assignment checks apply.
+         */
+        get: operations["getClinicianContinuityWorklist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/prescriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Prescriber-owned signed prescriptions independent of follow-up cycles
+         * @description Authenticated care coordination. Server-side current role, ownership and clinician assignment checks apply.
+         */
+        get: operations["getClinicianMedicationTimings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/cycles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Assigned clinician review, timing and contact detail
+         * @description Verified assigned clinician only. Latest 100 check-ins, 20 prescriptions, 100 last-seven-day dose rows per prescription and 50 contacts; truncation flags indicate bounded detail. These are not universal patient-record permissions.
+         */
+        get: operations["getClinicianContinuityDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/patients/{id}/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Patient opt-in or opt-out for generic SMS reminders
+         * @description Owner/guardian only. Default SMS is off. Opt-out suppresses queued unsent care messages at dispatch but cannot recall a message already accepted by a provider.
+         */
+        post: operations["setCareReminderPreference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/reminders/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an owned reminder read
+         * @description Owner/guardian only. Idempotent read acknowledgment does not confirm medication intake.
+         */
+        post: operations["markCareReminderRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/items/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prescribing clinician selects explicit reminder times
+         * @description Verified prescriber of a signed, completed consultation and non-discontinued prescription only. Times must be distinct and match the prescribed frequency. Existing reported doses prevent rescheduling. Calendar date, IANA zone and DST ambiguity are validated. No dose/frequency/duration is changed. base_version=0 creates; later edits require the latest version. Prior unreported slots are preserved as superseded.
+         */
+        post: operations["setMedicationReminderTimes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/plans/{id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prescriber pauses, resumes or cancels reminders
+         * @description Changes reminder delivery only; never changes the prescription. Cancelled plans cannot reopen. Required base_version prevents stale edits.
+         */
+        post: operations["setMedicationReminderState"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/check-ins/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Assigned clinician reviews patient check-in
+         * @description Records a private review note and recomputes pending flagged check-ins. No recovery outcome is inferred. A late patient answer invalidates an earlier review.
+         */
+        post: operations["reviewContinuityCheckIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/cycles/{id}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan a phone or care-thread contact
+         * @description Assigned clinician and active cycle required. Durable request_key makes retries safe. Purpose is patient-visible, notes are private. This records an appointment, not an actual phone call or video session.
+         */
+        post: operations["scheduleCareContact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/care-continuity/contacts/{id}/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the observed outcome of a planned contact
+         * @description Assigned clinician only, scheduled contact and current base_version required. Completion is clinician-reported and does not imply patient recovery.
+         */
+        post: operations["recordCareContactOutcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ContinuityPageMeta: {
+            has_more: boolean;
+            /** Format: uuid */
+            next_cursor: string | null;
+        };
+        ContinuityPlan: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            prescription_item_id: string;
+            timezone: string;
+            /** Format: date */
+            start_date: string;
+            times: string[];
+            /** @enum {string} */
+            status: "active" | "paused" | "cancelled";
+            version: number;
+        };
+        ContinuityScheduleRequest: {
+            base_version: number;
+            /** Format: date */
+            start_date: string;
+            timezone: string;
+            times: string[];
+        };
+        ContinuityScheduleResult: components["schemas"]["ContinuityPlan"] & {
+            dose_count: number;
+        };
+        ContinuityPlanStateRequest: {
+            base_version: number;
+            /** @enum {string} */
+            status: "active" | "paused" | "cancelled";
+        };
+        ContinuityPreferenceRequest: {
+            base_version: number;
+            sms_enabled: boolean;
+        };
+        ContinuityPreference: {
+            sms_enabled: boolean;
+            version: number;
+        };
+        ContinuityPreferenceResult: components["schemas"]["ContinuityPreference"] & {
+            /** Format: uuid */
+            patient_profile_id: string;
+        };
+        ContinuityReviewRequest: {
+            base_version: number;
+            note?: string;
+        };
+        ContinuityReviewResult: {
+            /** Format: uuid */
+            id: string;
+            reviewed: boolean;
+            open_deviation_count: number;
+        };
+        ContinuityContactRequest: {
+            /** Format: uuid */
+            request_key: string;
+            /** Format: date-time */
+            scheduled_at: string;
+            /** @enum {string} */
+            channel: "phone" | "chat";
+            purpose: string;
+        };
+        ContinuityContactOutcomeRequest: {
+            base_version: number;
+            /** @enum {string} */
+            status: "completed" | "no_answer" | "cancelled";
+            note?: string;
+        };
+        ContinuityPatientContact: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            follow_up_cycle_id: string;
+            /** Format: date-time */
+            scheduled_at: string;
+            /** @enum {string} */
+            channel: "phone" | "chat";
+            purpose: string;
+            /** @enum {string} */
+            status: "scheduled" | "completed" | "no_answer" | "cancelled";
+            /** Format: date-time */
+            completed_at: string | null;
+            version: number;
+        };
+        ContinuityClinicianContact: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            follow_up_cycle_id: string;
+            /** Format: date-time */
+            scheduled_at: string;
+            /** @enum {string} */
+            channel: "phone" | "chat";
+            purpose: string;
+            /** @enum {string} */
+            status: "scheduled" | "completed" | "no_answer" | "cancelled";
+            /** Format: date-time */
+            completed_at: string | null;
+            version: number;
+            note: string | null;
+        };
+        ContinuityDose: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            prescription_id: string;
+            /** Format: uuid */
+            prescription_item_id: string;
+            medication_name: string;
+            dosage: string;
+            /** Format: date-time */
+            scheduled_at: string;
+            /** @enum {string} */
+            reported_status: "unreported" | "taken" | "missed" | "delayed";
+            /** Format: date-time */
+            reported_at: string | null;
+            /** @enum {string} */
+            state: "upcoming" | "not_confirmed" | "taken" | "patient_reported_skipped" | "patient_reported_delayed";
+            version: number;
+            /** @enum {string} */
+            schedule_status: "active" | "paused" | "cancelled" | "timing_not_confirmed";
+            timezone: string | null;
+        };
+        ContinuityPatientCycle: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            care_thread_id: string;
+            /** @enum {string} */
+            status: "active" | "completed" | "cancelled";
+            /** Format: date-time */
+            end_date: string;
+            review_due: boolean;
+            outcome: string | null;
+            contacts: components["schemas"]["ContinuityPatientContact"][];
+            checkins: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date-time */
+                scheduled_at: string;
+                status: string;
+            }[];
+        };
+        ContinuityWorklistCycle: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            care_thread_id: string;
+            /** @enum {string} */
+            status: "active" | "completed" | "cancelled";
+            /** Format: date-time */
+            end_date: string;
+            review_due: boolean;
+            outcome: string | null;
+            /** Format: uuid */
+            patient_profile_id: string;
+            patient_name: string;
+            /** Format: date-time */
+            start_date: string;
+            unreviewed_checkins: number;
+            version: number;
+        };
+        ContinuityReminder: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            adherence_log_id: string | null;
+            /** Format: uuid */
+            check_in_id: string | null;
+            /** Format: date-time */
+            due_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            read_at: string | null;
+            /** @enum {string} */
+            delivery: "in_app_only" | "queued" | "accepted_by_provider" | "delivered" | "failed" | "simulated" | "suppressed";
+        };
+        ContinuityMedicationItem: {
+            /** Format: uuid */
+            id: string;
+            medication_name: string;
+            dosage: string;
+            frequency_per_day: number;
+            duration_days: number;
+            has_reports: boolean;
+            plan: components["schemas"]["ContinuityPlan"] | null;
+        };
+        ContinuityPrescriptionSummary: {
+            /** Format: uuid */
+            id: string;
+            patient_name: string;
+            /** Format: uuid */
+            consultation_id: string;
+            /** Format: date-time */
+            created_at: string;
+            status: string;
+            items: components["schemas"]["ContinuityMedicationItem"][];
+        };
+        ContinuityPatientOverview: {
+            patient: {
+                /** Format: uuid */
+                id: string;
+                full_name: string;
+            };
+            profiles: {
+                /** Format: uuid */
+                id: string;
+                full_name: string;
+            }[];
+            /** Format: date-time */
+            as_of: string;
+            window: {
+                /** Format: date-time */
+                from: string;
+                /** Format: date-time */
+                to: string;
+            };
+            doses: components["schemas"]["ContinuityDose"][];
+            meta: components["schemas"]["ContinuityPageMeta"];
+            preference: components["schemas"]["ContinuityPreference"];
+            plans: {
+                /** Format: uuid */
+                prescription_item_id: string;
+                medication_name: string;
+                dosage: string;
+                plan: components["schemas"]["ContinuityPlan"] | null;
+            }[];
+            plans_truncated: boolean;
+            cycles: components["schemas"]["ContinuityPatientCycle"][];
+            cycles_truncated: boolean;
+            reminders: components["schemas"]["ContinuityReminder"][];
+            message: string;
+        };
+        ContinuityCycleDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            care_thread_id: string;
+            /** @enum {string} */
+            status: "active" | "completed" | "cancelled";
+            /** Format: date-time */
+            end_date: string;
+            review_due: boolean;
+            outcome: string | null;
+            /** Format: uuid */
+            source_consultation_id: string;
+            /** Format: uuid */
+            patient_profile_id: string;
+            patient_name: string;
+            contact_phone: string | null;
+            version: number;
+            checkins: {
+                /** Format: uuid */
+                id: string;
+                /** Format: date-time */
+                scheduled_at: string;
+                status: string;
+                is_deviation: boolean;
+                responses: unknown;
+                deviation_reasons: unknown;
+                /** Format: date-time */
+                reviewed_at: string | null;
+                review_note: string | null;
+                version: number;
+            }[];
+            checkins_truncated: boolean;
+            prescriptions: {
+                /** Format: uuid */
+                id: string;
+                status: string;
+                can_schedule: boolean;
+                items: components["schemas"]["ContinuityMedicationItem"][];
+                recent_doses: {
+                    /** Format: uuid */
+                    id: string;
+                    medication_name: string;
+                    /** Format: date-time */
+                    scheduled_at: string;
+                    state: string;
+                }[];
+                doses_truncated: boolean;
+            }[];
+            prescriptions_truncated: boolean;
+            contacts: components["schemas"]["ContinuityClinicianContact"][];
+            contacts_truncated: boolean;
+        };
+        ContinuityReadResult: {
+            /** Format: uuid */
+            id: string;
+            read: boolean;
+        };
+        ContinuityWorklist: {
+            data: components["schemas"]["ContinuityWorklistCycle"][];
+            meta: components["schemas"]["ContinuityPageMeta"];
+        };
+        ContinuityPrescriptionPage: {
+            data: components["schemas"]["ContinuityPrescriptionSummary"][];
+            meta: components["schemas"]["ContinuityPageMeta"];
+        };
         RegisterExternalHealthSystem: {
             system_key: string;
             name: string;
@@ -3596,7 +4423,7 @@ export interface components {
          *     breaking and requires a new API version.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "REFERRAL_ALREADY_EXISTS" | "REFERRAL_CONSENT_REQUIRED" | "REFERRAL_DESTINATION_INELIGIBLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "PRESCRIPTION_EXPIRED" | "PRESCRIPTION_NOT_FINALIZED" | "PRESCRIBER_NOT_AUTHORIZED" | "PHARMACY_MEMBERSHIP_REQUIRED" | "HANDOFF_REFERENCE_INVALID" | "HANDOFF_REFERENCE_REVOKED" | "HANDOFF_REFERENCE_EXPIRED" | "PRESCRIPTION_ALREADY_FULFILLED" | "IDEMPOTENCY_KEY_REUSED" | "DISPENSING_ALREADY_RECORDED" | "QUANTITY_EXCEEDS_REMAINING" | "INVENTORY_AMBIGUOUS" | "INVENTORY_UNAVAILABLE" | "INSUFFICIENT_INVENTORY" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "FRONT_DESK_DISABLED" | "FRONT_DESK_URGENT_REVIEW" | "FRONT_DESK_VISIT_EXISTS" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "REFERRAL_ALREADY_EXISTS" | "REFERRAL_CONSENT_REQUIRED" | "REFERRAL_DESTINATION_INELIGIBLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "PRESCRIPTION_EXPIRED" | "PRESCRIPTION_NOT_FINALIZED" | "PRESCRIBER_NOT_AUTHORIZED" | "PHARMACY_MEMBERSHIP_REQUIRED" | "HANDOFF_REFERENCE_INVALID" | "HANDOFF_REFERENCE_REVOKED" | "HANDOFF_REFERENCE_EXPIRED" | "PRESCRIPTION_ALREADY_FULFILLED" | "IDEMPOTENCY_KEY_REUSED" | "DISPENSING_ALREADY_RECORDED" | "QUANTITY_EXCEEDS_REMAINING" | "INVENTORY_AMBIGUOUS" | "INVENTORY_UNAVAILABLE" | "INSUFFICIENT_INVENTORY" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
         PageMeta: {
             page: number;
             page_size: number;
@@ -5353,6 +6180,225 @@ export interface components {
             provider_reference?: string | null;
             /** Format: date-time */
             created_at: string;
+        };
+        /** @enum {string} */
+        FrontDeskStatus: "preregistered" | "awaiting_review" | "waiting" | "called" | "in_consultation" | "completed" | "cancelled";
+        FrontDeskNamedEntity: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        FrontDeskPagination: {
+            has_more: boolean;
+            /** Format: uuid */
+            next_cursor: string | null;
+        };
+        FrontDeskPolicyInput: {
+            base_version: number;
+            enabled: boolean;
+            payment_required: boolean;
+            insurance_required: boolean;
+        };
+        FrontDeskPolicyResult: {
+            /** Format: uuid */
+            facility_id: string;
+            version: number;
+        };
+        FrontDeskFacility: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            region_code?: string | null;
+            version: number;
+            enabled: boolean;
+            payment_required: boolean;
+            insurance_required: boolean;
+            /** @constant */
+            clinical_review_required: true;
+            /** @constant */
+            coverage: "AHP_REGISTERED_VISITS_ONLY";
+        };
+        FrontDeskDepartment: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            specialty: string | null;
+            version: number;
+            navigation_aliases?: string[];
+        };
+        FrontDeskAliasesInput: {
+            base_version: number;
+            aliases: string[];
+        };
+        FrontDeskAliasResult: {
+            /** Format: uuid */
+            department_id: string;
+            version: number;
+        };
+        FrontDeskNavigationInput: {
+            text: string;
+        };
+        FrontDeskNavigation: {
+            /** @constant */
+            mode: "directory_navigation";
+            /** @enum {string} */
+            outcome: "manual_selection_required" | "suggestion_available" | "multiple_matches";
+            suggestions: {
+                /** Format: uuid */
+                department_id: string;
+                department_name: string;
+                /** @constant */
+                basis: "facility_directory_term";
+            }[];
+            /** @constant */
+            patient_confirmation_required: true;
+            /** @constant */
+            clinical_triage_performed: false;
+        };
+        FrontDeskCreateInput: {
+            /**
+             * Format: uuid
+             * @description Generate once for a frozen request. Reuse after transport uncertainty; stored durably with the ticket.
+             */
+            request_key: string;
+            /** Format: uuid */
+            patient_profile_id?: string;
+            /** Format: uuid */
+            facility_id: string;
+            /** Format: uuid */
+            department_id: string;
+            /** Format: uuid */
+            requested_clinician_id?: string;
+            purpose: string;
+            /** @constant */
+            share_with_department: true;
+            urgent_help_requested: boolean;
+        };
+        FrontDeskVersionInput: {
+            base_version: number;
+        };
+        FrontDeskAdministrativeInput: {
+            base_version: number;
+            /** @constant */
+            registration_confirmed: true;
+            /** @enum {unknown} */
+            payment_check: "manually_verified" | "not_required";
+            /** @enum {unknown} */
+            insurance_check: "manually_verified" | "not_required";
+            /** @description Required for manual verification. Non-sensitive facility reference only; never an account/card/member number. */
+            payment_reference?: string;
+            insurance_reference?: string;
+        };
+        FrontDeskClinicalInput: {
+            base_version: number;
+            /** @enum {unknown} */
+            decision: "cleared" | "escalated";
+        };
+        FrontDeskVisit: {
+            /** Format: uuid */
+            id: string;
+            ticket: string;
+            status: components["schemas"]["FrontDeskStatus"];
+            version: number;
+            /** Format: uuid */
+            patient_profile_id: string;
+            patient_name: string;
+            /** @description Patient/guardian and authorized department clinician only; omitted from platform-admin DTO. */
+            purpose?: string;
+            facility: components["schemas"]["FrontDeskNamedEntity"];
+            department: components["schemas"]["FrontDeskNamedEntity"];
+            requested_clinician: {
+                /** Format: uuid */
+                id: string;
+                name: string | null;
+            } | null;
+            assigned_clinician: {
+                /** Format: uuid */
+                id: string;
+                name: string | null;
+            } | null;
+            /** Format: uuid */
+            consultation_id: string | null;
+            /** Format: uuid */
+            care_thread_id: string | null;
+            consultation_status: string | null;
+            requirements: {
+                payment: boolean;
+                insurance: boolean;
+                /** @constant */
+                clinical_review: true;
+            };
+            clearance: {
+                /** @enum {unknown} */
+                registration: "pending" | "manually_confirmed";
+                /** @enum {string} */
+                payment: "pending" | "manually_verified" | "not_required";
+                /** @enum {string} */
+                insurance: "pending" | "manually_verified" | "not_required";
+                /** @enum {unknown} */
+                clinical_review: "pending" | "cleared" | "escalated";
+                /** @constant */
+                method: "manual_facility_review";
+            };
+            /** @constant */
+            coverage: "AHP_REGISTERED_VISITS_ONLY";
+            estimated_wait_minutes: null;
+            /** Format: date-time */
+            checked_in_at: string | null;
+            /** Format: date-time */
+            ready_at: string | null;
+            /** Format: date-time */
+            called_at: string | null;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            completed_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        FrontDeskVisitDetail: components["schemas"]["FrontDeskVisit"] & {
+            queue_position: number | null;
+            ahead_of_you: number | null;
+            /** @enum {unknown} */
+            queue_scope: "facility_department_requested_clinician" | "facility_department_pool";
+            /** Format: date-time */
+            observed_at: string;
+        };
+        FrontDeskBoard: {
+            /** Format: uuid */
+            facility_id: string;
+            /** Format: uuid */
+            department_id: string;
+            /** Format: date-time */
+            observed_at: string;
+            /** @constant */
+            coverage: "AHP_REGISTERED_VISITS_ONLY";
+            estimated_wait_minutes: null;
+            department_pool_waiting: number;
+            providers: {
+                /** Format: uuid */
+                id: string;
+                full_name: string | null;
+                specialty: string;
+                receiving_new_patients: boolean;
+                /** Format: date-time */
+                available_until: string | null;
+                waiting_for_this_clinician: number;
+                active_ahp_consultations: number;
+            }[];
+        };
+        FrontDeskFacilityList: {
+            data: components["schemas"]["FrontDeskFacility"][];
+            meta: components["schemas"]["FrontDeskPagination"];
+        };
+        FrontDeskVisitList: {
+            data: components["schemas"]["FrontDeskVisit"][];
+            meta: components["schemas"]["FrontDeskPagination"];
+        };
+        FrontDeskDepartmentList: {
+            data: components["schemas"]["FrontDeskDepartment"][];
         };
     };
     responses: {
@@ -7264,7 +8310,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    reported_status: components["schemas"]["AdherenceStatus"];
+                    /** @enum {string} */
+                    reported_status: "taken" | "missed" | "delayed";
+                    base_version?: number;
                     channel?: components["schemas"]["Channel"];
                     /** @description Optional patient comment, e.g. why a dose was skipped. */
                     note?: string;
@@ -11072,6 +12120,1546 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listFrontDeskFacilities: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskFacilityList"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    configureFrontDeskPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskPolicyInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskPolicyResult"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listFrontDeskDepartments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskDepartmentList"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    configureFrontDeskAliases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: string;
+                department_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskAliasesInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskAliasResult"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    navigateFrontDeskDepartment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskNavigationInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskNavigation"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getFrontDeskDepartmentBoard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: string;
+                department_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskBoard"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listMyFrontDeskVisits: {
+        parameters: {
+            query?: {
+                patient_profile_id?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisitList"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createFrontDeskVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            201: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisit"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listStaffFrontDeskVisits: {
+        parameters: {
+            query: {
+                facility_id: string;
+                department_id?: string;
+                status?: components["schemas"]["FrontDeskStatus"];
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisitList"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getFrontDeskVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisitDetail"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    checkInFrontDeskVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskVersionInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisit"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reviewFrontDeskAdministration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskAdministrativeInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisit"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    reviewFrontDeskClinicalReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskClinicalInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisit"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    callFrontDeskVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskVersionInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisit"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    startFrontDeskConsultation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskVersionInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisit"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancelFrontDeskVisit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                visit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FrontDeskVersionInput"];
+            };
+        };
+        responses: {
+            /** @description Persisted response. No-store; no insurer, payment or AI verification is implied. */
+            200: {
+                headers: {
+                    /** @description no-store */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FrontDeskVisit"];
+                };
+            };
+            /** @description Invalid or missing session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Ownership, active account, role, membership or intake-sharing denial */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Resource or active department not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Disabled desk, stale version, active-visit conflict, unavailable clinician, urgent-help request or invalid state transition */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Invalid input or incomplete manual verification */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getMyCareContinuity: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                patient_profile_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityPatientOverview"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getClinicianContinuityWorklist: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                status?: "active" | "completed" | "cancelled";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityWorklist"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getClinicianMedicationTimings: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityPrescriptionPage"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getClinicianContinuityDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityCycleDetail"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    setCareReminderPreference: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContinuityPreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityPreferenceResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    markCareReminderRead: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityReadResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    setMedicationReminderTimes: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContinuityScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityScheduleResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    setMedicationReminderState: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContinuityPlanStateRequest"];
+            };
+        };
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityPlan"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    reviewContinuityCheckIn: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContinuityReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityReviewResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    scheduleCareContact: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContinuityContactRequest"];
+            };
+        };
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityClinicianContact"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    recordCareContactOutcome: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContinuityContactOutcomeRequest"];
+            };
+        };
+        responses: {
+            /** @description Persisted authorized result. No clinical outcome is inferred. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContinuityClinicianContact"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
         };
     };
 }

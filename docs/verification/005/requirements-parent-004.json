@@ -1,0 +1,52 @@
+{
+  "reported_base_commit": "901dc9366f2eeb524fb04329eb95e7576e60201b",
+  "package_manager": "pnpm@10.34.4",
+  "lockfile_lf_sha256": "19165fcf603ffa1b1b39e75785eaa339c833035ae6e4c567b8514956e28cf22b",
+  "source_lf_sha256": {
+    "services/consultation/src/services/consultation.service.ts": "b8d3e59a3c97cf70a94dd45ae56d6b2bfc67716f9c90b5fdb1f736baf3be03a0",
+    "services/followup/src/workers/scheduler.worker.ts": "e610eb25c03bfac31e40cd16e61eb31e3162d67251b7fe81a3cf0874a20fa792",
+    "services/followup/src/services/checkin.service.ts": "8fcbb008561bf29da8b47f2cd1855875f04a62b3a41904e4444cf8ace324ca85",
+    "services/followup/src/tests/followup.test.ts": "c7138efe5ca2779b0a0fa2bfd3c331cdebd4ee6810fd68684caa93dab29068fc",
+    "services/consultation/src/tests/safety-test-target.ts": "470e0bcb944b6a58c0dc8248837fad12f5e1a06f388e3c94a65070fbfa528d0d",
+    "services/consultation/src/tests/thread-integrity.test.ts": "f4b142cf0dcb3b981b46d7f0a315efbf7934996679663b7bf1d7c0f46eb8153a"
+  },
+  "tools": {
+    "typescript": {
+      "context": "package.json",
+      "version": "5.9.3",
+      "entry": "typescript/bin/tsc"
+    },
+    "tsx": {
+      "context": "package.json",
+      "version": "4.23.5",
+      "entry": "tsx"
+    },
+    "@prisma/client": {
+      "context": "packages/database/package.json",
+      "version": "6.19.3"
+    }
+  },
+  "migrations": [
+    "20260812114735_init",
+    "20260815161557_login_lockout",
+    "20260817064043_harden_foreign_keys",
+    "20260817155319_expand_full_domain",
+    "20260818062410_care_thread_active_cycle",
+    "20260818063553_realtime_tickets",
+    "20260818065515_notification_deliver_after",
+    "20260818125838_notification_deliver_after",
+    "20260819060201_ai_conversation_patient",
+    "20260821024253_add_payment",
+    "20260824074212_add_ussd_session",
+    "20260904154645_add_triage_rulesets",
+    "20260914120000_add_emergency_contact",
+    "20261006120000_harden_audit_ledger",
+    "20261012090000_provider_clinical_collaboration",
+    "20261012100000_align_provider_collaboration_constraint_names",
+    "20261012110000_digital_referral_network",
+    "20261013100000_smart_pharmacy_prescription_handoff",
+    "20261013130000_health_interoperability_longitudinal_record",
+    "20261014150000_interop_identity_rejection"
+  ],
+  "candidate": "004 cumulative source + scoped follow-up/role-routing corrections; not release approval"
+}

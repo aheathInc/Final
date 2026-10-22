@@ -1,0 +1,242 @@
+[
+  {
+    "path": ".impeccable/config.json",
+    "status": "NEW",
+    "archive_sha256": "47c9348681feca8bbb886588ee251f5e902b6a3222ba304dc99e6e59467bf562",
+    "base_sha256": null
+  },
+  {
+    "path": ".impeccable/design.json",
+    "status": "NEW",
+    "archive_sha256": "60b8aeaa2fb8337fe1733f8874d005cbfcf3e8652df6b087a58e94b950601e1f",
+    "base_sha256": null
+  },
+  {
+    "path": ".impeccable/mocks/referral-variants/variant-a-case-transfer-split.png",
+    "status": "NEW",
+    "archive_sha256": "7b1b1d5162c8faae6aa1cd3adfe8a5cc001d0215f28f9609da87338415e32c4a",
+    "base_sha256": null
+  },
+  {
+    "path": ".impeccable/mocks/referral-variants/variant-b-receiving-workbench.png",
+    "status": "NEW",
+    "archive_sha256": "dcc14566c8446920c19c08202f62d9b7f87349fed84d59d8cc505a9e8c9d97f1",
+    "base_sha256": null
+  },
+  {
+    "path": ".impeccable/mocks/referral-variants/variant-c-clinical-handoff-document.png",
+    "status": "NEW",
+    "archive_sha256": "4791dbda936df8fc78e81d3569a69a96387e80ef19545156838b876d88c83f43",
+    "base_sha256": null
+  },
+  {
+    "path": "DESIGN.md",
+    "status": "NEW",
+    "archive_sha256": "e0b6adaba630e617779d6318d14e55ce73fac3e861cc11eb83d804d7bceafc5b",
+    "base_sha256": null
+  },
+  {
+    "path": "PRODUCT.md",
+    "status": "NEW",
+    "archive_sha256": "5e0ef80d5d29012c56e07fbdec8b9d1c82371a321f1e2bef93b9d39c4abcf173",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/.eslintrc.json",
+    "status": "NEW",
+    "archive_sha256": "1589a15e55fbebc6519c95d91d8f0a090618f20dc78e479858b9c27552484961",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/app/admin/dashboard/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "31da28c4f83585562c1429bd5e9b65f88862004f9878aa65dbc8f339dc5bd3e7",
+    "base_sha256": "1b98f9d693cb75c13bdb6f3943121aba93159bd5f2552d169e96c77afcc540e7"
+  },
+  {
+    "path": "apps/staff-web/app/admin/facilities/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "02593baabc652ae95da58ee60c2f734709affa51df9ec5775daebb8b95c7eef7",
+    "base_sha256": "db8908f437382a9d2ac7ff8ea2da0a70475acd52ec08cad9fd9ea7066bc0b808"
+  },
+  {
+    "path": "apps/staff-web/app/admin/payments/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "ecdf863f911fa006427304e4f7b7b274b32dd0f09418b91bde1201419a16c1f3",
+    "base_sha256": "a216a7ad8480ebc72604db7c440c37a8a70e3d74b69216265b0678aed3dea8d0"
+  },
+  {
+    "path": "apps/staff-web/app/analytics/dashboard/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "a08d9abebe18f5a1f65769b2eafb41a4b9438d52ca17ed202b1f4f66b96acd9a",
+    "base_sha256": "948b8f4ebb67ec402d33247bc26368b3786ff8c4ec1f82b5f0d84b6c44733dec"
+  },
+  {
+    "path": "apps/staff-web/app/doctor/patients/[patient_profile_id]/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "a59dd33ea6c88d494403045275248565ad3291da0e7cebc599822a4527ab811b",
+    "base_sha256": "34a558e7e846dabf26cddef87603f7d882d8de122501089c8724bf4125acf325"
+  },
+  {
+    "path": "apps/staff-web/app/doctor/queue/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "ff97dfaec0b85ef6c010bdfea875acb3f59d15a4451762fc7966c37888eaa231",
+    "base_sha256": "b2d71d331e179f1eaca77828782dd272da7e35ccd32d7bcddea1d7505e3f9e75"
+  },
+  {
+    "path": "apps/staff-web/app/doctor/work-history/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "c0a35406b460bc5fa7d7d186b49a8e121496d18d2fac1318a6266120ffa8eaf2",
+    "base_sha256": "1e41612cc0d3979d64aa2efcc42af121251e4787d94daa2ffcfbb4936fcc8105"
+  },
+  {
+    "path": "apps/staff-web/app/globals.css",
+    "status": "DIFFERENT",
+    "archive_sha256": "028dc5c5ace1a127b98514ab9b3b5b80dda0b76ece467a9b19e641ea586df96f",
+    "base_sha256": "fda7f66e3ba7dab6fbfadebdaf8274994f049944bac9fa311a3beb9898b5a9ab"
+  },
+  {
+    "path": "apps/staff-web/app/layout.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "860c33d0dd64ec2ca24c264574f267a4160e6f8dc9a1b09702fd2851803d1cd9",
+    "base_sha256": "bdb6a8b28fce36b5b88dfe766ab8523a576438e4e1604a3d3280eab94ac28400"
+  },
+  {
+    "path": "apps/staff-web/app/login/page.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "f2b85925ae65bf367dcf285687e83c4957bc3cfff51cb8bf985d66772b1dae36",
+    "base_sha256": "0b91f951167edf55b0b56a32c3ed5421adef871ef013eb5fde5bf9022df51757"
+  },
+  {
+    "path": "apps/staff-web/components/AuditLedgerPanel.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "c9918e9eea6bd6ef94910e9d66f74763ed26ec0238641c442cdffe61c48baccc",
+    "base_sha256": "0bd8afdbdddfef9812b74985ce83df32fb7e1af3a3de22f56292aeebdd45e0d3"
+  },
+  {
+    "path": "apps/staff-web/components/ClinicalCollaborationWorkspace.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "25fa7cd1affdb61b398bc4d3cb51a12202958368d885aab825b6ebd698572339",
+    "base_sha256": "1e5d308ed4ea6c348141aa0b235772e428bc2913ac912ce18b020b8e6846319b"
+  },
+  {
+    "path": "apps/staff-web/components/DigitalReferralWorkspace.module.css",
+    "status": "NEW",
+    "archive_sha256": "eac96f825ae9191a1c99c84959a6f2704f39368b7e52aab1d187cb66b427ae61",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/components/DigitalReferralWorkspace.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "682ec69125e41e24c39a84c29eef62803e386769a40923725918fb8eeb2863dd",
+    "base_sha256": "2c902369cfce8f80d1f680385acabb23cac3845f713431d684373aab0a010706"
+  },
+  {
+    "path": "apps/staff-web/components/DispatchPanel.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "e7bceed1acde9d2131b684e5364ad1c782a9a370ad4868d88bbaf909c92c4135",
+    "base_sha256": "53420ee910972da5e83e87af25a3c910718d6f3eea2db1f8f96d5831589afa99"
+  },
+  {
+    "path": "apps/staff-web/components/DisplayPreferences.tsx",
+    "status": "NEW",
+    "archive_sha256": "90714e1f62347d13ffb1233a14a2ea04d0b0c31f579c4a7fe64c2d557c07afbe",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/components/DrugInteractions.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "8ee6c505db91b84ff626a972a4ae530ddfa5554b8c7ff7e0581de3edad489a4c",
+    "base_sha256": "87f2f94dbb5bc0924fb128ec7aeced0864b590d68b387995fc77275d26895f51"
+  },
+  {
+    "path": "apps/staff-web/components/GlassSurface.tsx",
+    "status": "NEW",
+    "archive_sha256": "db91da94ee50311027aff94ca1bf6e32b3e0b681b7351c06fbb5bfe4cc7badeb",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/components/Nav.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "5a6652bf5340c295849530c88b6971ec0b3822c85c6b5adb8815637a65d488e4",
+    "base_sha256": "6e94c0d033fba9853bf0ed88b473099e45666fbb63338bd073479b75c47f4e2b"
+  },
+  {
+    "path": "apps/staff-web/components/PharmacistWorkspace.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "8e5948b68baf51f698008c966c2411622e4f0e792841af18060342c617ae0186",
+    "base_sha256": "6b47212d929f002d2e526e010d27d9724356365f67851ab07cf372093c8d755b"
+  },
+  {
+    "path": "apps/staff-web/components/QueueCard.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "d2aa93245e2aa6772b582700e0bbebc849da1c5cf5da79fbcd1bdd4fa4547b05",
+    "base_sha256": "4ceddc983079257a210723b80a4a5e70f25cf3e20d78a125aa9c1671b021a1be"
+  },
+  {
+    "path": "apps/staff-web/components/QueueView.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "a2864fbad56d75cecf34b3534fc6e05250effd2e254c10d408823bbdaf02d800",
+    "base_sha256": "b6bebb138cd2b49ccf3b19b16289b9c605cb1c47f4e408f8bdefdfdaad82763c"
+  },
+  {
+    "path": "apps/staff-web/components/RegisterDevice.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "137f17d9c5d155f6b0186172632d08adf4d3f6084ceada63c592b67fab999d95",
+    "base_sha256": "ce008cf4c76fc424a0983bed2569579058a2b95421b82e2f0bfa7589b6b71413"
+  },
+  {
+    "path": "apps/staff-web/components/StaffShell.tsx",
+    "status": "NEW",
+    "archive_sha256": "88c86b5f5d0388e767cba367db2a17f70b2c9b0bdef84cad23aa7da327e747c8",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/components/TrendChart.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "0477b14c849016ffdc5e52c80d90921f0827b67443c38b43e2c6b1e1ea75f16c",
+    "base_sha256": "7f369c9fcc939103437bca1b045623b8e5a3609d917c0f9bccfc6ee4d9b9a42c"
+  },
+  {
+    "path": "apps/staff-web/components/ui.tsx",
+    "status": "DIFFERENT",
+    "archive_sha256": "505f7f0234740eb01da7631205aaf03f4460a842d2d5bd934f15852d87362bdb",
+    "base_sha256": "d43e71cff5878e698f8e54dcfde448374c013f1089d4254937bbe91de20d8986"
+  },
+  {
+    "path": "apps/staff-web/tailwind.config.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "97bb5e676da9da7615fbb3e22cdc1a69dfd9474f21fa57560e8a8f01700dd7fb",
+    "base_sha256": "dddc0988dead4abd3337369b810836893c19098362bc7d4132131ba59d6e2832"
+  },
+  {
+    "path": "apps/staff-web/tests/e2e/premium-visual-design.spec.ts",
+    "status": "NEW",
+    "archive_sha256": "1fe6488a5c289222ce3ffb411ef2a35bca0f6987ffbdc34861f600e526bedec3",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/tests/e2e/provider-marketplace.spec.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "4b79e06a6309851ea7b359bde8b7820b2734dbd7929159091084442c2302d6bf",
+    "base_sha256": "acf7be98a7fff335297c965cbff71862958046255e312b8abf3a9e157a7bcdb2"
+  },
+  {
+    "path": "apps/staff-web/tests/e2e/referral-design-review.spec.ts",
+    "status": "NEW",
+    "archive_sha256": "98bd080a50ac1923dfce0f8e48ba256f87fa0f6b4bbb4c3fd7a92893688765cd",
+    "base_sha256": null
+  },
+  {
+    "path": "apps/staff-web/tests/e2e/staff-acceptance.spec.ts",
+    "status": "DIFFERENT",
+    "archive_sha256": "e1702776ec220a99b5efdf179ba981cd50d58c2605723547ae05681aff99ef2d",
+    "base_sha256": "ba6fa56dd33a26aaf73ca3966e0f1ca6e60d06cb900f550d284092286e87c0f2"
+  },
+  {
+    "path": "docs/PREMIUM-WEB-UI-MODERNIZATION.md",
+    "status": "NEW",
+    "archive_sha256": "fa32f5d9ae78e5d5fc9df10f58b77361b97a0f03b589e10b8a53cf03454fdacd",
+    "base_sha256": null
+  }
+]

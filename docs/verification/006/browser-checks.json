@@ -1,0 +1,71 @@
+{
+  "kind": "actual-component browser with synthetic in-memory preview API; not live AHP/Next/Auth E2E",
+  "checks": [
+    {
+      "check": "actual TSX component mounts against explicitly synthetic preview transport",
+      "pass": true
+    },
+    {
+      "check": "review action updates assigned worklist and preserves explicit outcome semantics",
+      "pass": true
+    },
+    {
+      "check": "explicit schedule submit, refresh and read-back through preview transport",
+      "pass": true
+    },
+    {
+      "check": "pause/resume control reflects persisted preview response",
+      "pass": true
+    },
+    {
+      "check": "contact scheduling does not claim call placement",
+      "pass": true
+    },
+    {
+      "check": "density toggle applies compact class",
+      "pass": true
+    },
+    {
+      "check": "owner change clears previous clinical detail and worklist",
+      "pass": true
+    },
+    {
+      "check": "service error is not rendered as successful empty state",
+      "pass": true
+    },
+    {
+      "check": "no horizontal page overflow at 1440px",
+      "pass": true
+    },
+    {
+      "check": "no horizontal page overflow at 1024px",
+      "pass": true
+    },
+    {
+      "check": "no horizontal page overflow at 768px",
+      "pass": true
+    },
+    {
+      "check": "no horizontal page overflow at 390px",
+      "pass": true
+    },
+    {
+      "check": "reduced-motion disables transitions",
+      "pass": true,
+      "actual": "0s"
+    },
+    {
+      "check": "tab arrow key changes focus and selected panel",
+      "pass": true
+    },
+    {
+      "check": "actual medication planner opens without a follow-up-cycle dependency",
+      "pass": true
+    },
+    {
+      "check": "browser page errors",
+      "pass": true,
+      "errors": []
+    }
+  ]
+}

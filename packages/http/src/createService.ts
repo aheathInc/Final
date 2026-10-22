@@ -38,11 +38,26 @@ export function createService(options: ServiceOptions): Service {
   const development = options.development ?? process.env.NODE_ENV === 'development';
   const logger = createLogger(options.name);
   const app = express();
+  const allowedOrigins = new Set(
+    (process.env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
 
   app.set('trust proxy', true);
   app.disable('x-powered-by');
   app.use(helmet());
-  app.use(cors());
+  app.use(cors({
+    origin(origin, callback) {
+      // Native clients and server-to-server calls do not send Origin. In
+      // development, permit loopback web consoles on their configured ports;
+      // deployments must list browser origins explicitly in CORS_ORIGINS.
+      const localDevelopmentOrigin = development && origin !== undefined &&
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+      callback(null, origin === undefined || allowedOrigins.has(origin) || localDevelopmentOrigin);
+    },
+  }));
   app.use(express.json({ limit: '1mb', ...(options.jsonVerify ? { verify: options.jsonVerify as never } : {}) }));
   app.use(requestContext);
 

@@ -17,7 +17,7 @@ export default async function EducationPage() {
   const articles = await serverGet<Page<Article>>('/education/articles?limit=30');
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="staff-page ahp-page">
       <PageHeader
         title="Elimu ya afya"
         lede="Maudhui hayafikii mgonjwa hadi mtaalamu ayapitie. Rasimu inabaki isionekane."

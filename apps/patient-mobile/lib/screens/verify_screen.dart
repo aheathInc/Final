@@ -8,9 +8,10 @@ import '../widgets/common.dart';
 import 'home_screen.dart';
 
 class VerifyScreen extends StatefulWidget {
-  const VerifyScreen({super.key, required this.challengeId, required this.maskedTo});
+  const VerifyScreen({super.key, required this.challengeId, required this.maskedTo, this.developmentCode});
   final String challengeId;
   final String maskedTo;
+  final String? developmentCode;
 
   @override
   State<VerifyScreen> createState() => _VerifyScreenState();
@@ -20,6 +21,15 @@ class _VerifyScreenState extends State<VerifyScreen> {
   final _controller = TextEditingController();
   String? _error;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.developmentCode;
+    if (kDebugMode && code != null && RegExp(r'^\d{6}$').hasMatch(code)) {
+      _controller.text = code;
+    }
+  }
 
   @override
   void dispose() {
@@ -82,7 +92,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
                   fontFamily: 'monospace', fontSize: 28, letterSpacing: 10,
                 ),
                 decoration: const InputDecoration(
-                  hintText: kDebugMode ? '000000' : null,
                   counterText: '',
                 ),
                 onChanged: (_) => setState(() {}),
@@ -96,12 +105,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 onPressed: _busy || _controller.text.length != 6 ? null : _submit,
                 child: Text(_busy ? 'Inathibitisha...' : S.verify),
               ),
-              if (kDebugMode)
+              if (kDebugMode && widget.developmentCode != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 20),
                   child: Center(
                     child: Text(
-                      'DEVELOPMENT MODE: Tumia 000000 kuruka.',
+                      'OTP ya maendeleo ya ndani: ${widget.developmentCode}',
                       style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
                     ),
                   ),

@@ -1,8 +1,8 @@
 # A-health Unified Web App
 
-> **Final recovery status (2026-09-29):** The source was recovered from AHP commit `1a9caf7` into `Web/apps/web`. Historical browser/test evidence below refers to the original AHP workspace and has not been repeated against Final. Current static verification is recorded in the integration handoff; runtime verification remains pending.
+> **Final recovery status (2026-09-29):** The source was recovered from AHP commit `1a9caf7` into `apps/staff-web`. Historical browser/test evidence below refers to the original AHP workspace and has not been repeated against Final. Current static verification is recorded in the integration handoff; runtime verification remains pending.
 
-Run commands from `Web/`. Current unified launcher: `bash dev-web.sh web`.
+Run commands from ``. Current unified launcher: `bash dev-web.sh web`.
 
 Main local URL: `http://localhost:3000`
 
@@ -22,7 +22,7 @@ The unified app exposes only the existing working staff areas:
 - Admin / Operations
 - Analytics / Research
 
-Patient web, pharmacy portal, laboratory portal, blockchain UI, USSD/SMS and other product surfaces are not part of `Web/apps/web`. The retained patient mobile app lives at `Mobile app/patient_app`.
+Patient web, pharmacy portal, laboratory portal, blockchain UI, USSD/SMS and other product surfaces are not part of `apps/staff-web`. The retained patient mobile app lives at `apps/patient-mobile`.
 
 ## Roles And Access
 
@@ -95,7 +95,7 @@ Verified on 2026-09-13 against `http://localhost:3000`.
 - `pnpm --filter a-health-web type-check`: passed.
 - `pnpm --filter a-health-web build`: passed while `next dev` was stopped.
 - Production build route output showed Doctor, Admin, Analytics, auth and BFF routes only; no `/patient/*` or `/patient-auth/*` routes.
-- Styling root cause found and verified: `next build` had been run while `next dev` was still serving the same `apps/web/.next` directory. Firefox requested `/_next/static/css/app/layout.css`, but the running dev server returned `404` with `text/html`; computed styles were browser defaults (`body` serif, default button/input styles). Stopping dev, running the build alone, then restarting dev restored the generated CSS route.
+- Styling root cause found and verified: `next build` had been run while `next dev` was still serving the same `apps/staff-web/.next` directory. Firefox requested `/_next/static/css/app/layout.css`, but the running dev server returned `404` with `text/html`; computed styles were browser defaults (`body` serif, default button/input styles). Stopping dev, running the build alone, then restarting dev restored the generated CSS route.
 - Post-restart Firefox CSS checks passed: generated CSS returned `200 text/css`; login `body` used system sans, login shell background was `rgb(7, 26, 47)`, primary button was `rgb(15, 76, 67)`, inputs had `1px` line border, `12px` horizontal padding and `6px` radius.
 - Post-restart authenticated CSS checks passed: app sidebar background was `rgb(7, 26, 47)`, selected nav background was `rgb(32, 184, 159)`, and dashboard cards rendered with white background, line border, padding and `8px` radius.
 - Firefox screenshots saved under `test-results/unified-web-visual/`: `login-desktop.png`, `doctor-queue-desktop.png`, `admin-dashboard-desktop.png`, `analytics-dashboard-desktop.png`, `admin-dashboard-mobile.png`.
