@@ -23,7 +23,9 @@ export function parseSafetyTestTarget(env: Record<string, string | undefined>): 
   catch { throw new Error('DATABASE_URL is not an approved test target.'); }
   const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
   const port = Number(url.port);
-  const database = decodeURIComponent(url.pathname.replace(/^\//, ''));
+  const databasePath = url.pathname;
+  const database = databasePath.startsWith('/') ? databasePath.slice(1) : '';
+  const literalDatabasePath = databasePath === `/${database}`;
   const schemaOptions = url.searchParams.getAll('schema');
   const schema = schemaOptions[0] ?? '';
   const testSchema = schema === 'ahp_test' || /^ahp_test_[a-z0-9_]+$/.test(schema);
@@ -31,7 +33,7 @@ export function parseSafetyTestTarget(env: Record<string, string | undefined>): 
     (database === 'ahealth_dev' && testSchema);
   if (!['postgresql:', 'postgres:'].includes(url.protocol) ||
       !['localhost', '127.0.0.1', '::1'].includes(host) ||
-      !isolatedTarget || schemaOptions.length !== 1 || !url.username || url.hash ||
+      !isolatedTarget || !literalDatabasePath || schemaOptions.length !== 1 || !url.username || url.hash ||
       !/^\d+$/.test(url.port) || port <= 0 || port > 65535 || port === 5432) {
     throw new Error('Use an explicitly isolated local test database/schema on a non-5432 port.');
   }
