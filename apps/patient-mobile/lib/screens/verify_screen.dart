@@ -1,14 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/api.dart';
 import '../core/session.dart';
 import '../core/strings.dart';
-import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/premium.dart';
 import 'home_screen.dart';
 
 class VerifyScreen extends StatefulWidget {
-  const VerifyScreen({super.key, required this.challengeId, required this.maskedTo, this.developmentCode});
+  const VerifyScreen(
+      {super.key,
+      required this.challengeId,
+      required this.maskedTo,
+      this.developmentCode});
   final String challengeId;
   final String maskedTo;
   final String? developmentCode;
@@ -38,7 +43,10 @@ class _VerifyScreenState extends State<VerifyScreen> {
   }
 
   Future<void> _submit() async {
-    setState(() { _busy = true; _error = null; });
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
       final deviceId = await Session.deviceId();
       final data = await Api.post('/auth/otp/verify', {
@@ -71,51 +79,93 @@ class _VerifyScreenState extends State<VerifyScreen> {
       appBar: AppBar(),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(S.verifyTitle, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 10),
-              Text('Tumetuma namba kwenda ${widget.maskedTo}.',
-                  style: const TextStyle(color: AppColors.inkSoft, fontSize: 16)),
-              const SizedBox(height: 32),
-              const Text(S.codeLabel, style: TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _controller,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                maxLength: 6,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'monospace', fontSize: 28, letterSpacing: 10,
-                ),
-                decoration: const InputDecoration(
-                  counterText: '',
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 8),
-                Notice(_error!),
-              ],
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _busy || _controller.text.length != 6 ? null : _submit,
-                child: Text(_busy ? 'Inathibitisha...' : S.verify),
-              ),
-              if (kDebugMode && widget.developmentCode != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: Center(
-                    child: Text(
-                      'OTP ya maendeleo ya ndani: ${widget.developmentCode}',
-                      style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  PremiumAuroraHero(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          S.verifyTitle,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: Colors.white,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tumetuma namba kwenda ${widget.maskedTo}.',
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-            ],
+                  const SizedBox(height: 18),
+                  PremiumCard(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(S.codeLabel,
+                            style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _controller,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          autofocus: true,
+                          maxLength: 6,
+                          textAlign: TextAlign.center,
+                          style:
+                              const TextStyle(fontSize: 28, letterSpacing: 10),
+                          decoration: const InputDecoration(counterText: ''),
+                          onChanged: (_) => setState(() {}),
+                          onSubmitted: (_) {
+                            if (!_busy && _controller.text.length == 6) {
+                              _submit();
+                            }
+                          },
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 8),
+                          Notice(_error!),
+                        ],
+                        const SizedBox(height: 18),
+                        FilledButton(
+                          onPressed: _busy || _controller.text.length != 6
+                              ? null
+                              : _submit,
+                          child: Text(_busy ? 'Inathibitisha...' : S.verify),
+                        ),
+                        if (kDebugMode && widget.developmentCode != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Text(
+                              'OTP ya maendeleo ya ndani: ${widget.developmentCode}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.orange.shade900,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -10,15 +10,37 @@ class Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colour = tone == NoticeTone.problem ? AppColors.clay : AppColors.amber;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: AppColors.paperSunk,
-        border: Border(left: BorderSide(color: colour, width: 4)),
+    final colour =
+        tone == NoticeTone.problem ? AppColors.clay : AppColors.amber;
+    final icon = tone == NoticeTone.problem
+        ? Icons.error_outline_rounded
+        : Icons.info_outline_rounded;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: text,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.paperSunk,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: colour.withValues(alpha: .35)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: colour, size: 21),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Text(text, style: TextStyle(color: colour, fontSize: 15)),
     );
   }
 }
@@ -31,13 +53,10 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: 10),
         child: Text(
-          text.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w600,
-            letterSpacing: 0.6, color: AppColors.inkSoft,
-          ),
+          text,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
       );
 }
@@ -55,6 +74,7 @@ class Panel extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         border: accent != null
             ? Border(left: BorderSide(color: accent!, width: 4))
             : Border.all(color: AppColors.line),
@@ -62,7 +82,13 @@ class Panel extends StatelessWidget {
       child: child,
     );
     if (onTap == null) return content;
-    return InkWell(onTap: onTap, child: content);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(onTap: onTap, child: content),
+      ),
+    );
   }
 }
 
@@ -75,6 +101,10 @@ class Empty extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Text(text, style: const TextStyle(color: AppColors.inkSoft, fontSize: 16)),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.inkSoft, fontSize: 16),
+        ),
       );
 }

@@ -14,6 +14,8 @@ class AppColors {
   static const line = Color(0xFFD2D9D1);
   static const petrol = Color(0xFF0F4C43);
   static const petrolLift = Color(0xFF17685C);
+  static const deepOcean = Color(0xFF0B3631);
+  static const mintWash = Color(0xFFDCECE5);
   static const amber = Color(0xFFC2700B);
   static const clay = Color(0xFFA63D2F);
 }
@@ -27,6 +29,7 @@ ThemeData buildTheme() {
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.petrol,
       primary: AppColors.petrol,
+      secondary: AppColors.petrolLift,
       error: AppColors.clay,
       surface: AppColors.paper,
     ),
@@ -38,6 +41,9 @@ ThemeData buildTheme() {
       bodySmall: base.copyWith(fontSize: 14, color: AppColors.inkSoft),
       titleLarge: base.copyWith(fontSize: 24, fontWeight: FontWeight.w600),
       titleMedium: base.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
+      headlineSmall:
+          base.copyWith(fontSize: 28, fontWeight: FontWeight.w700, height: 1.2),
+      titleSmall: base.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
       labelLarge: base.copyWith(fontSize: 16, fontWeight: FontWeight.w500),
     ),
     appBarTheme: const AppBarTheme(
@@ -46,6 +52,32 @@ ThemeData buildTheme() {
       elevation: 0,
       centerTitle: false,
     ),
+    navigationBarTheme: NavigationBarThemeData(
+      height: 72,
+      backgroundColor: Colors.white,
+      indicatorColor: AppColors.mintWash,
+      elevation: 4,
+      labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.petrol
+                : AppColors.inkSoft,
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+          )),
+    ),
+    navigationRailTheme: const NavigationRailThemeData(
+      backgroundColor: AppColors.paper,
+      indicatorColor: AppColors.mintWash,
+      selectedIconTheme: IconThemeData(color: AppColors.petrol),
+      unselectedIconTheme: IconThemeData(color: AppColors.inkSoft),
+      selectedLabelTextStyle: TextStyle(
+        color: AppColors.petrol,
+        fontWeight: FontWeight.w700,
+      ),
+      unselectedLabelTextStyle: TextStyle(color: AppColors.inkSoft),
+    ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.petrol,
@@ -53,19 +85,33 @@ ThemeData buildTheme() {
         // 52dp: the smallest target a thumb hits reliably one-handed, which is
         // how this is actually held.
         minimumSize: const Size.fromHeight(52),
-        shape: const RoundedRectangleBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
       ),
     ),
     inputDecorationTheme: const InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
-      border: OutlineInputBorder(borderSide: BorderSide(color: AppColors.line)),
-      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.line)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(14)),
+        borderSide: BorderSide(color: AppColors.line),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(14)),
+        borderSide: BorderSide(color: AppColors.line),
+      ),
       focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(14)),
         borderSide: BorderSide(color: AppColors.petrol, width: 2),
       ),
       contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    ),
+    cardTheme: CardThemeData(
+      color: Colors.white,
+      elevation: 1,
+      shadowColor: AppColors.ink.withValues(alpha: .08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
     ),
   );
 }

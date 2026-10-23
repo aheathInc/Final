@@ -11,41 +11,53 @@ import '../core/session.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/premium.dart';
+import 'appointments_screen.dart';
+import 'assistant_screen.dart';
+import 'care_continuity_screen.dart';
+import 'checkins_screen.dart';
+import 'consultation_detail_screen.dart';
+import 'diagnostics_screen.dart';
+import 'education_screen.dart';
+import 'emergency_screen.dart';
+import 'facility_browser_screen.dart';
+import 'family_screen.dart';
+import 'feedback_screen.dart';
+import 'front_desk_screen.dart';
+import 'health_history_screen.dart';
+import 'insurance_payments_screen.dart';
 import 'login_screen.dart';
 import 'new_consultation_screen.dart';
-import 'consultation_detail_screen.dart';
-import 'checkins_screen.dart';
+import 'patient_care_medicines_screen.dart';
+import 'privacy_consent_screen.dart';
+import 'profile_screen.dart';
+import 'referrals_screen.dart';
 import 'screening_screen.dart';
 import 'vaccinations_screen.dart';
-import 'emergency_screen.dart';
-import 'profile_screen.dart';
-import 'facility_browser_screen.dart';
-import 'appointments_screen.dart';
-import 'diagnostics_screen.dart';
-import 'patient_care_medicines_screen.dart';
-import 'family_screen.dart';
-import 'education_screen.dart';
-import 'privacy_consent_screen.dart';
-import 'feedback_screen.dart';
-import 'insurance_payments_screen.dart';
-import 'assistant_screen.dart';
-import 'referrals_screen.dart';
-import 'health_history_screen.dart';
-import 'front_desk_screen.dart';
-import 'care_continuity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _destinations = <_Destination>[
+    _Destination('Nyumbani', Icons.home_outlined, Icons.home_rounded),
+    _Destination('Huduma', Icons.grid_view_outlined, Icons.grid_view_rounded),
+    _Destination('Rekodi', Icons.folder_open_outlined, Icons.folder_rounded),
+    _Destination(
+        'Ujumbe', Icons.chat_bubble_outline, Icons.chat_bubble_rounded),
+    _Destination('Wasifu', Icons.person_outline_rounded, Icons.person_rounded),
+  ];
+
   List<Map<String, dynamic>> _active = [];
   List<Map<String, dynamic>> _recent = [];
   int _pending = 0;
   int _failed = 0;
   int _retryableFailed = 0;
+  int _selectedIndex = 0;
   bool _online = true;
   bool _loading = true;
   String? _name;
@@ -81,11 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final data = await Api.get('/consultations', query: {'limit': 20});
         consultations =
             ((data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
-        // Cached so the last advice is readable with no signal — one of the
-        // three things the design says must survive losing the network.
+        // Keep the most recent advice available when the patient loses signal.
         if (ownerId != null) await _cacheNotes(ownerId);
       } catch (_) {
-        // Mark the session degraded even when Wi-Fi exists but the API is down.
+        // Wi-Fi can be available while the API is not. Treat that as offline.
         online = false;
       }
     }
@@ -113,15 +124,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final rows = <Map<String, Object?>>[];
       var complete = true;
       for (final raw in ((data['data'] as List?) ?? [])) {
-        final c = raw as Map<String, dynamic>;
+        final consultation = raw as Map<String, dynamic>;
         try {
-          final note = await Api.get('/consultations/${c['id']}/note');
+          final note =
+              await Api.get('/consultations/${consultation['id']}/note');
           rows.add({
-            'id': c['id'] as String,
+            'id': consultation['id'] as String,
             'diagnosis_text': note['diagnosis_text'],
             'advice_text': note['advice_text'],
             'red_flags': (note['red_flags_discussed'] as List?)?.join('\n'),
-            'created_at': note['signed_at'] as String? ?? c['created_at'],
+            'created_at':
+                note['signed_at'] as String? ?? consultation['created_at'],
           });
         } on ApiException {
           complete = false;
@@ -129,8 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       if (complete) await Db.cacheNotes(ownerId, rows);
     } catch (_) {
-      // Caching is best effort; failing to refresh it must never break the
-      // screen that shows it.
+      // Refreshing the offline cache is best effort and must not block home.
     }
   }
 
@@ -169,244 +181,418 @@ class _HomeScreenState extends State<HomeScreen> {
         .then((_) => _load());
   }
 
+  void _select(int index) => setState(() => _selectedIndex = index);
+
   @override
   Widget build(BuildContext context) {
+    final expanded = MediaQuery.sizeOf(context).width >= 840;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_name == null ? S.appName : 'Habari, $_name'),
+        title: Text(
+          _name == null || _name!.trim().isEmpty ? S.appName : 'Habari, $_name',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
-          TextButton(onPressed: _signOut, child: const Text(S.signOut)),
+          TextButton.icon(
+            onPressed: _signOut,
+            icon: const Icon(Icons.logout_rounded, size: 19),
+            label: const Text(S.signOut),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            if (!_online) ...[
-              const Notice(
-                'Hakuna mtandao. Unaweza kusoma dawa na ushauri uliohifadhiwa; mabadiliko salama yakihifadhiwa yataonyesha Pending sync hadi seva ithibitishe.',
-                tone: NoticeTone.attention,
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_pending > 0) ...[
-              Notice(
-                'Pending sync: majibu $_pending bado hayajathibitishwa na seva.',
-                tone: NoticeTone.attention,
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_failed > 0) ...[
-              Notice(
-                '$_failed mabadiliko yanahitaji kuangaliwa mtandaoni. Hayatajaribiwa tena kiotomatiki.',
-                tone: NoticeTone.attention,
-              ),
-              if (_retryableFailed > 0)
-                OutlinedButton.icon(
-                  onPressed: _online ? _retrySync : null,
-                  icon: const Icon(Icons.sync),
-                  label: Text('Jaribu tena usawazishaji ($_retryableFailed)'),
-                ),
-              const SizedBox(height: 16),
-            ],
-            InkWell(
-              onTap: () => _go(const FacilityBrowserScreen()),
-              child: Container(
-                width: double.infinity,
-                color: AppColors.petrol,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 26,
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tafuta Daktari au Kituo',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 21,
-                        fontWeight: FontWeight.w600,
+      body: expanded
+          ? Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: _select,
+                  labelType: NavigationRailLabelType.all,
+                  groupAlignment: -.78,
+                  destinations: [
+                    for (final destination in _destinations)
+                      NavigationRailDestination(
+                        icon: Icon(destination.icon),
+                        selectedIcon: Icon(destination.selectedIcon),
+                        label: Text(destination.label),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Angalia foleni na daktari aliyepo kabla ya kwenda.',
-                      style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 15),
-                    ),
                   ],
                 ),
-              ),
+                const VerticalDivider(width: 1, thickness: 1),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1040),
+                      child: _selectedPage(),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : _selectedPage(),
+      bottomNavigationBar: expanded
+          ? null
+          : NavigationBar(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: _select,
+              destinations: [
+                for (final destination in _destinations)
+                  NavigationDestination(
+                    icon: Icon(destination.icon),
+                    selectedIcon: Icon(destination.selectedIcon),
+                    label: destination.label,
+                  ),
+              ],
             ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => _go(const NewConsultationScreen()),
-              icon: const Icon(
-                Icons.medical_services_outlined,
-                color: AppColors.petrol,
-              ),
-              label: const Text(
-                S.homeGetHelp,
-                style: TextStyle(color: AppColors.petrol, fontSize: 17),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                side: const BorderSide(color: AppColors.petrol, width: 2),
-                shape: const RoundedRectangleBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => _go(const EmergencyScreen()),
-              icon: const Icon(
-                Icons.warning_amber_rounded,
-                color: AppColors.clay,
-              ),
-              label: const Text(
-                S.emergency,
-                style: TextStyle(color: AppColors.clay, fontSize: 17),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                side: const BorderSide(color: AppColors.clay, width: 2),
-                shape: const RoundedRectangleBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => _go(const AssistantScreen()),
-              icon: const Icon(
-                Icons.auto_awesome_outlined,
-                color: AppColors.petrol,
-              ),
-              label: const Text(
-                'Msaidizi wa AI / Uliza A-Health',
-                style: TextStyle(color: AppColors.petrol, fontSize: 17),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                side: const BorderSide(color: AppColors.petrol, width: 2),
-                shape: const RoundedRectangleBorder(),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text(
-                'Msaidizi wa majaribio wa urambazaji; si clinician.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.inkSoft, fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 28),
-            const SectionTitle('Matibabu yanayoendelea'),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_active.isEmpty)
-              const Empty(S.homeNothing)
-            else
-              ..._active.map(_consultationCard),
-            if (_recent.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const SectionTitle('Matibabu ya hivi karibuni'),
-              ..._recent.take(10).map(_consultationCard),
-            ],
-            const SizedBox(height: 28),
-            const SectionTitle('Afya yangu'),
-            _tile(
-              Icons.calendar_month_outlined,
-              'Miadi',
-              const AppointmentsScreen(),
-            ),
-            _tile(Icons.local_hospital_outlined, 'Huduma hospitalini', const FrontDeskScreen()),
-            _tile(Icons.notifications_active_outlined, 'Ufuatiliaji wangu', const CareContinuityScreen()),
-            _tile(Icons.alt_route, 'Rufaa Zangu', const ReferralsScreen()),
-            _tile(
-              Icons.biotech_outlined,
-              'Vipimo na majibu',
-              const DiagnosticsScreen(),
-            ),
-            _tile(
-              Icons.medication_outlined,
-              S.medications,
-              const PatientCareMedicinesScreen(),
-            ),
-            _tile(
-              Icons.checklist_rtl_outlined,
-              S.checkIns,
-              const CheckInsScreen(),
-            ),
-            _tile(Icons.favorite_outline, S.screening, const ScreeningScreen()),
-            _tile(
-              Icons.vaccines_outlined,
-              S.vaccinations,
-              const VaccinationsScreen(),
-            ),
-            _tile(
-              Icons.family_restroom,
-              'Familia na wategemezi',
-              const FamilyScreen(),
-            ),
-            _tile(
-              Icons.menu_book_outlined,
-              'Elimu ya afya',
-              const EducationScreen(),
-            ),
-            _tile(Icons.history, 'Historia Yangu ya Afya', const HealthHistoryScreen()),
-            _tile(
-              Icons.privacy_tip_outlined,
-              'Faragha na ruhusa',
-              const PrivacyConsentScreen(),
-            ),
-            _tile(
-              Icons.feedback_outlined,
-              'Maoni na malalamiko',
-              const FeedbackScreen(),
-            ),
-            _tile(
-              Icons.account_balance_wallet_outlined,
-              'Bima na malipo',
-              const InsurancePaymentsScreen(),
-            ),
-            _tile(Icons.person_outline, S.profile, const ProfileScreen()),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _tile(IconData icon, String label, Widget screen) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: AppColors.petrol),
-        title: Text(label, style: const TextStyle(fontSize: 17)),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.inkSoft),
-        onTap: () => _go(screen),
+  Widget _selectedPage() {
+    final page = switch (_selectedIndex) {
+      1 => _servicesPage(),
+      2 => _recordsPage(),
+      3 => _messagesPage(),
+      4 => _profilePage(),
+      _ => _homePage(),
+    };
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: page,
+    );
+  }
+
+  Widget _listPage(List<Widget> children) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        children: children,
       );
 
-  Widget _consultationCard(Map<String, dynamic> consultation) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Panel(
-          onTap: () =>
-              _go(ConsultationDetailScreen(consultation: consultation)),
+  List<Widget> _syncNotices() => [
+        if (!_online) ...[
+          const Notice(
+            'Hakuna mtandao. Unaweza kusoma dawa na ushauri uliohifadhiwa; mabadiliko salama yakihifadhiwa yataonyesha Pending sync hadi seva ithibitishe.',
+            tone: NoticeTone.attention,
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_pending > 0) ...[
+          Notice(
+            'Pending sync: majibu $_pending bado hayajathibitishwa na seva.',
+            tone: NoticeTone.attention,
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_failed > 0) ...[
+          Notice(
+            '$_failed mabadiliko yanahitaji kuangaliwa mtandaoni. Hayatajaribiwa tena kiotomatiki.',
+            tone: NoticeTone.attention,
+          ),
+          if (_retryableFailed > 0)
+            OutlinedButton.icon(
+              onPressed: _online ? _retrySync : null,
+              icon: const Icon(Icons.sync),
+              label: Text('Jaribu tena usawazishaji ($_retryableFailed)'),
+            ),
+          const SizedBox(height: 12),
+        ],
+      ];
+
+  Widget _homePage() => _listPage([
+        ..._syncNotices(),
+        PremiumAuroraHero(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                (consultation['symptom_text'] as String?) ?? 'Ombi la matibabu',
-                style: const TextStyle(fontSize: 16),
+                'Huduma za afya, karibu nawe',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontSize: 27,
+                    ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                consultationStatusLabel(
-                  consultation['status'] as String? ?? 'pending',
-                ),
-                style: const TextStyle(color: AppColors.inkSoft, fontSize: 14),
+              const SizedBox(height: 8),
+              const Text(
+                'Angalia foleni na daktari aliyepo kabla ya kwenda.',
+                style:
+                    TextStyle(color: Colors.white, fontSize: 16, height: 1.45),
+              ),
+              const SizedBox(height: 20),
+              PremiumHeroButton(
+                label: 'Tafuta daktari au kituo',
+                onPressed: () => _go(const FacilityBrowserScreen()),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 20),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final emergency = PremiumAction(
+              icon: Icons.warning_amber_rounded,
+              title: S.emergency,
+              subtitle: 'Fungua huduma ya dharura',
+              iconColor: AppColors.clay,
+              iconBackground: const Color(0xFFF8E5E1),
+              onTap: () => _go(const EmergencyScreen()),
+            );
+            final newConsultation = PremiumAction(
+              icon: Icons.medical_services_outlined,
+              title: S.homeGetHelp,
+              subtitle: 'Anzisha ombi jipya',
+              onTap: () => _go(const NewConsultationScreen()),
+            );
+            if (constraints.maxWidth < 540) {
+              return Column(
+                children: [
+                  emergency,
+                  const SizedBox(height: 12),
+                  newConsultation
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: emergency),
+                const SizedBox(width: 12),
+                Expanded(child: newConsultation),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        const PremiumSectionHeading('Matibabu yanayoendelea'),
+        _consultationsSummary(_active, active: true),
+        if (_recent.isNotEmpty) ...[
+          const PremiumSectionHeading('Matibabu ya hivi karibuni'),
+          ..._recent.take(3).map(_consultationCard),
+          PremiumLinkRow(
+            icon: Icons.history_rounded,
+            title: 'Angalia rekodi zote',
+            onTap: () => _select(2),
+          ),
+        ],
+        const SizedBox(height: 12),
+        const PremiumSectionHeading('Huduma zako'),
+        PremiumLinkRow(
+          icon: Icons.calendar_month_outlined,
+          title: 'Miadi',
+          onTap: () => _go(const AppointmentsScreen()),
+        ),
+        PremiumLinkRow(
+          icon: Icons.medication_outlined,
+          title: S.medications,
+          onTap: () => _go(const PatientCareMedicinesScreen()),
+        ),
+        PremiumLinkRow(
+          icon: Icons.chat_bubble_outline_rounded,
+          title: 'Mazungumzo kuhusu ziara',
+          onTap: () => _select(3),
+        ),
+      ]);
+
+  Widget _consultationsSummary(
+    List<Map<String, dynamic>> consultations, {
+    required bool active,
+  }) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
       );
+    }
+    if (consultations.isEmpty) {
+      if (!_online) {
+        return const Empty('Hali ya ziara haiwezi kuthibitishwa bila mtandao.');
+      }
+      return Empty(active ? S.homeNothing : 'Hakuna ziara za hivi karibuni.');
+    }
+    return Column(
+      children:
+          consultations.take(active ? 5 : 10).map(_consultationCard).toList(),
+    );
+  }
+
+  Widget _consultationCard(Map<String, dynamic> consultation) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: PremiumCard(
+          onTap: () =>
+              _go(ConsultationDetailScreen(consultation: consultation)),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.medical_information_outlined,
+                  color: AppColors.petrol),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (consultation['symptom_text'] as String?) ??
+                          'Ombi la matibabu',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    PremiumStatus(
+                      consultationStatusLabel(
+                        consultation['status'] as String? ?? 'pending',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.inkSoft),
+            ],
+          ),
+        ),
+      );
+
+  Widget _servicesPage() => _listPage([
+        ..._syncNotices(),
+        Text('Huduma zote', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 6),
+        const Text(
+          'Chagua huduma unayotaka kutumia.',
+          style: TextStyle(color: AppColors.inkSoft, fontSize: 16),
+        ),
+        const PremiumSectionHeading('Anza au tafuta huduma'),
+        _link(Icons.search_rounded, 'Tafuta daktari au kituo',
+            const FacilityBrowserScreen()),
+        _link(Icons.medical_services_outlined, S.homeGetHelp,
+            const NewConsultationScreen()),
+        _link(Icons.warning_amber_rounded, S.emergency, const EmergencyScreen(),
+            iconColor: AppColors.clay),
+        _link(Icons.auto_awesome_outlined, 'Msaidizi wa A-Health',
+            const AssistantScreen()),
+        const PremiumSectionHeading('Matibabu na ufuatiliaji'),
+        _link(
+            Icons.calendar_month_outlined, 'Miadi', const AppointmentsScreen()),
+        _link(Icons.local_hospital_outlined, 'Huduma hospitalini',
+            const FrontDeskScreen()),
+        _link(Icons.notifications_active_outlined, 'Ufuatiliaji wangu',
+            const CareContinuityScreen()),
+        _link(Icons.alt_route_rounded, 'Rufaa Zangu', const ReferralsScreen()),
+        _link(Icons.biotech_outlined, 'Vipimo na majibu',
+            const DiagnosticsScreen()),
+        _link(Icons.medication_outlined, S.medications,
+            const PatientCareMedicinesScreen()),
+        _link(Icons.checklist_rtl_outlined, S.checkIns, const CheckInsScreen()),
+        _link(Icons.favorite_outline_rounded, S.screening,
+            const ScreeningScreen()),
+        _link(Icons.vaccines_outlined, S.vaccinations,
+            const VaccinationsScreen()),
+        const PremiumSectionHeading('Familia na taarifa'),
+        _link(Icons.family_restroom_rounded, 'Familia na wategemezi',
+            const FamilyScreen()),
+        _link(
+            Icons.menu_book_outlined, 'Elimu ya afya', const EducationScreen()),
+        _link(Icons.history_rounded, 'Historia Yangu ya Afya',
+            const HealthHistoryScreen()),
+        _link(Icons.privacy_tip_outlined, 'Faragha na ruhusa',
+            const PrivacyConsentScreen()),
+        _link(Icons.feedback_outlined, 'Maoni na malalamiko',
+            const FeedbackScreen()),
+        _link(Icons.account_balance_wallet_outlined, 'Bima na malipo',
+            const InsurancePaymentsScreen()),
+        _link(Icons.person_outline_rounded, S.profile, const ProfileScreen()),
+      ]);
+
+  Widget _recordsPage() => _listPage([
+        ..._syncNotices(),
+        Text('Rekodi za afya',
+            style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 16),
+        _link(Icons.history_rounded, 'Historia Yangu ya Afya',
+            const HealthHistoryScreen()),
+        _link(Icons.medication_outlined, S.medications,
+            const PatientCareMedicinesScreen()),
+        _link(Icons.biotech_outlined, 'Vipimo na majibu',
+            const DiagnosticsScreen()),
+        const PremiumSectionHeading('Matibabu yanayoendelea'),
+        _consultationsSummary(_active, active: true),
+        if (_recent.isNotEmpty) ...[
+          const PremiumSectionHeading('Matibabu ya hivi karibuni'),
+          ..._recent.take(10).map(_consultationCard),
+        ],
+      ]);
+
+  Widget _messagesPage() => _listPage([
+        ..._syncNotices(),
+        Text('Mazungumzo', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 8),
+        const Text(
+          'Mazungumzo yanafungamana na ziara ya matibabu. Chagua ziara ili kufungua mawasiliano yake.',
+          style: TextStyle(color: AppColors.inkSoft, fontSize: 16),
+        ),
+        const PremiumSectionHeading('Ziara zako'),
+        _consultationsSummary(_active, active: true),
+        ..._recent.take(10).map(_consultationCard),
+      ]);
+
+  Widget _profilePage() => _listPage([
+        ..._syncNotices(),
+        Text('Wasifu na mipangilio',
+            style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 16),
+        if (_name != null && _name!.trim().isNotEmpty) ...[
+          PremiumCard(
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  backgroundColor: AppColors.mintWash,
+                  foregroundColor: AppColors.petrol,
+                  child: Icon(Icons.person_outline_rounded),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(_name!,
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+        _link(Icons.person_outline_rounded, S.profile, const ProfileScreen()),
+        _link(Icons.privacy_tip_outlined, 'Faragha na ruhusa',
+            const PrivacyConsentScreen()),
+        _link(Icons.feedback_outlined, 'Maoni na malalamiko',
+            const FeedbackScreen()),
+        _link(Icons.account_balance_wallet_outlined, 'Bima na malipo',
+            const InsurancePaymentsScreen()),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _signOut,
+          icon: const Icon(Icons.logout_rounded),
+          label: const Text(S.signOut),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            foregroundColor: AppColors.petrol,
+            side: const BorderSide(color: AppColors.line),
+          ),
+        ),
+      ]);
+
+  Widget _link(
+    IconData icon,
+    String label,
+    Widget screen, {
+    Color iconColor = AppColors.petrol,
+  }) =>
+      PremiumLinkRow(
+        icon: icon,
+        title: label,
+        iconColor: iconColor,
+        onTap: () => _go(screen),
+      );
+}
+
+class _Destination {
+  const _Destination(this.label, this.icon, this.selectedIcon);
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
 }
