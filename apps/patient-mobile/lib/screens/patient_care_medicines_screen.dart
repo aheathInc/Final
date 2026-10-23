@@ -527,14 +527,16 @@ class _PatientCareMedicinesScreenState
                               if (l['sync_status'] == 'queued' ||
                                   l['synced'] == 0 &&
                                       l['sync_status'] != 'failed')
-                                const Text(
+                                Text(
                                   'Pending sync — jibu halijathibitishwa na seva.',
-                                  style: TextStyle(color: AppColors.amber),
+                                  style: TextStyle(
+                                      color: AppPalette.of(context).amber),
                                 ),
                               if (l['sync_status'] == 'failed')
-                                const Text(
+                                Text(
                                   'Jibu linahitaji kuangaliwa mtandaoni; halijathibitishwa.',
-                                  style: TextStyle(color: AppColors.clay),
+                                  style: TextStyle(
+                                      color: AppPalette.of(context).clay),
                                 ),
                             ],
                           ),
@@ -673,7 +675,7 @@ class MedicationPrescriptionCards extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(fulfillmentErrors[prescriptionId]!,
-                          style: const TextStyle(color: AppColors.clay)),
+                          style: TextStyle(color: AppPalette.of(context).clay)),
                     ),
                   if (fulfilment != null)
                     Padding(

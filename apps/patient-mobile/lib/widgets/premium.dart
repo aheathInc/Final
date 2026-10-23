@@ -12,13 +12,13 @@ class PremiumCard extends StatefulWidget {
     required this.child,
     this.onTap,
     this.padding = const EdgeInsets.all(18),
-    this.background = Colors.white,
+    this.background,
   });
 
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry padding;
-  final Color background;
+  final Color? background;
 
   @override
   State<PremiumCard> createState() => _PremiumCardState();
@@ -29,6 +29,7 @@ class _PremiumCardState extends State<PremiumCard> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return AnimatedScale(
@@ -37,9 +38,9 @@ class _PremiumCardState extends State<PremiumCard> {
       curve: Curves.easeOutCubic,
       scale: widget.onTap != null && _pressed ? .985 : 1,
       child: Material(
-        color: widget.background,
+        color: widget.background ?? palette.surface,
         elevation: 1.5,
-        shadowColor: AppColors.ink.withValues(alpha: .08),
+        shadowColor: palette.ink.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -106,6 +107,7 @@ class _PremiumAuroraHeroState extends State<PremiumAuroraHero>
         animation: _animation,
         child: Padding(padding: widget.padding, child: widget.child),
         builder: (context, foreground) {
+          final palette = AppPalette.of(context);
           final t =
               _reduced ? .55 : Curves.easeOutCubic.transform(_animation.value);
           return Container(
@@ -116,14 +118,14 @@ class _PremiumAuroraHeroState extends State<PremiumAuroraHero>
                 begin: Alignment(-1 + .35 * t, -1),
                 end: Alignment(1 - .18 * t, 1),
                 colors: [
-                  Color.lerp(AppColors.deepOcean, AppColors.petrol, t)!,
-                  AppColors.petrol,
-                  Color.lerp(AppColors.petrolLift, AppColors.deepOcean, t)!,
+                  Color.lerp(palette.heroStart, palette.heroMiddle, t)!,
+                  palette.heroMiddle,
+                  Color.lerp(palette.heroEnd, palette.deepOcean, t)!,
                 ],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.petrol.withValues(alpha: .18),
+                  color: palette.petrol.withValues(alpha: .18),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
@@ -191,6 +193,7 @@ class _PremiumHeroButtonState extends State<PremiumHeroButton> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return AnimatedScale(
@@ -198,7 +201,7 @@ class _PremiumHeroButtonState extends State<PremiumHeroButton> {
       duration:
           reduceMotion ? Duration.zero : const Duration(milliseconds: 130),
       child: Material(
-        color: Colors.white,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: widget.onPressed,
@@ -212,15 +215,15 @@ class _PremiumHeroButtonState extends State<PremiumHeroButton> {
                 Flexible(
                   child: Text(
                     widget.label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.petrol,
+                      color: palette.petrol,
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                Icon(widget.icon, color: AppColors.petrol, size: 20),
+                Icon(widget.icon, color: palette.petrol, size: 20),
               ],
             ),
           ),
@@ -265,46 +268,49 @@ class PremiumAction extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.subtitle,
-    this.iconColor = AppColors.petrol,
-    this.iconBackground = AppColors.mintWash,
+    this.iconColor,
+    this.iconBackground,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
-  final Color iconColor;
-  final Color iconBackground;
+  final Color? iconColor;
+  final Color? iconBackground;
 
   @override
-  Widget build(BuildContext context) => PremiumCard(
-        onTap: onTap,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: iconColor, size: 23),
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return PremiumCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: iconBackground ?? palette.mintWash,
+              borderRadius: BorderRadius.circular(14),
             ),
-            const SizedBox(height: 14),
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle!,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+            child: Icon(icon, color: iconColor ?? palette.petrol, size: 23),
+          ),
+          const SizedBox(height: 14),
+          Text(title, style: Theme.of(context).textTheme.titleSmall),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
-        ),
-      );
+        ],
+      ),
+    );
+  }
 }
 
 class PremiumLinkRow extends StatelessWidget {
@@ -314,52 +320,55 @@ class PremiumLinkRow extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.subtitle,
-    this.iconColor = AppColors.petrol,
+    this.iconColor,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
-  final Color iconColor;
+  final Color? iconColor;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: PremiumCard(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          onTap: onTap,
-          child: Row(
-            children: [
-              Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.mintWash,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: iconColor),
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: PremiumCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              height: 44,
+              width: 44,
+              decoration: BoxDecoration(
+                color: palette.mintWash,
+                borderRadius: BorderRadius.circular(13),
               ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleSmall),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 3),
-                      Text(subtitle!,
-                          style: Theme.of(context).textTheme.bodySmall),
-                    ],
+              child: Icon(icon, color: iconColor ?? palette.petrol),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleSmall),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(subtitle!,
+                        style: Theme.of(context).textTheme.bodySmall),
                   ],
-                ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.inkSoft),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded, color: palette.inkSoft),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class PremiumStatus extends StatelessWidget {
@@ -376,7 +385,9 @@ class PremiumStatus extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: urgent ? const Color(0xFFF8E5E1) : AppColors.paperSunk,
+              color: urgent
+                  ? AppPalette.of(context).urgentWash
+                  : AppPalette.of(context).paperSunk,
               borderRadius: BorderRadius.circular(100),
             ),
             child: Text(
@@ -384,7 +395,9 @@ class PremiumStatus extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: urgent ? AppColors.clay : AppColors.ink,
+                color: urgent
+                    ? AppPalette.of(context).clay
+                    : AppPalette.of(context).ink,
               ),
             ),
           ),

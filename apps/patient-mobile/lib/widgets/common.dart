@@ -10,8 +10,9 @@ class Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     final colour =
-        tone == NoticeTone.problem ? AppColors.clay : AppColors.amber;
+        tone == NoticeTone.problem ? palette.clay : palette.amber;
     final icon = tone == NoticeTone.problem
         ? Icons.error_outline_rounded
         : Icons.info_outline_rounded;
@@ -23,7 +24,7 @@ class Notice extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.paperSunk,
+          color: palette.paperSunk,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: colour.withValues(alpha: .35)),
         ),
@@ -35,7 +36,7 @@ class Notice extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                style: TextStyle(color: palette.ink, fontSize: 15),
               ),
             ),
           ],
@@ -69,15 +70,16 @@ class Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
     final content = Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: accent != null
             ? Border(left: BorderSide(color: accent!, width: 4))
-            : Border.all(color: AppColors.line),
+            : Border.all(color: palette.line),
       ),
       child: child,
     );
@@ -104,7 +106,7 @@ class Empty extends StatelessWidget {
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.inkSoft, fontSize: 16),
+          style: TextStyle(color: AppPalette.of(context).inkSoft, fontSize: 16),
         ),
       );
 }

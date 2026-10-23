@@ -92,7 +92,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             ),
             ...slots.map(
               (s) => ListTile(
-                leading: const Icon(Icons.schedule, color: AppColors.petrol),
+                leading:
+                    Icon(Icons.schedule, color: AppPalette.of(context).petrol),
                 title: Text(_date(s['starts_at'] as String?)),
                 subtitle: Text(
                   '${s['duration_minutes'] ?? ''} min • ${s['modality'] ?? ''}',

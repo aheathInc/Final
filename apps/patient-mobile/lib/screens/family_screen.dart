@@ -220,7 +220,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.person_outline, color: AppColors.petrol),
+              Icon(Icons.person_outline, color: AppPalette.of(context).petrol),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

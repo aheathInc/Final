@@ -20,25 +20,122 @@ class AppColors {
   static const clay = Color(0xFFA63D2F);
 }
 
-ThemeData buildTheme() {
-  const base = TextStyle(color: AppColors.ink, height: 1.45);
+/// Semantic colors for each appearance. Brand meaning stays stable while
+/// foreground and surface tones adapt to the system theme.
+class AppPalette {
+  const AppPalette({
+    required this.ink,
+    required this.inkSoft,
+    required this.paper,
+    required this.surface,
+    required this.paperSunk,
+    required this.line,
+    required this.petrol,
+    required this.petrolLift,
+    required this.deepOcean,
+    required this.mintWash,
+    required this.amber,
+    required this.clay,
+    required this.urgentWash,
+    required this.action,
+    required this.onAction,
+    required this.heroStart,
+    required this.heroMiddle,
+    required this.heroEnd,
+  });
+
+  final Color ink;
+  final Color inkSoft;
+  final Color paper;
+  final Color surface;
+  final Color paperSunk;
+  final Color line;
+  final Color petrol;
+  final Color petrolLift;
+  final Color deepOcean;
+  final Color mintWash;
+  final Color amber;
+  final Color clay;
+  final Color urgentWash;
+  final Color action;
+  final Color onAction;
+  final Color heroStart;
+  final Color heroMiddle;
+  final Color heroEnd;
+
+  static const light = AppPalette(
+    ink: AppColors.ink,
+    inkSoft: AppColors.inkSoft,
+    paper: AppColors.paper,
+    surface: Colors.white,
+    paperSunk: AppColors.paperSunk,
+    line: AppColors.line,
+    petrol: AppColors.petrol,
+    petrolLift: AppColors.petrolLift,
+    deepOcean: AppColors.deepOcean,
+    mintWash: AppColors.mintWash,
+    amber: AppColors.amber,
+    clay: AppColors.clay,
+    urgentWash: Color(0xFFF8E5E1),
+    action: AppColors.petrol,
+    onAction: Colors.white,
+    heroStart: AppColors.deepOcean,
+    heroMiddle: AppColors.petrol,
+    heroEnd: AppColors.petrolLift,
+  );
+
+  static const dark = AppPalette(
+    ink: Color(0xFFEAF2EE),
+    inkSoft: Color(0xFFB5C7C0),
+    paper: Color(0xFF101815),
+    surface: Color(0xFF18231F),
+    paperSunk: Color(0xFF22312B),
+    line: Color(0xFF3B4D45),
+    petrol: Color(0xFF9AD8C6),
+    petrolLift: Color(0xFFBCE9DB),
+    deepOcean: Color(0xFF0B3631),
+    mintWash: Color(0xFF29463C),
+    amber: Color(0xFFFFD08A),
+    clay: Color(0xFFFFA397),
+    urgentWash: Color(0xFF4B2C27),
+    action: Color(0xFF286D5F),
+    onAction: Colors.white,
+    heroStart: Color(0xFF082C28),
+    heroMiddle: Color(0xFF0D4940),
+    heroEnd: Color(0xFF17685C),
+  );
+
+  static AppPalette of(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? dark : light;
+}
+
+ThemeData buildTheme() => _buildTheme(Brightness.light);
+
+ThemeData buildDarkTheme() => _buildTheme(Brightness.dark);
+
+ThemeData _buildTheme(Brightness brightness) {
+  final palette =
+      brightness == Brightness.dark ? AppPalette.dark : AppPalette.light;
+  final base = TextStyle(color: palette.ink, height: 1.45);
 
   return ThemeData(
+    brightness: brightness,
     useMaterial3: true,
-    scaffoldBackgroundColor: AppColors.paper,
+    scaffoldBackgroundColor: palette.paper,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.petrol,
-      primary: AppColors.petrol,
-      secondary: AppColors.petrolLift,
-      error: AppColors.clay,
-      surface: AppColors.paper,
+      brightness: brightness,
+      primary: palette.petrol,
+      secondary: palette.petrol,
+      error: palette.clay,
+      surface: palette.surface,
     ),
     // 17px rather than the usual 14: read on a small, cheap screen by someone
     // who is not at their best.
     textTheme: TextTheme(
       bodyLarge: base.copyWith(fontSize: 17),
       bodyMedium: base.copyWith(fontSize: 16),
-      bodySmall: base.copyWith(fontSize: 14, color: AppColors.inkSoft),
+      bodySmall: base.copyWith(fontSize: 14, color: palette.inkSoft),
       titleLarge: base.copyWith(fontSize: 24, fontWeight: FontWeight.w600),
       titleMedium: base.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
       headlineSmall:
@@ -47,20 +144,21 @@ ThemeData buildTheme() {
       labelLarge: base.copyWith(fontSize: 16, fontWeight: FontWeight.w500),
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.paper,
-      foregroundColor: AppColors.ink,
       elevation: 0,
       centerTitle: false,
+    ).copyWith(
+      backgroundColor: palette.paper,
+      foregroundColor: palette.ink,
     ),
     navigationBarTheme: NavigationBarThemeData(
       height: 72,
-      backgroundColor: Colors.white,
-      indicatorColor: AppColors.mintWash,
+      backgroundColor: palette.surface,
+      indicatorColor: palette.mintWash,
       elevation: 4,
       labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
             color: states.contains(WidgetState.selected)
-                ? AppColors.petrol
-                : AppColors.inkSoft,
+                ? palette.petrol
+                : palette.inkSoft,
             fontSize: 12,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
@@ -68,20 +166,22 @@ ThemeData buildTheme() {
           )),
     ),
     navigationRailTheme: const NavigationRailThemeData(
-      backgroundColor: AppColors.paper,
-      indicatorColor: AppColors.mintWash,
-      selectedIconTheme: IconThemeData(color: AppColors.petrol),
-      unselectedIconTheme: IconThemeData(color: AppColors.inkSoft),
+      groupAlignment: -.78,
+    ).copyWith(
+      backgroundColor: palette.paper,
+      indicatorColor: palette.mintWash,
+      selectedIconTheme: IconThemeData(color: palette.petrol),
+      unselectedIconTheme: IconThemeData(color: palette.inkSoft),
       selectedLabelTextStyle: TextStyle(
-        color: AppColors.petrol,
+        color: palette.petrol,
         fontWeight: FontWeight.w700,
       ),
-      unselectedLabelTextStyle: TextStyle(color: AppColors.inkSoft),
+      unselectedLabelTextStyle: TextStyle(color: palette.inkSoft),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.petrol,
-        foregroundColor: Colors.white,
+        backgroundColor: palette.action,
+        foregroundColor: palette.onAction,
         // 52dp: the smallest target a thumb hits reliably one-handed, which is
         // how this is actually held.
         minimumSize: const Size.fromHeight(52),
@@ -89,29 +189,30 @@ ThemeData buildTheme() {
         textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
       ),
     ),
-    inputDecorationTheme: const InputDecorationTheme(
+    inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: palette.surface,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(14)),
-        borderSide: BorderSide(color: AppColors.line),
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: BorderSide(color: palette.line),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(14)),
-        borderSide: BorderSide(color: AppColors.line),
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: BorderSide(color: palette.line),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(14)),
-        borderSide: BorderSide(color: AppColors.petrol, width: 2),
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        borderSide: BorderSide(color: palette.petrol, width: 2),
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
     ),
     cardTheme: CardThemeData(
-      color: Colors.white,
+      color: palette.surface,
       elevation: 1,
-      shadowColor: AppColors.ink.withValues(alpha: .08),
+      shadowColor: palette.ink.withValues(alpha: .08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: EdgeInsets.zero,
     ),
+    dividerColor: palette.line,
   );
 }

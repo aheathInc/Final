@@ -8,6 +8,12 @@ purposeful Bento-style composition, readable type and familiar Material 3
 navigation. Visual treatment must preserve clinical meaning and existing task
 behavior.
 
+## Platform
+
+Native Flutter mobile UI with adaptive phone and wide-screen layouts. Appearance
+follows the Android system light/dark setting by default. Keep theme selection
+available to the platform rather than hard-coding light mode.
+
 ## Color
 
 The existing brand palette remains the source of truth:
@@ -30,9 +36,18 @@ The UI adds two supporting tokens for depth, without replacing the palette:
 meaning; do not use them as decoration. The neutral consultation status chip
 uses the supplied status label and makes no urgency inference.
 
+The dark appearance keeps the same brand and clinical meanings with these
+semantic surface variants: `paper` `#101815`, `surface` `#18231F`, `paperSunk`
+`#22312B`, `line` `#3B4D45`, `ink` `#EAF2EE`, and `inkSoft` `#B5C7C0`.
+Petrol becomes a light mint-petrol foreground (`#9AD8C6`) on dark surfaces;
+the aurora stays deep (`#082C28` to `#17685C`) so white hero copy remains
+readable. Urgent wash uses `#4B2C27`; amber and clay remain reserved for their
+existing attention and problem meanings.
+
 ## Surfaces and layout
 
-- Use the paper background, white content surfaces and 16 dp card corners.
+- Use the paper background, appearance-aware content surfaces and 16 dp card
+  corners. Bento cards retain clear separation in both light and dark themes.
 - Keep one primary aurora feature per screen, paired with compact actions or
   useful rows rather than a wall of identical cards.
 - The home page uses a large facility-search feature, then a two-action Bento

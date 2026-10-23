@@ -332,8 +332,8 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icons.warning_amber_rounded,
               title: S.emergency,
               subtitle: 'Fungua huduma ya dharura',
-              iconColor: AppColors.clay,
-              iconBackground: const Color(0xFFF8E5E1),
+              iconColor: AppPalette.of(context).clay,
+              iconBackground: AppPalette.of(context).urgentWash,
               onTap: () => _go(const EmergencyScreen()),
             );
             final newConsultation = PremiumAction(
@@ -423,8 +423,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.medical_information_outlined,
-                  color: AppColors.petrol),
+              Icon(Icons.medical_information_outlined,
+                  color: AppPalette.of(context).petrol),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -444,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.inkSoft),
+              Icon(Icons.chevron_right_rounded, color: AppPalette.of(context).inkSoft),
             ],
           ),
         ),
@@ -454,9 +454,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ..._syncNotices(),
         Text('Huduma zote', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Chagua huduma unayotaka kutumia.',
-          style: TextStyle(color: AppColors.inkSoft, fontSize: 16),
+          style: TextStyle(color: AppPalette.of(context).inkSoft, fontSize: 16),
         ),
         const PremiumSectionHeading('Anza au tafuta huduma'),
         _link(Icons.search_rounded, 'Tafuta daktari au kituo',
@@ -464,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _link(Icons.medical_services_outlined, S.homeGetHelp,
             const NewConsultationScreen()),
         _link(Icons.warning_amber_rounded, S.emergency, const EmergencyScreen(),
-            iconColor: AppColors.clay),
+            iconColor: AppPalette.of(context).clay),
         _link(Icons.auto_awesome_outlined, 'Msaidizi wa A-Health',
             const AssistantScreen()),
         const PremiumSectionHeading('Matibabu na ufuatiliaji'),
@@ -523,9 +523,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ..._syncNotices(),
         Text('Mazungumzo', style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Mazungumzo yanafungamana na ziara ya matibabu. Chagua ziara ili kufungua mawasiliano yake.',
-          style: TextStyle(color: AppColors.inkSoft, fontSize: 16),
+          style: TextStyle(color: AppPalette.of(context).inkSoft, fontSize: 16),
         ),
         const PremiumSectionHeading('Ziara zako'),
         _consultationsSummary(_active, active: true),
@@ -541,10 +541,10 @@ class _HomeScreenState extends State<HomeScreen> {
           PremiumCard(
             child: Row(
               children: [
-                const CircleAvatar(
-                  backgroundColor: AppColors.mintWash,
-                  foregroundColor: AppColors.petrol,
-                  child: Icon(Icons.person_outline_rounded),
+                CircleAvatar(
+                  backgroundColor: AppPalette.of(context).mintWash,
+                  foregroundColor: AppPalette.of(context).petrol,
+                  child: const Icon(Icons.person_outline_rounded),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -570,8 +570,8 @@ class _HomeScreenState extends State<HomeScreen> {
           label: const Text(S.signOut),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
-            foregroundColor: AppColors.petrol,
-            side: const BorderSide(color: AppColors.line),
+            foregroundColor: AppPalette.of(context).petrol,
+            side: BorderSide(color: AppPalette.of(context).line),
           ),
         ),
       ]);
@@ -580,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
     IconData icon,
     String label,
     Widget screen, {
-    Color iconColor = AppColors.petrol,
+    Color? iconColor,
   }) =>
       PremiumLinkRow(
         icon: icon,

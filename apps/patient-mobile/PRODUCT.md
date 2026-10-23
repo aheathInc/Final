@@ -19,6 +19,10 @@ petrol, mint and warm-paper identity. Premium styling must make patient tasks
 easier to find without changing what a workflow means or what the service
 reports.
 
+The interface follows the system appearance with a dedicated dark palette.
+Aurora gradients, refined Bento Cards, readable typography, restrained motion,
+responsive navigation and accessibility remain part of the approved direction.
+
 Core experience principles:
 
 - Put the next useful action first: find a facility, start a consultation, or

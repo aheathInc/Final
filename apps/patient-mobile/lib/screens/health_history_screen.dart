@@ -60,6 +60,7 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final ownerMatches = _ownerId != null;
+    final palette = AppPalette.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Historia Yangu ya Afya'),
@@ -70,7 +71,7 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('My Health History', style: TextStyle(fontSize: 14, color: AppColors.inkSoft)),
+            Text('My Health History', style: TextStyle(fontSize: 14, color: palette.inkSoft)),
             const SizedBox(height: 12),
             Row(children: [
               Expanded(child: DropdownButtonFormField<String>(
@@ -97,20 +98,20 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
             else if (_error != null)
               Panel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Historia haikupatikana', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: AppColors.inkSoft)),
+                const SizedBox(height: 8), Text(_error!, style: TextStyle(color: palette.inkSoft)),
                 TextButton(onPressed: _load, child: const Text('Jaribu tena')),
               ]))
             else if (!ownerMatches || _visibleEntries.isEmpty)
-              const Panel(child: Text('Hakuna rekodi za historia zinazoonekana kwa sasa.', style: TextStyle(color: AppColors.inkSoft)))
+              Panel(child: Text('Hakuna rekodi za historia zinazoonekana kwa sasa.', style: TextStyle(color: palette.inkSoft)))
             else
-              ..._visibleEntries.map(_entryCard),
+              ..._visibleEntries.map((entry) => _entryCard(entry, palette)),
           ],
         ),
       ),
     );
   }
 
-  Widget _entryCard(Map<String, dynamic> entry) {
+  Widget _entryCard(Map<String, dynamic> entry, AppPalette palette) {
     final source = entry['source'] is Map ? Map<String, dynamic>.from(entry['source'] as Map) : <String, dynamic>{};
     final details = entry['detail'] is Map ? Map<String, dynamic>.from(entry['detail'] as Map) : <String, dynamic>{};
     final imported = source['type'] == 'external';
@@ -120,7 +121,7 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Panel(
         child: Material(
-          color: Colors.white,
+          color: palette.surface,
           child: ExpansionTile(
             tilePadding: EdgeInsets.zero,
             childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -132,11 +133,11 @@ class _HealthHistoryScreenState extends State<HealthHistoryScreen> {
                 if (event != null) '${event.toLocal()}'.split('.').first,
                 '${entry['status'] ?? 'imeandikwa'}',
                 '${source['name'] ?? 'A-health'}${facility == null ? '' : ' · $facility'}',
-              ].join(' · '), style: const TextStyle(fontSize: 12, color: AppColors.inkSoft)),
+              ].join(' · '), style: TextStyle(fontSize: 12, color: palette.inkSoft)),
             ),
-            trailing: Icon(imported ? Icons.cloud_download_outlined : Icons.health_and_safety_outlined, color: imported ? AppColors.amber : AppColors.petrol),
+            trailing: Icon(imported ? Icons.cloud_download_outlined : Icons.health_and_safety_outlined, color: imported ? palette.amber : palette.petrol),
             children: [
-              if (imported) const Align(alignment: Alignment.centerLeft, child: Text('Imetoka kwenye mfumo wa nje; haijathibitishwa na daktari wa AHP.', style: TextStyle(color: AppColors.inkSoft, fontSize: 12))),
+              if (imported) Align(alignment: Alignment.centerLeft, child: Text('Imetoka kwenye mfumo wa nje; haijathibitishwa na daktari wa AHP.', style: TextStyle(color: palette.inkSoft, fontSize: 12))),
               ...details.entries.where((entry) => entry.value != null).map((item) => Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Align(alignment: Alignment.centerLeft, child: Text('${item.key.replaceAll('_', ' ')}: ${item.value}', style: const TextStyle(fontSize: 13))),

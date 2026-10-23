@@ -279,6 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _noteCard(Map<String, Object?> n) {
+    final palette = AppPalette.of(context);
     final at = DateTime.tryParse(n['created_at'] as String? ?? '');
     final flags = (n['red_flags'] as String?)
             ?.split('\n')
@@ -294,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (at != null)
               Text(
                 DateFormat('d MMM y').format(at),
-                style: const TextStyle(color: AppColors.inkSoft, fontSize: 13),
+                style: TextStyle(color: palette.inkSoft, fontSize: 13),
               ),
             if (n['diagnosis_text'] != null) ...[
               const SizedBox(height: 6),
@@ -317,10 +318,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // what tell someone at home when to stop waiting.
             if (flags.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Rudi haraka ukiona:',
                 style: TextStyle(
-                  color: AppColors.clay,
+                  color: palette.clay,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -330,7 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
                     '• $f',
-                    style: const TextStyle(color: AppColors.clay, fontSize: 15),
+                    style: TextStyle(color: palette.clay, fontSize: 15),
                   ),
                 ),
               ),

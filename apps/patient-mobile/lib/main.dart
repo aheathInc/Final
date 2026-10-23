@@ -52,6 +52,8 @@ class _AHealthAppState extends State<AHealthApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: S.appName,
       theme: buildTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: ThemeMode.system,
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       home: FutureBuilder<String?>(

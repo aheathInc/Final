@@ -192,7 +192,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> with WidgetsBindingOb
         if (_busy) const LinearProgressIndicator(),
         if (_error != null) ...[Notice(_error!),
           if (!_showVisits && _facilities.isEmpty) TextButton(onPressed: _busy ? null : _initialise, child: const Text('Pakia huduma tena'))],
-        if (_notice != null) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(_notice!, style: const TextStyle(color: AppColors.inkSoft))),
+        if (_notice != null) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(_notice!, style: TextStyle(color: AppPalette.of(context).inkSoft))),
         if (!_showVisits) ...[
           if (_facilities.isEmpty && !_busy && _error == null) const Empty('Hakuna kituo chenye digital front desk iliyowashwa. Wasiliana na hospitali yako.'),
           DropdownButtonFormField<String>(value: _facilityId, isExpanded: true, decoration: const InputDecoration(labelText: 'Hospitali / kituo'),
@@ -206,7 +206,7 @@ class _FrontDeskScreenState extends State<FrontDeskScreen> with WidgetsBindingOb
             items: _departments.map((d) => DropdownMenuItem(value: d['id'] as String, child: Text(d['name'] as String))).toList(), onChanged: locked || _facilityId == null ? null : _chooseDepartment),
           if (_board != null) ...[
             const SizedBox(height: 16),
-            Text('Foleni ya idara (AHP): ${_board!['department_pool_waiting']} · muda wa kusubiri haujakadiriwa', style: const TextStyle(color: AppColors.inkSoft)),
+            Text('Foleni ya idara (AHP): ${_board!['department_pool_waiting']} · muda wa kusubiri haujakadiriwa', style: TextStyle(color: AppPalette.of(context).inkSoft)),
             DropdownButtonFormField<String>(value: _clinicianId ?? '', isExpanded: true, decoration: const InputDecoration(labelText: 'Daktari (hiari)'),
               items: [const DropdownMenuItem(value: '', child: Text('Daktari yeyote wa idara aliyeidhinishwa')),
                 ...((_board!['providers'] as List?) ?? []).map((raw) { final p = deskRecord(raw); return DropdownMenuItem(value: p['id'] as String, enabled: p['receiving_new_patients'] == true,
