@@ -9,7 +9,8 @@
     "build": "tsc --noEmit",
     "start": "node --import tsx src/index.ts",
     "test": "node --import tsx --test src/tests/*.test.ts",
-    "seed:datasets": "node --import tsx src/scripts/seed-datasets.ts"
+    "seed:datasets": "node --import tsx src/scripts/seed-datasets.ts",
+    "warehouse": "node --import tsx src/scripts/warehouse-cli.ts"
   },
   "dependencies": {
     "@a-health/database": "workspace:*",

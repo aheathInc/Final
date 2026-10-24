@@ -42,6 +42,7 @@ const ADMIN = [
   { icon: Building2, label: 'Facilities', href: '/admin/facilities' },
   { icon: ShieldAlert, label: 'Incidents', href: '/admin/incidents' },
   { icon: CreditCard, label: 'Payments', href: '/admin/payments' },
+  { icon: FlaskConical, label: 'Research Portal', href: '/admin/research' },
   { icon: Settings, label: 'Settings', href: '/admin/settings' },
 ];
 
@@ -57,7 +58,7 @@ function itemsFor(role?: string) {
   if (role === 'platform_admin') return [{ label: 'Operations', items: ADMIN }, { label: 'Analytics', items: ANALYTICS }];
   if (role === 'researcher') return [{ label: 'Analytics', items: ANALYTICS }];
   if (role === 'dispatcher') return [{ label: 'Operations', items: ADMIN.filter((i) => ['/admin/emergency', '/admin/devices'].includes(i.href)) }];
-  if (role === 'facility_admin') return [{ label: 'Operations', items: ADMIN.filter((i) => ['/admin/facilities', '/admin/incidents', '/admin/settings'].includes(i.href)) }];
+  if (role === 'facility_admin') return [{ label: 'Operations', items: ADMIN.filter((i) => ['/admin/facilities', '/admin/incidents', '/admin/research', '/admin/settings'].includes(i.href)) }];
   return [];
 }
 

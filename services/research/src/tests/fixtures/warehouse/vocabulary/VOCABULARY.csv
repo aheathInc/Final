@@ -1,0 +1,4 @@
+vocabulary_id	vocabulary_name	vocabulary_reference	vocabulary_version	vocabulary_concept_id
+None	SYNTHETIC TEST None	Synthetic acceptance fixture; NOT a licensed clinical vocabulary	SYNTHETIC-TEST-ONLY	0
+AHP_TEST	SYNTHETIC TEST AHP_TEST	Synthetic acceptance fixture; NOT a licensed clinical vocabulary	SYNTHETIC-TEST-ONLY	0
+CDM	SYNTHETIC TEST CDM	Synthetic acceptance fixture; NOT a licensed clinical vocabulary	SYNTHETIC-TEST-ONLY	0

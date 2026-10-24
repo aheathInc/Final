@@ -5,6 +5,7 @@ import { Providers } from '@/components/Providers';
 import './globals.css';
 import './care-continuity.css';
 import './premium-clinical.css';
+import './research-portal.css';
 
 /*
  * One family across the scale; weight and size carry the hierarchy. Plex Mono

@@ -339,6 +339,19 @@ model User {
   @@map("users")
   authoredTriageRulesets  TriageRuleset[] @relation("TriageRulesetAuthor")
   activatedTriageRulesets TriageRuleset[] @relation("TriageRulesetActivator")
+  relatedResearchOutputRequest_ownerId ResearchOutputRequest[] @relation("ResearchOutputRequest_ownerId")
+  relatedResearchResponseSnapshot_ownerId ResearchResponseSnapshot[] @relation("ResearchResponseSnapshot_ownerId")
+  relatedResearchOmopBuild_ownerId ResearchOmopBuild[] @relation("ResearchOmopBuild_ownerId")
+  relatedResearchOmopBatch_submittedBy ResearchOmopBatch[] @relation("ResearchOmopBatch_submittedBy")
+  relatedResearcherApplication_userId ResearcherApplication[] @relation("ResearcherApplication_userId")
+  relatedResearchStudy_ownerId ResearchStudy[] @relation("ResearchStudy_ownerId")
+  relatedResearchEvidence_ownerId ResearchEvidence[] @relation("ResearchEvidence_ownerId")
+  relatedResearchCollection_createdBy ResearchCollection[] @relation("ResearchCollection_createdBy")
+  relatedResearchSourceGrant_stewardId ResearchSourceGrant[] @relation("ResearchSourceGrant_stewardId")
+  relatedResearchExportRequest_ownerId ResearchExportRequest[] @relation("ResearchExportRequest_ownerId")
+  relatedResearchForm_ownerId ResearchForm[] @relation("ResearchForm_ownerId")
+  relatedResearchFormResponse_submittedBy ResearchFormResponse[] @relation("ResearchFormResponse_submittedBy")
+  relatedResearchAccessKey_ownerId ResearchAccessKey[] @relation("ResearchAccessKey_ownerId")
 }
 
 model PatientProfile {
@@ -516,6 +529,7 @@ model Facility {
 
   @@index([regionCode, type])
   @@map("facilities")
+  relatedResearchSourceGrant_facilityId ResearchSourceGrant[] @relation("ResearchSourceGrant_facilityId")
 }
 
 model OtpChallenge {
@@ -3330,4 +3344,375 @@ model CareContact {
   @@unique([followUpCycleId, requestKey])
   @@index([followUpCycleId, scheduledAt])
   @@map("care_contacts")
+}
+
+
+model ResearcherApplication {
+  refUserId User @relation("ResearcherApplication_userId", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @map("user_id") @db.Uuid
+  kind String @db.VarChar(20)
+  displayName String @map("display_name") @db.VarChar(150)
+  institution String? @db.VarChar(200)
+  credentialReference String @map("credential_reference") @db.VarChar(150)
+  status String @default("pending") @db.VarChar(20)
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewNote String? @map("review_note") @db.VarChar(500)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([status])
+  @@map("researcher_applications")
+}
+
+model ResearchStudy {
+  relatedResearchOutputRequest_studyId ResearchOutputRequest[] @relation("ResearchOutputRequest_studyId")
+  relatedResearchResponseSnapshot_studyId ResearchResponseSnapshot[] @relation("ResearchResponseSnapshot_studyId")
+  relatedResearchEvidence_studyId ResearchEvidence[] @relation("ResearchEvidence_studyId")
+  relatedResearchExportRequest_studyId ResearchExportRequest[] @relation("ResearchExportRequest_studyId")
+  relatedResearchForm_studyId ResearchForm[] @relation("ResearchForm_studyId")
+  relatedResearchAccessKey_studyId ResearchAccessKey[] @relation("ResearchAccessKey_studyId")
+  refReleaseId ResearchRelease? @relation("ResearchStudy_releaseId", fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refDatasetId ResearchCollection @relation("ResearchStudy_datasetId", fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refOwnerId User @relation("ResearchStudy_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  title String @db.VarChar(200)
+  purpose String @db.VarChar(3000)
+  datasetId String @map("dataset_id") @db.Uuid
+  releaseId String? @map("release_id") @db.Uuid
+  status String @default("draft") @db.VarChar(20)
+  ethicsReference String @map("ethics_reference") @db.VarChar(150)
+  ethicsExpiresAt DateTime @map("ethics_expires_at")
+  controllerReference String @map("controller_reference") @db.VarChar(150)
+  expiresAt DateTime @map("expires_at")
+  allowExport Boolean @default(false) @map("allow_export")
+  allowEcrf Boolean @default(false) @map("allow_ecrf")
+  allowRowLevel Boolean @default(false) @map("allow_row_level")
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewNote String? @map("review_note") @db.VarChar(500)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([ownerId, status])
+  @@index([datasetId])
+  @@map("research_studies")
+}
+
+model ResearchEvidence {
+  refSourceId ResearchSourceGrant? @relation("ResearchEvidence_sourceId", fields: [sourceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refStudyId ResearchStudy? @relation("ResearchEvidence_studyId", fields: [studyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refOwnerId User @relation("ResearchEvidence_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  studyId String? @map("study_id") @db.Uuid
+  sourceId String? @map("source_id") @db.Uuid
+  kind String @db.VarChar(30)
+  sha256 String @db.Char(64)
+  sizeBytes Int @map("size_bytes")
+  scanStatus String @map("scan_status") @db.VarChar(30)
+  ciphertext String @db.Text
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([ownerId, studyId])
+  @@index([sourceId])
+  @@map("research_evidence")
+}
+
+model ResearchCollection {
+  relatedResearchOmopBuild_datasetId ResearchOmopBuild[] @relation("ResearchOmopBuild_datasetId")
+  relatedResearchOmopBatch_datasetId ResearchOmopBatch[] @relation("ResearchOmopBatch_datasetId")
+  relatedResearchStudy_datasetId ResearchStudy[] @relation("ResearchStudy_datasetId")
+  relatedResearchSourceGrant_datasetId ResearchSourceGrant[] @relation("ResearchSourceGrant_datasetId")
+  relatedResearchStagedEvent_datasetId ResearchStagedEvent[] @relation("ResearchStagedEvent_datasetId")
+  relatedResearchRelease_datasetId ResearchRelease[] @relation("ResearchRelease_datasetId")
+  refCreatedBy User @relation("ResearchCollection_createdBy", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique @db.VarChar(160)
+  description String @db.VarChar(1500)
+  domains Json @default("[]")
+  minimumCellSize Int @default(10) @map("minimum_cell_size")
+  status String @default("draft") @db.VarChar(20)
+  syntheticOnly Boolean @default(true) @map("synthetic_only")
+  latestReleaseId String? @map("latest_release_id") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("research_collections")
+}
+
+model ResearchSourceGrant {
+  relatedResearchOmopBuild_sourceId ResearchOmopBuild[] @relation("ResearchOmopBuild_sourceId")
+  relatedResearchOmopBatch_sourceId ResearchOmopBatch[] @relation("ResearchOmopBatch_sourceId")
+  relatedResearchEvidence_sourceId ResearchEvidence[] @relation("ResearchEvidence_sourceId")
+  relatedResearchStagedEvent_sourceId ResearchStagedEvent[] @relation("ResearchStagedEvent_sourceId")
+  refStewardId User @relation("ResearchSourceGrant_stewardId", fields: [stewardId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refFacilityId Facility @relation("ResearchSourceGrant_facilityId", fields: [facilityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refDatasetId ResearchCollection @relation("ResearchSourceGrant_datasetId", fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  datasetId String @map("dataset_id") @db.Uuid
+  facilityId String @map("facility_id") @db.Uuid
+  stewardId String @map("steward_id") @db.Uuid
+  agreementReference String @map("agreement_reference") @db.VarChar(150)
+  expiresAt DateTime @map("expires_at")
+  status String @default("pending") @db.VarChar(20)
+  createdBy String @map("created_by") @db.Uuid
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([stewardId, datasetId])
+  @@map("research_source_grants")
+}
+
+model ResearchStagedEvent {
+  refSourceId ResearchSourceGrant @relation("ResearchStagedEvent_sourceId", fields: [sourceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refDatasetId ResearchCollection @relation("ResearchStagedEvent_datasetId", fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  datasetId String @map("dataset_id") @db.Uuid
+  sourceId String @map("source_id") @db.Uuid
+  eventHash String @unique @map("event_hash") @db.Char(64)
+  payloadHash String @map("payload_hash") @db.Char(64)
+  ciphertext String @db.Text
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([datasetId, sourceId])
+  @@map("research_staged_events")
+}
+
+model ResearchRelease {
+  relatedResearchOmopBuild_releaseId ResearchOmopBuild[] @relation("ResearchOmopBuild_releaseId")
+  relatedResearchStudy_releaseId ResearchStudy[] @relation("ResearchStudy_releaseId")
+  relatedResearchExportRequest_releaseId ResearchExportRequest[] @relation("ResearchExportRequest_releaseId")
+  refDatasetId ResearchCollection @relation("ResearchRelease_datasetId", fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  datasetId String @map("dataset_id") @db.Uuid
+  status String @default("pending") @db.VarChar(20)
+  sourceIds Json @map("source_ids")
+  cells Json @default("[]")
+  quality Json @default("{}")
+  minimumCellSize Int @map("minimum_cell_size")
+  contentHash String @map("content_hash") @db.Char(64)
+  createdBy String @map("created_by") @db.Uuid
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewNote String? @map("review_note") @db.VarChar(500)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([datasetId, status])
+  @@map("research_releases")
+}
+
+model ResearchExportRequest {
+  refReleaseId ResearchRelease @relation("ResearchExportRequest_releaseId", fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refOwnerId User @relation("ResearchExportRequest_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refStudyId ResearchStudy @relation("ResearchExportRequest_studyId", fields: [studyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  studyId String @map("study_id") @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  releaseId String @map("release_id") @db.Uuid
+  format String @db.VarChar(10)
+  filters Json @default("{}")
+  status String @default("pending") @db.VarChar(20)
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  expiresAt DateTime @map("expires_at")
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([ownerId, studyId])
+  @@map("research_export_requests")
+}
+
+model ResearchForm {
+  relatedResearchResponseSnapshot_formId ResearchResponseSnapshot[] @relation("ResearchResponseSnapshot_formId")
+  relatedResearchFormResponse_formId ResearchFormResponse[] @relation("ResearchFormResponse_formId")
+  refOwnerId User @relation("ResearchForm_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refStudyId ResearchStudy @relation("ResearchForm_studyId", fields: [studyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  studyId String @map("study_id") @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  title String @db.VarChar(160)
+  fields Json @default("[]")
+  status String @default("draft") @db.VarChar(20)
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([studyId])
+  @@map("research_forms")
+}
+
+model ResearchFormResponse {
+  refSubmittedBy User @relation("ResearchFormResponse_submittedBy", fields: [submittedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refFormId ResearchForm @relation("ResearchFormResponse_formId", fields: [formId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  formId String @map("form_id") @db.Uuid
+  subjectHash String @map("subject_hash") @db.Char(64)
+  ciphertext String @db.Text
+  submittedBy String @map("submitted_by") @db.Uuid
+  consentReferenceHash String @map("consent_reference_hash") @db.Char(64)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([formId, subjectHash])
+  @@map("research_form_responses")
+  status String @default("active") @db.VarChar(20)
+  withdrawnAt DateTime? @map("withdrawn_at")
+  withdrawalCode String? @map("withdrawal_code") @db.VarChar(40)
+}
+
+model ResearchAccessKey {
+  refOwnerId User @relation("ResearchAccessKey_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refStudyId ResearchStudy @relation("ResearchAccessKey_studyId", fields: [studyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id String @id @default(uuid()) @db.Uuid
+  studyId String @map("study_id") @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  tokenHash String @unique @map("token_hash") @db.Char(64)
+  status String @default("active") @db.VarChar(20)
+  expiresAt DateTime @map("expires_at")
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([ownerId, studyId])
+  @@map("research_access_keys")
+}
+
+model ResearchCodeMapping {
+  id String @id @default(uuid()) @db.Uuid
+  system String @db.VarChar(25)
+  sourceCode String @map("source_code") @db.VarChar(40)
+  domain String @db.VarChar(30)
+  conceptId Int @map("concept_id")
+  standardConcept Boolean @default(false) @map("standard_concept")
+  vocabularyVersion String @map("vocabulary_version") @db.VarChar(80)
+  label String @db.VarChar(160)
+  createdBy String @map("created_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([system, sourceCode])
+  @@map("research_code_mappings")
+}
+
+model ResearchThrottle {
+  id String @id @default(uuid()) @db.Uuid
+  actorKey String @unique @map("actor_key") @db.VarChar(100)
+  windowStart DateTime @map("window_start")
+  hits Int @default(0)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("research_throttles")
+}
+
+model ResearchOmopBatch {
+  id String @id @default(uuid()) @db.Uuid
+  datasetId String @map("dataset_id") @db.Uuid
+  sourceId String @map("source_id") @db.Uuid
+  requestKey String @map("request_key") @db.VarChar(120)
+  payloadHash String @map("payload_hash") @db.Char(64)
+  ciphertext String @db.Text
+  inputRows Int @map("input_rows")
+  synthetic Boolean
+  submittedBy String @map("submitted_by") @db.Uuid
+  status String @default("accepted") @db.VarChar(20)
+  refDatasetId ResearchCollection @relation("ResearchOmopBatch_datasetId", fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refSourceId ResearchSourceGrant @relation("ResearchOmopBatch_sourceId", fields: [sourceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refSubmittedBy User @relation("ResearchOmopBatch_submittedBy", fields: [submittedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([sourceId, requestKey])
+  @@index([datasetId, sourceId])
+  @@map("research_omop_batches")
+}
+
+model ResearchOmopBuild {
+  relatedResearchOutputRequest_buildId ResearchOutputRequest[] @relation("ResearchOutputRequest_buildId")
+  id String @id @default(uuid()) @db.Uuid
+  datasetId String @map("dataset_id") @db.Uuid
+  sourceId String @map("source_id") @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  batchIds Json @map("batch_ids") @default("[]")
+  sourceFingerprint String @map("source_fingerprint") @db.Char(64)
+  datePolicy String @map("date_policy") @db.VarChar(40)
+  status String @default("queued") @db.VarChar(30)
+  warehouseSchema String? @map("warehouse_schema") @db.VarChar(63)
+  vocabularyVersion String? @map("vocabulary_version") @db.VarChar(80)
+  manifestHash String? @map("manifest_hash") @db.Char(64)
+  quality Json @default("{}")
+  cells Json @default("[]")
+  withheldCells Int @map("withheld_cells") @default(0)
+  personCount Int @map("person_count") @default(0)
+  releaseId String? @map("release_id") @db.Uuid
+  errorCode String? @map("error_code") @db.VarChar(80)
+  leaseToken String? @map("lease_token") @db.Uuid
+  leaseExpiresAt DateTime? @map("lease_expires_at")
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewNote String? @map("review_note") @db.VarChar(500)
+  refDatasetId ResearchCollection @relation("ResearchOmopBuild_datasetId", fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refSourceId ResearchSourceGrant @relation("ResearchOmopBuild_sourceId", fields: [sourceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refOwnerId User @relation("ResearchOmopBuild_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refReleaseId ResearchRelease? @relation("ResearchOmopBuild_releaseId", fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([datasetId, status])
+  @@map("research_omop_builds")
+}
+
+model ResearchResponseSnapshot {
+  relatedResearchOutputRequest_snapshotId ResearchOutputRequest[] @relation("ResearchOutputRequest_snapshotId")
+  id String @id @default(uuid()) @db.Uuid
+  formId String @map("form_id") @db.Uuid
+  studyId String @map("study_id") @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  formVersion Int @map("form_version")
+  responseFingerprint String @map("response_fingerprint") @db.Char(64)
+  specHash String @map("spec_hash") @db.Char(64)
+  bins Json @default("{}")
+  cells Json @default("[]")
+  suppressedFields Json @map("suppressed_fields") @default("[]")
+  responseCount Int @map("response_count")
+  minimumCellSize Int @map("minimum_cell_size")
+  ciphertext String @db.Text
+  contentHash String @map("content_hash") @db.Char(64)
+  status String @default("pending") @db.VarChar(20)
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewNote String? @map("review_note") @db.VarChar(500)
+  refFormId ResearchForm @relation("ResearchResponseSnapshot_formId", fields: [formId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refStudyId ResearchStudy @relation("ResearchResponseSnapshot_studyId", fields: [studyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refOwnerId User @relation("ResearchResponseSnapshot_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([formId, status])
+  @@map("research_response_snapshots")
+}
+
+model ResearchOutputRequest {
+  id String @id @default(uuid()) @db.Uuid
+  studyId String @map("study_id") @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  kind String @db.VarChar(30)
+  snapshotId String? @map("snapshot_id") @db.Uuid
+  buildId String? @map("build_id") @db.Uuid
+  format String @db.VarChar(20)
+  status String @default("pending") @db.VarChar(20)
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewNote String? @map("review_note") @db.VarChar(500)
+  expiresAt DateTime @map("expires_at")
+  refStudyId ResearchStudy @relation("ResearchOutputRequest_studyId", fields: [studyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refOwnerId User @relation("ResearchOutputRequest_ownerId", fields: [ownerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refSnapshotId ResearchResponseSnapshot? @relation("ResearchOutputRequest_snapshotId", fields: [snapshotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refBuildId ResearchOmopBuild? @relation("ResearchOutputRequest_buildId", fields: [buildId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([ownerId, studyId])
+  @@index([status])
+  @@map("research_output_requests")
 }

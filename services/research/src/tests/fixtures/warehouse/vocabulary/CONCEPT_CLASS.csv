@@ -1,0 +1,14 @@
+concept_class_id	concept_class_name	concept_class_concept_id
+Undefined	Synthetic Undefined	0
+Gender	Synthetic Gender	0
+CDM	Synthetic CDM	0
+Clinical Finding	Synthetic Clinical Finding	0
+Visit	Synthetic Visit	0
+Clinical Drug	Synthetic Clinical Drug	0
+Ingredient	Synthetic Ingredient	0
+Lab Test	Synthetic Lab Test	0
+Unit	Synthetic Unit	0
+Procedure	Synthetic Procedure	0
+Observation	Synthetic Observation	0
+Device	Synthetic Device	0
+Specimen	Synthetic Specimen	0
