@@ -58,10 +58,15 @@ export function assertLocalTestIdentity(target: LocalTestTarget, row: LocalTestI
 }
 
 export async function verifyLocalTestIdentity(prisma: PrismaClient, target: LocalTestTarget): Promise<void> {
-  const [row] = await prisma.$queryRaw<LocalTestIdentity[]>`
+  let rows: LocalTestIdentity[];
+  try {
+    rows = await prisma.$queryRaw<LocalTestIdentity[]>`
     SELECT current_database()::text AS database_name, current_schema()::text AS schema_name,
            (SELECT pg_get_userbyid(nspowner)::text FROM pg_namespace WHERE nspname = current_schema()) AS schema_owner,
            inet_server_addr()::text AS server_address, inet_server_port() AS server_port,
            current_user::text AS login_role, pg_is_in_recovery() AS in_recovery`;
-  assertLocalTestIdentity(target, row);
+  } catch {
+    throw new Error('Could not verify isolated test database identity; no tests were run.');
+  }
+  assertLocalTestIdentity(target, rows[0]);
 }

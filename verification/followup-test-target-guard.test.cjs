@@ -18,8 +18,15 @@ const compiled = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
 });
 assert.equal((compiled.diagnostics || []).filter(d => d.category === ts.DiagnosticCategory.Error).length, 0);
 const source = compiled.outputText;
-const goodEnv = { NODE_ENV: 'test', DATABASE_URL: 'postgresql://localhost:55439/ahealth_test' };
-const goodIdentity = { database_name: 'ahealth_test', server_address: '127.0.0.1', server_port: 55439 };
+const goodEnv = { NODE_ENV: 'test', DATABASE_URL: 'postgresql://synthetic:fixture@localhost:55439/ahealth_test?schema=public' };
+const goodIdentity = { database_name: 'ahealth_test', server_address: '127.0.0.1', server_port: 55439,
+  schema_name: 'public', schema_owner: 'synthetic', login_role: 'synthetic', in_recovery: false };
+const guardFile = path.join(root, 'packages/database/src/test-safety.ts');
+const guardSource = ts.transpileModule(fs.readFileSync(guardFile, 'utf8'), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS }, fileName: guardFile,
+}).outputText;
+const guardModule = { exports: {} };
+vm.runInNewContext(guardSource, { module: guardModule, exports: guardModule.exports, URL }, { filename: guardFile });
 function bootstrap(env, identity = goodIdentity, probeError = false) {
   const beforeHooks = [], afterHooks = [], suites = [];
   let queries = 0;
@@ -36,6 +43,7 @@ function bootstrap(env, identity = goodIdentity, probeError = false) {
     if (specifier === 'node:test') return testStub;
     if (specifier === 'node:assert/strict' || specifier === 'node:crypto') return require(specifier);
     if (specifier === '@a-health/database') return { prisma };
+    if (specifier === '@a-health/database/test-safety') return guardModule.exports;
     if (specifier.startsWith('../')) return {};
     throw new Error(`Unexpected dependency: ${specifier}`);
   };
@@ -74,14 +82,14 @@ for (const [name, identity] of [
   test(`read-only identity gate rejects ${name}`, async () => {
     const run = bootstrap(goodEnv, identity);
     assert.equal(run.error, null); assert.equal(run.beforeHooks.length, 1);
-    await assert.rejects(run.beforeHooks[0], /not the approved isolated ahealth_test/);
+    await assert.rejects(run.beforeHooks[0], /did not match the approved local target/);
     assert.equal(run.queryCount(), 1);
   });
 }
 test('connection-probe failure is sanitized', async () => {
   const run = bootstrap(goodEnv, goodIdentity, true);
   await assert.rejects(run.beforeHooks[0], e => {
-    assert.equal(e.message, 'Could not verify Follow-up test database identity; no tests were run.');
+    assert.equal(e.message, 'Could not verify isolated test database identity; no tests were run.');
     assert.ok(!e.message.includes('private connection'));
     return true;
   });
@@ -92,6 +100,6 @@ test('matching local ahealth_test identity passes the guard (not DB acceptance)'
   await run.beforeHooks[0](); assert.equal(run.queryCount(), 1);
 });
 test('IPv6 loopback is accepted only with matching database and explicit test port', async () => {
-  const run = bootstrap({ ...goodEnv, DATABASE_URL: 'postgresql://[::1]:55439/ahealth_test' }, { ...goodIdentity, server_address: '::1' });
+  const run = bootstrap({ ...goodEnv, DATABASE_URL: 'postgresql://synthetic:fixture@[::1]:55439/ahealth_test?schema=public' }, { ...goodIdentity, server_address: '::1' });
   assert.equal(run.error, null); await run.beforeHooks[0]();
 });
