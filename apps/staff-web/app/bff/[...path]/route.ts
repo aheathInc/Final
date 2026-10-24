@@ -11,6 +11,12 @@ export const dynamic = 'force-dynamic';
  * instead of reaching the backend.
  */
 async function forward(req: NextRequest, path: string[]) {
+  if (!['GET', 'HEAD'].includes(req.method) && req.headers.get('origin') !== req.nextUrl.origin) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'A same-origin request is required.' } },
+      { status: 403, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
   const apiPath = '/' + path.join('/');
   const base = resolveServiceUrl(apiPath);
   if (!base) {
@@ -45,7 +51,11 @@ async function forward(req: NextRequest, path: string[]) {
     const text = await upstream.text();
     const response = new NextResponse(text || null, {
       status: upstream.status,
-      headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
+      headers: {
+        'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      },
     });
     if (auth.cookie) response.cookies.set(auth.cookie.name, auth.cookie.value, auth.cookie.options);
     return response;

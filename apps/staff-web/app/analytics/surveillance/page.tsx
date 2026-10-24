@@ -1,12 +1,9 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { PageHeader, PageShell } from '@/components/ui';
+import { requireRole } from '@/lib/roles';
 import { SurveillanceView } from '@/components/SurveillanceView';
 
 export default async function SurveillancePage() {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect('/login');
+  await requireRole(['platform_admin']);
 
   return (
     <PageShell>

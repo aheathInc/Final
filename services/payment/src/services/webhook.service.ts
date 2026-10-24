@@ -1,95 +1,37 @@
 import { prisma } from '@a-health/database';
-import { appendAudit, unauthenticated } from '@a-health/http';
+import { unauthenticated,unprocessable,AppError } from '@a-health/http';
 import { verifyHmacSignature } from './webhookAuth.js';
-import { env } from '../config/env.js';
-
-const SECRETS: Record<string, string> = {
-  mpesa: env.WEBHOOK_SECRET_MPESA,
-  tigo_pesa: env.WEBHOOK_SECRET_TIGO_PESA,
-  airtel_money: env.WEBHOOK_SECRET_AIRTEL_MONEY,
-};
-
-/**
- * Resolves a settlement callback into a Payment, or records the failure.
- *
- * Idempotent on the PROVIDER's transaction reference, not ours: providers
- * retry webhooks aggressively, and a replay must resolve to exactly the same
- * outcome without crediting a payment twice. The conditional update below
- * (`status: 'processing'` in the where clause) is what makes a second
- * delivery of the same callback a safe no-op rather than a double-settlement.
- */
-export async function handleWebhook(
-  provider: string,
-  rawBody: string,
-  signatureHeader: string | undefined,
-  payload: { provider_reference?: string; status?: string; failure_reason?: string },
-): Promise<{ handled: boolean }> {
-  const secret = SECRETS[provider];
-  if (!verifyHmacSignature(rawBody, signatureHeader, secret ?? '')) {
-    throw unauthenticated('TOKEN_INVALID', 'Webhook signature is not valid');
-  }
-
-  const providerReference = payload.provider_reference;
-  if (!providerReference) return { handled: false };
-
-  const intent = await prisma.paymentIntent.findUnique({ where: { providerReference } });
-  if (!intent) return { handled: false };
-
-  // Already resolved — most likely a retried delivery of a callback we
-  // already processed. Acknowledge without touching anything.
-  if (intent.status !== 'processing') return { handled: true };
-
-  if (payload.status === 'succeeded') {
-    const result = await prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.create({
-        data: {
-          paymentIntentId: intent.id,
-          amount: intent.amount,
-          currency: intent.currency,
-          method: intent.method,
-          provider: intent.provider,
-          providerReference: intent.providerReference,
-          purpose: intent.purpose,
-          consultationId: intent.consultationId,
-          payerUserId: intent.payerUserId,
-          status: 'succeeded',
-          settledAt: new Date(),
-        },
-      });
-
-      // Conditional on still being 'processing' — the guard against a
-      // concurrent duplicate delivery landing here at the same moment.
-      const updated = await tx.paymentIntent.updateMany({
-        where: { id: intent.id, status: 'processing' },
-        data: { status: 'succeeded', paymentId: payment.id, version: { increment: 1 } },
-      });
-      if (updated.count !== 1) {
-        // Lost the race — someone else's callback settled it first. Undo
-        // this Payment rather than leaving two for one intent.
-        await tx.payment.delete({ where: { id: payment.id } });
-        return null;
-      }
-      return payment;
-    });
-
-    if (result) {
-      await appendAudit({
-        action: 'payment.webhook_settled',
-        entityType: 'payment_intents', entityId: intent.id,
-        metadata: { provider, providerReference },
-      });
-    }
-    return { handled: true };
-  }
-
-  await prisma.paymentIntent.updateMany({
-    where: { id: intent.id, status: 'processing' },
-    data: { status: 'failed', version: { increment: 1 } },
-  });
-  await appendAudit({
-    action: 'payment.webhook_failed',
-    entityType: 'payment_intents', entityId: intent.id,
-    metadata: { provider, providerReference, reason: payload.failure_reason ?? null },
-  });
-  return { handled: true };
+import { env,paymentSettings } from '../config/env.js';
+import { createFlutterwaveAdapter } from '../adapters/provider.js';
+import { verifyProviderSignature,type Carrier } from './policy.js';
+import { settleVerifiedCharge } from './settlement.service.js';
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** Existing callback contract is retained ONLY for explicit console simulation. */
+export async function handleWebhook(provider:string,rawBody:string,signature:string|undefined,payload:Record<string,unknown>){
+ if(env.NODE_ENV==='production'||paymentSettings.mode!=='console')throw unauthenticated('TOKEN_INVALID','Simulation callback is disabled.');
+ const secrets:Record<string,string>={mpesa:env.WEBHOOK_SECRET_MPESA,tigo_pesa:env.WEBHOOK_SECRET_TIGO_PESA,airtel_money:env.WEBHOOK_SECRET_AIRTEL_MONEY};
+ if(!verifyHmacSignature(rawBody,signature,secrets[provider]??''))throw unauthenticated('TOKEN_INVALID','Webhook signature is not valid');
+ const id=String(payload.provider_reference??'');if(!uuid.test(id))throw unprocessable('Invalid payment reference.');
+ const i=await prisma.paymentIntent.findUnique({where:{id}});
+ if(!i||i.provider!==provider||i.processor!=='console'||i.environment!=='simulated')throw unauthenticated('TOKEN_INVALID','Provider scope mismatch.');
+ if(!['succeeded','failed','pending'].includes(String(payload.status))||!payload.transaction_id||payload.amount===undefined||payload.currency===undefined)throw unprocessable('Incomplete simulator callback.');
+ return settleVerifiedCharge({reference:id,transactionId:String(payload.transaction_id),amount:payload.amount as number|string,currency:String(payload.currency),status:payload.status as 'succeeded'|'failed'|'pending'},'console','simulated');
+}
+export async function handleFlutterwaveWebhook(rawBody:string,signature:string|undefined,payload:Record<string,unknown>){
+ if(paymentSettings.mode!=='flutterwave'||!verifyProviderSignature(rawBody,signature,env.FLW_WEBHOOK_SECRET,paymentSettings.scheme))throw unauthenticated('TOKEN_INVALID','Webhook signature is not valid');
+ const data=payload.data as Record<string,unknown>|undefined;
+ if(payload.event!=='charge.completed')return {handled:false};
+ if(!data||!/^\d{1,20}$/.test(String(data.id)))throw unprocessable('Invalid provider transaction ID.');
+ // Never trust callback amounts/status. Fetch authoritative provider record server-side.
+ const adapter=createFlutterwaveAdapter('mpesa',env.FLW_SECRET_KEY,env.FLW_ENVIRONMENT);
+ let charge;try{charge=await adapter.verify!(String(data.id));}catch{throw new AppError('SERVICE_UNAVAILABLE',503,'Payment verification unavailable. Retry callback later.');}
+ if(!uuid.test(charge.reference))return {handled:false};
+ return settleVerifiedCharge(charge,'flutterwave',env.FLW_ENVIRONMENT);
+}
+export async function reconcilePayment(intentId:string){
+ const i=await prisma.paymentIntent.findUnique({where:{id:intentId}});
+ if(!i||i.processor!=='flutterwave'||i.environment!==env.FLW_ENVIRONMENT||!['pending','processing'].includes(i.status)||paymentSettings.mode!=='flutterwave')return;
+ const adapter=createFlutterwaveAdapter(i.provider as Carrier,env.FLW_SECRET_KEY,env.FLW_ENVIRONMENT);
+ const charge=i.providerTransactionId?await adapter.verify!(i.providerTransactionId):await adapter.verifyReference!(i.id);
+ return settleVerifiedCharge(charge,'flutterwave',env.FLW_ENVIRONMENT);
 }

@@ -1,3 +1,4 @@
+import { BillsWorkspace } from '@/components/BillsWorkspace';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -18,9 +19,10 @@ export default async function PaymentsPage() {
     <PageShell>
       <PageHeader
         title="Payments"
-        lede="Settled local/mock payments. Partial refunds are limited by the remaining refundable balance."
+        lede="Server-issued bills and settlement records. Sandbox and simulated records are not live money transfers."
       />
 
+      <BillsWorkspace />
       {items.length === 0 ? (
         <Empty>No settled payments are available.</Empty>
       ) : (
@@ -37,6 +39,7 @@ export default async function PaymentsPage() {
                     <Badge tone={p.status === 'succeeded' ? 'good' : p.status.includes('refund') ? 'attention' : 'neutral'}>{p.status.replace(/_/g, ' ')}</Badge>
                   </div>
                   <p className="mt-1 text-sm text-ink-soft">
+                    Environment: {p.environment ?? 'legacy / unverified'} ·
                     {p.purpose.replace(/_/g, ' ')} · {p.method.replace(/_/g, ' ')}
                     {p.provider ? ` · ${p.provider}` : ''} · {dateTime(p.settled_at)}
                   </p>
@@ -56,7 +59,7 @@ export default async function PaymentsPage() {
                       {remaining.toLocaleString()}
                     </p>
                   )}
-                  {remaining > 0 && p.status !== 'refunded' && (
+                  {p.refund_available === true && remaining > 0 && p.status !== 'refunded' && (
                     <RefundPayment paymentId={p.id} maxAmount={remaining} currency={p.currency} />
                   )}
                 </Card>

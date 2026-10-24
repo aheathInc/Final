@@ -26,6 +26,7 @@ import 'feedback_screen.dart';
 import 'front_desk_screen.dart';
 import 'health_history_screen.dart';
 import 'insurance_payments_screen.dart';
+import 'payment_bills_screen.dart';
 import 'login_screen.dart';
 import 'new_consultation_screen.dart';
 import 'patient_care_medicines_screen.dart';
@@ -497,6 +498,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const FeedbackScreen()),
         _link(Icons.account_balance_wallet_outlined, 'Bima na malipo',
             const InsurancePaymentsScreen()),
+        _link(Icons.receipt_long_outlined, 'Bili zangu',
+            const PaymentBillsScreen()),
         _link(Icons.person_outline_rounded, S.profile, const ProfileScreen()),
       ]);
 
@@ -563,6 +566,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const FeedbackScreen()),
         _link(Icons.account_balance_wallet_outlined, 'Bima na malipo',
             const InsurancePaymentsScreen()),
+        _link(Icons.receipt_long_outlined, 'Bili zangu',
+            const PaymentBillsScreen()),
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: _signOut,

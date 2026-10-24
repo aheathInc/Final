@@ -20,13 +20,13 @@ export function navigationFor(role?: string): NavigationGroup[] {
     item('Emergency','/admin/emergency','activity'), item('Devices','/admin/devices','radio'),
     item('Clinician verification','/admin/verification','shield'), item('Facilities','/admin/facilities','building'),
     item('Incidents','/admin/incidents','alert'), item('Payments','/admin/payments','credit'),
-    item('Interoperability','/admin/interoperability','network'), item('Audit ledger','/admin/audit-ledger','history'),
+    item('Interoperability','/admin/interoperability','network'), item('Audit ledger','/admin/audit-ledger','history'),item('Research governance','/admin/research','database'),
     item('Triage rules','/admin/triage','activity'), item('Settings','/admin/settings','settings')];
   const analytics=[item('Service overview','/analytics/dashboard','chart'),item('Surveillance','/analytics/surveillance','activity'),item('Research','/analytics/research','database')];
   if (role==='platform_admin') return [{label:'Operations',items:admin},{label:'Insights',items:analytics}];
-  if (role==='researcher') return [{label:'Insights',items:analytics}];
+  if (role==='researcher') return [{label:'Research workspace',items:[item('Research portal','/analytics/research','database')]}];
   if (role==='dispatcher') return [{label:'Operations',items:admin.filter(x=>['/admin/emergency','/admin/devices'].includes(x.href))}];
-  if (role==='facility_admin') return [{label:'Operations',items:admin.filter(x=>['/admin/facilities','/admin/incidents','/admin/settings'].includes(x.href))}];
+  if (role==='facility_admin') return [{label:'Operations',items:admin.filter(x=>['/admin/facilities','/admin/incidents','/admin/settings','/admin/research'].includes(x.href))}];
   if (role==='pharmacist') return [{label:'Pharmacy',items:[item('Prescription handoff','/pharmacy','pill')]}];
   return [];
 }

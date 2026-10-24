@@ -11,5 +11,7 @@ const { requireAuth } = createAuthGuards(tokens);
 
 export const surveillanceRouter = Router();
 
+surveillanceRouter.get('/surveillance/admin-analytics', requireAuth, c.getAdminAnalytics);
+
 surveillanceRouter.get('/surveillance/conditions', requireAuth, c.getConditions);
 surveillanceRouter.get('/surveillance/trends', requireAuth, c.getTrends);

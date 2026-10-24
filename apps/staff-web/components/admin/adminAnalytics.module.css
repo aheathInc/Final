@@ -1,0 +1,39 @@
+.section{display:grid;gap:1.25rem;margin-top:1.5rem;color:var(--ink,#193a42)}
+.heading{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.heading h2{font-size:clamp(1.4rem,2.4vw,2rem);line-height:1.15;font-weight:750;letter-spacing:-.035em;margin:.25rem 0 .4rem}
+.heading p{color:#60777d;font-size:.9rem;max-width:62ch}
+.eyebrow{text-transform:uppercase;font-size:.68rem;letter-spacing:.17em;font-weight:800;color:#117a76}
+.freshness{font-size:.75rem;color:#59777c;display:flex;align-items:center;gap:.5rem;border:1px solid #d4e5e2;background:#f7fcfa;padding:.6rem .85rem;border-radius:99px}
+.liveDot{height:8px;width:8px;border-radius:50%;background:#19a38e;box-shadow:0 0 0 4px #d9f4ec}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+.metric{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:.4rem;padding:1.25rem;border-radius:1.1rem;border:1px solid #dceae8;background:linear-gradient(145deg,#ffffff 10%,#eaf8f4 100%);box-shadow:0 9px 25px rgba(16,76,74,.05)}
+.metric:before{content:'';position:absolute;right:-22px;top:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,#bce8db,transparent 70%);opacity:.6}
+.metric span{color:#567478;font-size:.8rem;font-weight:650}
+.metric strong{font-size:clamp(1.4rem,2.4vw,2.2rem);letter-spacing:-.035em;line-height:1.1;color:#105b60;font-variant-numeric:tabular-nums}
+.metric small{font-size:.71rem;color:#657b7d}
+.twoColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.panel{padding:1.3rem 1.4rem;border:1px solid #dce8e7;border-radius:1.1rem;background:linear-gradient(155deg,#fff 75%,#f5fbf8);box-shadow:0 12px 30px rgba(22,69,74,.04);min-width:0}
+.panelHeader{display:flex;justify-content:space-between;align-items:start;gap:.75rem;margin-bottom:1.15rem}
+.panelHeader h2{font-size:1.02rem;letter-spacing:-.015em;font-weight:750;color:#21434a}
+.panelHeader p{color:#74878b;font-size:.76rem;margin-top:.3rem;line-height:1.5}
+.panelBadge{font-size:.65rem;text-transform:uppercase;letter-spacing:.09em;font-weight:800;white-space:nowrap;color:#13796d;background:#e3f6ef;border:1px solid #c7e9dc;padding:.38rem .65rem;border-radius:99px}
+.bars{display:grid;gap:1rem}
+.barRow{display:grid;gap:.4rem}
+.barLabel{display:flex;justify-content:space-between;gap:1rem;font-size:.8rem;color:#38565b}
+.barLabel span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barLabel strong{color:#195f61;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.track{height:8px;background:#e9f0ef;border-radius:99px;overflow:hidden}
+.fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#107b7a,#2cc4a2);transition:width .35s ease}
+.suppressed{height:100%;background:#d9e3e1}
+.empty{color:#72868a;font-size:.86rem;background:#f4f8f7;border:1px dashed #dce7e4;padding:1.5rem;border-radius:.75rem;text-align:center}
+.trend{display:flex;align-items:end;justify-content:space-around;gap:.75rem;min-height:180px}
+.trendItem{height:165px;flex:1;max-width:95px;display:flex;flex-direction:column;align-items:center;gap:.45rem;justify-content:flex-end}
+.trendValue{font-size:.75rem;font-weight:700;color:#28666a;font-variant-numeric:tabular-nums}
+.trendTrack{height:120px;width:100%;display:flex;align-items:end;background:linear-gradient(180deg,#f7fbf9,#edf4f1);border-radius:.5rem .5rem 0 0;overflow:hidden}
+.trendTrack div{width:100%;background:linear-gradient(180deg,#4ad3ae,#117b79);border-radius:.5rem .5rem 0 0;min-height:0;transition:height .3s ease}
+.trendMonth{font-size:.72rem;color:#627c80}
+.privacy{background:#f3f8f6;border:1px solid #d9e9e4;border-radius:.85rem;padding:1rem 1.25rem;color:#4f6a6e;font-size:.8rem;line-height:1.6}
+.privacy strong{display:block;color:#215d60;margin-bottom:.2rem}
+@media(max-width:850px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.twoColumns{grid-template-columns:1fr}}
+@media(max-width:520px){.metrics{gap:.6rem}.metric{padding:1rem}.panel{padding:1rem}.freshness{font-size:.67rem}}
+@media(prefers-reduced-motion:reduce){.fill,.trendTrack div{transition:none}}

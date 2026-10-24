@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'payment_bills_screen.dart';
 
 import '../core/api.dart';
 import '../core/consent_feedback_finance.dart';
@@ -87,6 +88,8 @@ class _InsurancePaymentsScreenState extends State<InsurancePaymentsScreen> {
                 Notice(_error!)
               ],
               const SizedBox(height: 20),
+              FilledButton.icon(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PaymentBillsScreen())), icon: const Icon(Icons.receipt_long_outlined), label: const Text('Fungua bili na lipia huduma')),
+              const SizedBox(height: 16),
               const SectionTitle('Bima yangu'),
               if (_loading && _coverage == null)
                 const Center(child: CircularProgressIndicator())
@@ -117,7 +120,7 @@ class _InsurancePaymentsScreenState extends State<InsurancePaymentsScreen> {
               ..._payments.map(_paymentCard),
               const SizedBox(height: 8),
               const Text(
-                'Ombi jipya la malipo halijawezeshwa: API ya sasa haina quote ya backend inayotoa kiasi kilichoidhinishwa kwa huduma kabla ya kuanzisha intent.',
+                'Tumia Bili Zangu kuomba malipo ya bili iliyotolewa na mtoa huduma. Kiasi huamuliwa na staff mwenye ruhusa.',
               ),
               const Text(
                 'Mtoa huduma wa maendeleo anaweza kuwa console/mock; status ya processing au succeeded si uthibitisho wa uhamisho wa fedha kwa nje.',

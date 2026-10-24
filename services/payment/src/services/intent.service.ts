@@ -1,232 +1,59 @@
-import { prisma } from '@a-health/database';
-import { appendAudit, conflict, cursorArgs, forbidden, notFound, toCursorPage, unprocessable } from '@a-health/http';
+import { prisma, type PaymentIntent } from '@a-health/database';
+import { appendAudit,conflict,cursorArgs,forbidden,notFound,toCursorPage,unprocessable } from '@a-health/http';
 import { env } from '../config/env.js';
 import type { ProviderAdapter } from '../adapters/provider.js';
-
-export interface Caller { sub?: string; role?: string }
-export interface Meta { ip?: string | null; requestId?: string | null }
-
-function serialiseIntent(i: {
-  id: string; amount: unknown; currency: string; method: string; provider: string | null;
-  purpose: string; consultationId: string | null; dispensingId: string | null; insuranceClaimId: string | null;
-  status: string; providerReference: string | null; clientAction: unknown; paymentId: string | null;
-  createdAt: Date; expiresAt: Date | null; version: number;
-}) {
-  return {
-    id: i.id,
-    amount: Number(i.amount),
-    currency: i.currency,
-    method: i.method,
-    provider: i.provider,
-    purpose: i.purpose,
-    consultation_id: i.consultationId,
-    dispensing_id: i.dispensingId,
-    insurance_claim_id: i.insuranceClaimId,
-    status: i.status,
-    provider_reference: i.providerReference,
-    client_action: i.clientAction ?? null,
-    payment_id: i.paymentId,
-    created_at: i.createdAt.toISOString(),
-    expires_at: i.expiresAt?.toISOString() ?? null,
-    version: i.version,
-  };
+import type { Carrier } from './policy.js';
+export interface Caller{sub?:string;role?:string}
+export interface Meta{ip?:string|null;requestId?:string|null}
+export function serialiseIntent(i:PaymentIntent){return {id:i.id,bill_id:i.billId,amount:Number(i.amount),currency:i.currency,method:i.method,provider:i.provider,purpose:i.purpose,
+ consultation_id:i.consultationId,dispensing_id:i.dispensingId,insurance_claim_id:i.insuranceClaimId,status:i.status,provider_reference:i.providerReference,
+ client_action:i.clientAction??null,payment_id:i.paymentId,processor:i.processor,environment:i.environment,created_at:i.createdAt.toISOString(),expires_at:i.expiresAt?.toISOString()??null,version:i.version};}
+export async function createPaymentIntent(caller:Caller,input:{bill_id?:string;method?:string;provider?:Carrier;payer_phone?:string;payer_email?:string;amount?:number;currency?:string;purpose?:string;[key:string]:unknown},adapters:Record<string,ProviderAdapter>){
+ if(!caller.sub||caller.role!=='patient')throw forbidden('ROLE_NOT_PERMITTED','Patients may pay their own server-issued bills.');
+ if(!input.bill_id||input.amount!==undefined||input.currency!==undefined||input.purpose!==undefined)throw unprocessable('A server-issued bill_id is required. The client cannot set the price.');
+ if(input.method!=='mobile_money'||!input.provider)throw conflict('PAYMENT_METHOD_UNAVAILABLE','Only configured mobile-money checkout is available.');
+ if(!input.payer_phone||!/^\+255\d{9}$/.test(input.payer_phone))throw unprocessable('A valid Tanzania mobile-money number is required.','payer_phone');
+ const adapter=adapters[input.provider];if(!adapter)throw conflict('PAYMENT_METHOD_UNAVAILABLE','Selected provider is unavailable.');
+ if(adapter.processor==='flutterwave'&&(!input.payer_email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.payer_email)))throw unprocessable('The selected provider requires a payer email.','payer_email');
+ const reserved=await prisma.$transaction(async tx=>{
+   await tx.$queryRaw`SELECT id FROM care_bills WHERE id=${input.bill_id}::uuid FOR UPDATE`;
+   const bill=await tx.careBill.findUnique({where:{id:input.bill_id}});
+   if(!bill||bill.payerUserId!==caller.sub)throw notFound('Bill not found.');
+   if(bill.status!=='due')throw conflict('PAYMENT_ALREADY_SETTLED','This bill is not payable.');
+   if(bill.expiresAt<=new Date())throw conflict('STATE_TRANSITION_INVALID','Bill has expired. Contact the service desk.');
+   const unresolved=await tx.paymentIntent.findFirst({where:{billId:bill.id,status:{in:['pending','requires_action','processing']}}});
+   if(unresolved) return {intent:unresolved,existing:true};
+   const intent=await tx.paymentIntent.create({data:{billId:bill.id,amount:bill.amount,currency:bill.currency,method:'mobile_money',purpose:bill.purpose,
+     consultationId:bill.consultationId,payerUserId:caller.sub,payerPhone:input.payer_phone,provider:adapter.provider,processor:adapter.processor,environment:adapter.environment,
+     status:'processing',expiresAt:new Date(Date.now()+env.INTENT_TTL_MINUTES*60000),clientAction:{type:'pending',message:'Awaiting provider acknowledgement.'}}});
+   await tx.paymentIntent.update({where:{id:intent.id},data:{providerReference:intent.id}});
+   await appendAudit({actorUserId:caller.sub,action:'payment.intent_requested',entityType:'payment_intents',entityId:intent.id,metadata:{billId:bill.id,processor:adapter.processor,environment:adapter.environment}},tx);
+   return {intent:{...intent,providerReference:intent.id},existing:false};
+ });
+ if(reserved.existing)return serialiseIntent(reserved.intent);
+ try{
+   const result=await adapter.initiate({amount:Number(reserved.intent.amount),currency:reserved.intent.currency,payerPhone:input.payer_phone,reference:reserved.intent.id,email:input.payer_email});
+   // Callback can arrive before the initiation response. Do not overwrite settlement.
+   await prisma.paymentIntent.updateMany({where:{id:reserved.intent.id,status:'processing'},data:{providerTransactionId:result.transactionId??null,clientAction:result.clientAction as never,version:{increment:1}}});
+ }catch{
+   // A timeout can occur AFTER the wallet was charged: never free the bill for a duplicate charge.
+   await prisma.paymentIntent.updateMany({where:{id:reserved.intent.id,status:'processing'},data:{clientAction:{type:'reconciling',message:'Provider response is uncertain. Do not pay again; we are checking the transaction.'},version:{increment:1}}});
+ }
+ return serialiseIntent(await prisma.paymentIntent.findUniqueOrThrow({where:{id:reserved.intent.id}}));
 }
-
-/**
- * Creates the intent. Cash and card-on-file settle synchronously here and
- * return `succeeded` immediately, with a Payment created in the same
- * transaction. Mobile money almost never does — it comes back `processing`
- * and settles later, when the provider calls the webhook.
- */
-export async function createPaymentIntent(
-  caller: Caller,
-  input: {
-    amount: number; currency: string; method: string; purpose: string;
-    consultation_id?: string; dispensing_id?: string; insurance_claim_id?: string;
-    payer_phone?: string; return_url?: string;
-  },
-  adapters: Record<string, ProviderAdapter>,
-) {
-  if (input.method === 'mobile_money' && !input.payer_phone) {
-    throw unprocessable('payer_phone is required for mobile money', 'payer_phone');
-  }
-
-  if (input.method === 'cash' || input.method === 'card') {
-    // Synchronous settlement path: create the intent first (its own real id),
-    // then a Payment that points at it. No placeholder ids anywhere.
-    const result = await prisma.$transaction(async (tx) => {
-      const intent = await tx.paymentIntent.create({
-        data: {
-          amount: input.amount,
-          currency: input.currency,
-          method: input.method as never,
-          purpose: input.purpose as never,
-          consultationId: input.consultation_id ?? null,
-          dispensingId: input.dispensing_id ?? null,
-          insuranceClaimId: input.insurance_claim_id ?? null,
-          payerUserId: caller.sub ?? null,
-          payerPhone: input.payer_phone ?? null,
-          status: 'succeeded',
-        },
-      });
-      const payment = await tx.payment.create({
-        data: {
-          paymentIntentId: intent.id,
-          amount: input.amount,
-          currency: input.currency,
-          method: input.method as never,
-          purpose: input.purpose as never,
-          consultationId: input.consultation_id ?? null,
-          payerUserId: caller.sub ?? null,
-          status: 'succeeded',
-          settledAt: new Date(),
-        },
-      });
-      const finalIntent = await tx.paymentIntent.update({
-        where: { id: intent.id },
-        data: { paymentId: payment.id, version: { increment: 1 } },
-      });
-      return finalIntent;
-    });
-
-    await appendAudit({
-      actorUserId: caller.sub ?? null, action: 'payment.settled_synchronously',
-      entityType: 'payment_intents', entityId: result.id,
-      metadata: { method: input.method, amount: input.amount },
-    });
-
-    return serialiseIntent(result);
-  }
-
-  // Mobile money: create pending, then ask the provider to push a prompt.
-  const intent = await prisma.paymentIntent.create({
-    data: {
-      amount: input.amount,
-      currency: input.currency,
-      method: 'mobile_money',
-      purpose: input.purpose as never,
-      consultationId: input.consultation_id ?? null,
-      dispensingId: input.dispensing_id ?? null,
-      insuranceClaimId: input.insurance_claim_id ?? null,
-      payerUserId: caller.sub ?? null,
-      payerPhone: input.payer_phone ?? null,
-      status: 'pending',
-      expiresAt: new Date(Date.now() + env.INTENT_TTL_MINUTES * 60_000),
-    },
-  });
-
-  // Provider selection is deliberately simple for now — the first configured
-  // mobile money adapter. A real rollout would route by payer_phone prefix or
-  // let the caller choose; that policy lives here, not in the adapters.
-  const provider = Object.values(adapters)[0];
-  if (!provider) {
-    await prisma.paymentIntent.update({ where: { id: intent.id }, data: { status: 'failed' } });
-    throw conflict('PAYMENT_METHOD_UNAVAILABLE', 'No mobile money provider is configured');
-  }
-
-  const result = await provider.initiate({
-    amount: input.amount, currency: input.currency,
-    payerPhone: input.payer_phone!, reference: intent.id,
-  });
-
-  const updated = await prisma.paymentIntent.update({
-    where: { id: intent.id },
-    data: {
-      provider: provider.provider,
-      status: 'processing',
-      providerReference: result.providerReference,
-      clientAction: result.clientAction as never,
-      version: { increment: 1 },
-    },
-  });
-
-  await appendAudit({
-    actorUserId: caller.sub ?? null, action: 'payment.intent_initiated',
-    entityType: 'payment_intents', entityId: intent.id,
-    metadata: { provider: provider.provider, amount: input.amount },
-  });
-
-  return serialiseIntent(updated);
+export async function getPaymentIntent(id:string,caller:Caller){
+ const i=await prisma.paymentIntent.findUnique({where:{id}});if(!i)throw notFound('Payment intent not found');
+ if(!caller.sub||(caller.role!=='platform_admin'&&i.payerUserId!==caller.sub))throw forbidden('NOT_RESOURCE_OWNER','This payment intent is not yours');return serialiseIntent(i);
 }
-
-export async function getPaymentIntent(intentId: string, caller: Caller) {
-  const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId } });
-  if (!intent) throw notFound('Payment intent not found');
-  if (caller.role !== 'platform_admin' && intent.payerUserId !== caller.sub) {
-    throw forbidden('NOT_RESOURCE_OWNER', 'This payment intent is not yours');
-  }
-  return serialiseIntent(intent);
+export async function cancelPaymentIntent(id:string,caller:Caller,_meta:Meta){
+ const i=await prisma.paymentIntent.findUnique({where:{id}});if(!i)throw notFound('Payment intent not found');
+ if(!caller.sub||i.payerUserId!==caller.sub)throw forbidden('NOT_RESOURCE_OWNER','This payment intent is not yours');
+ // In-flight wallet requests cannot be cancelled locally: late success remains possible.
+ throw conflict('STATE_TRANSITION_INVALID','Reject the request in your wallet. A-Health will reconcile the provider result.');
 }
-
-export async function cancelPaymentIntent(intentId: string, caller: Caller, meta: Meta) {
-  const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId } });
-  if (!intent) throw notFound('Payment intent not found');
-  if (caller.role !== 'platform_admin' && intent.payerUserId !== caller.sub) {
-    throw forbidden('NOT_RESOURCE_OWNER', 'This payment intent is not yours');
-  }
-  // 'processing' is included deliberately: a mobile money intent moves
-  // straight there on creation (the provider push happens synchronously),
-  // and that is exactly the "waiting on the payer to confirm" window — the
-  // one moment cancellation is actually meaningful for mobile money.
-  if (intent.status !== 'pending' && intent.status !== 'requires_action' && intent.status !== 'processing') {
-    throw conflict('STATE_TRANSITION_INVALID', `Cannot cancel a payment intent in status "${intent.status}"`);
-  }
-
-  const updated = await prisma.paymentIntent.update({
-    where: { id: intentId },
-    data: { status: 'cancelled', version: { increment: 1 } },
-  });
-
-  await appendAudit({
-    actorUserId: caller.sub ?? null, action: 'payment.intent_cancelled',
-    entityType: 'payment_intents', entityId: intentId,
-    ipAddress: meta.ip, requestId: meta.requestId,
-  });
-
-  return serialiseIntent(updated);
-}
-
-export async function listPayments(
-  caller: Caller,
-  query: { consultation_id?: string; status?: string; cursor?: string; limit: number },
-) {
-  if (caller.role !== 'platform_admin' && !caller.sub) {
-    throw forbidden('ROLE_NOT_PERMITTED', 'A signed-in account is required to view payments');
-  }
-
-  const ownerScope = caller.role === 'platform_admin'
-    ? {}
-    : {
-        OR: [
-          { payerUserId: caller.sub! },
-          ...(caller.role === 'patient'
-            ? [{ consultation: { patient: { OR: [{ userId: caller.sub! }, { guardianUserId: caller.sub! }] } } }]
-            : []),
-        ],
-      };
-  const rows = await prisma.payment.findMany({
-    where: {
-      ...ownerScope,
-      ...(query.consultation_id ? { consultationId: query.consultation_id } : {}),
-      ...(query.status ? { status: query.status as never } : {}),
-    },
-    orderBy: { settledAt: 'desc' },
-    ...cursorArgs(query.cursor, query.limit),
-  });
-  return toCursorPage(rows, query.limit, (p) => ({
-    id: p.id,
-    payment_intent_id: p.paymentIntentId,
-    amount: Number(p.amount),
-    currency: p.currency,
-    method: p.method,
-    provider: p.provider,
-    provider_reference: p.providerReference,
-    purpose: p.purpose,
-    consultation_id: p.consultationId,
-    payer_user_id: p.payerUserId,
-    status: p.status,
-    refunded_amount: Number(p.refundedAmount),
-    settled_at: p.settledAt.toISOString(),
-    version: p.version,
-  }));
+export async function listPayments(caller:Caller,query:{consultation_id?:string;status?:string;cursor?:string;limit:number}){
+ if(!caller.sub||!['patient','platform_admin'].includes(caller.role??''))throw forbidden('ROLE_NOT_PERMITTED','Not permitted.');
+ const rows=await prisma.payment.findMany({where:{...(caller.role==='platform_admin'?{}:{payerUserId:caller.sub}),...(query.consultation_id?{consultationId:query.consultation_id}:{}),...(query.status?{status:query.status as never}:{})},orderBy:{settledAt:'desc'},...cursorArgs(query.cursor,query.limit)});
+ return toCursorPage(rows,query.limit,p=>({id:p.id,payment_intent_id:p.paymentIntentId,amount:Number(p.amount),currency:p.currency,method:p.method,provider:p.provider,provider_reference:p.providerReference,purpose:p.purpose,consultation_id:p.consultationId,payer_user_id:p.payerUserId,status:p.status,refunded_amount:Number(p.refundedAmount),settled_at:p.settledAt.toISOString(),version:p.version,processor:p.processor,environment:p.environment,verified_provider_transaction_id:p.providerTransactionId,
+   refund_available:p.processor==='console'&&env.NODE_ENV!=='production'}));
 }

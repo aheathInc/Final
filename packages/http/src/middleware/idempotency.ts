@@ -18,7 +18,7 @@ export function createIdempotency(ttlHours = 24) {
     void (async () => {
       try {
         const key = req.header('Idempotency-Key');
-        if (!key) {
+        if (!key || key.length > 200 || /[\x00-\x20\x7f]/.test(key)) {
           next(unprocessable('Idempotency-Key header is required', 'Idempotency-Key'));
           return;
         }
@@ -27,6 +27,15 @@ export function createIdempotency(ttlHours = 24) {
         const existing = await prisma.idempotencyRecord.findUnique({ where: { key } });
 
         if (existing) {
+          if (existing.userId !== (req.auth?.sub ?? null)) {
+            next(conflict('IDEMPOTENCY_KEY_CONFLICT', 'This key cannot be used for this request'));
+            return;
+          }
+          if (existing.expiresAt <= new Date()) {
+            // Do not reopen a possibly completed operation automatically.
+            next(conflict('IDEMPOTENCY_KEY_CONFLICT', 'This request key has expired. Check operation status before retrying'));
+            return;
+          }
           if (existing.requestHash !== requestHash) {
             next(
               conflict(

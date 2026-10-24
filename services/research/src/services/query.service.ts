@@ -1,6 +1,5 @@
 import { prisma } from '@a-health/database';
-import { AppError, appendAudit, cursorArgs, forbidden, notFound, toCursorPage, unprocessable } from '@a-health/http';
-import { DATASET_BINDINGS, type AllowedGroupField } from '../engine/datasets.js';
+import { forbidden } from '@a-health/http';
 
 export interface Caller { sub: string; role: string }
 export interface Meta { ip?: string | null; requestId?: string | null }
@@ -24,7 +23,7 @@ function serialiseDataset(d: {
     k_anonymity: d.kAnonymity,
     minimum_cell_size: d.minimumCellSize,
     requires_ethics_approval: d.requiresEthicsApproval,
-    record_count: d.recordCount,
+    record_count: null, // No operational record counts exposed by the legacy catalog.
   };
 }
 
@@ -34,111 +33,17 @@ export async function listDatasets(caller: Caller) {
   return { data: rows.map(serialiseDataset) };
 }
 
-function serialiseQuery(q: {
-  id: string; datasetId: string; researcherId: string; ethicsApprovalRef: string;
-  spec: unknown; status: string; rows: unknown; suppressedCells: number;
-  submittedAt: Date; completedAt: Date | null; version: number;
-}) {
-  return {
-    id: q.id,
-    dataset_id: q.datasetId,
-    researcher_id: q.researcherId,
-    ethics_approval_ref: q.ethicsApprovalRef,
-    query: q.spec,
-    status: q.status,
-    rows: q.rows ?? [],
-    suppressed_cells: q.suppressedCells,
-    submitted_at: q.submittedAt.toISOString(),
-    completed_at: q.completedAt?.toISOString() ?? null,
-  };
-}
-
-/**
- * Runs an aggregate against the dataset's bound table, using only its
- * allow-listed group-by fields. Any resulting cell below the dataset's
- * minimum size is suppressed before the row is ever written to the query
- * record — a suppressed cell is never stored anywhere, not stored-then-hidden.
- *
- * Executed synchronously: the one seeded dataset is a fast, in-database
- * aggregate. A dataset requiring heavier computation would move this to a
- * worker and leave status='running' in between, without changing this
- * function's contract.
- */
+/** Legacy ethics-string queries are intentionally retired: no direct clinical aggregation. */
 export async function submitQuery(
   caller: Caller,
   input: { dataset_id: string; ethics_approval_ref: string; query: { measure: string; group_by: string[] } },
   meta: Meta,
 ) {
   assertResearcher(caller);
-
-  const dataset = await prisma.researchDataset.findUnique({ where: { id: input.dataset_id } });
-  if (!dataset) throw notFound('Dataset not found');
-  if (dataset.requiresEthicsApproval && !input.ethics_approval_ref.trim()) {
-    throw new AppError(
-      'ETHICS_APPROVAL_REQUIRED', 422,
-      'An ethics approval reference is required for this dataset',
-      'ethics_approval_ref',
-    );
-  }
-
-  const binding = DATASET_BINDINGS[dataset.name];
-  if (!binding) {
-    throw unprocessable('This dataset has no query binding configured', 'dataset_id');
-  }
-  const invalidFields = input.query.group_by.filter((f) => !binding.allowedGroupFields.includes(f as AllowedGroupField));
-  if (invalidFields.length > 0) {
-    throw unprocessable(`These fields cannot be grouped by: ${invalidFields.join(', ')}`, 'query.group_by');
-  }
-
-  const grouped = await prisma.consultationRequest.groupBy({
-    by: input.query.group_by as AllowedGroupField[],
-    _count: { _all: true },
-  });
-
-  let suppressedCells = 0;
-  const rows = grouped
-    .filter((row: { _count: { _all: number } }) => {
-      if (row._count._all < dataset.minimumCellSize) {
-        suppressedCells += 1;
-        return false;
-      }
-      return true;
-    })
-    .map((row: Record<string, unknown> & { _count: { _all: number } }) => {
-      const dims: Record<string, unknown> = {};
-      for (const field of input.query.group_by) dims[field] = (row as Record<string, unknown>)[field];
-      return { ...dims, count: row._count._all };
-    });
-
-  const query = await prisma.researchQuery.create({
-    data: {
-      datasetId: input.dataset_id,
-      researcherId: caller.sub,
-      ethicsApprovalRef: input.ethics_approval_ref,
-      spec: input.query as never,
-      status: 'complete',
-      rows: rows as never,
-      suppressedCells,
-      completedAt: new Date(),
-    },
-  });
-
-  await appendAudit({
-    actorUserId: caller.sub, action: 'research.query_run',
-    entityType: 'research_queries', entityId: query.id,
-    metadata: { datasetId: input.dataset_id, ethicsApprovalRef: input.ethics_approval_ref, suppressedCells },
-    ipAddress: meta.ip, requestId: meta.requestId,
-  });
-
-  return serialiseQuery(query);
+  throw forbidden('FORBIDDEN', 'Legacy direct clinical aggregation is disabled. Submit an approved research project in the governed portal.');
 }
 
 export async function getQuery(id: string, caller: Caller) {
   assertResearcher(caller);
-  const query = await prisma.researchQuery.findUnique({ where: { id } });
-  if (!query) throw notFound('Query not found');
-  if (caller.role !== 'platform_admin' && query.researcherId !== caller.sub) {
-    throw forbidden('NOT_RESOURCE_OWNER', 'This query is not yours');
-  }
-  return serialiseQuery(query);
+  throw forbidden('FORBIDDEN', 'Legacy query results are not released without current project authorization. Use the governed research portal.');
 }

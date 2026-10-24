@@ -1,13 +1,13 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 import { mintTokenForPhone } from '../services/internalAuth.js';
 import { handleUssdSession } from '../services/ussd.service.js';
 
-if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
-  throw new Error('Refusing to run tests outside a development database');
-}
+const target=assertIsolatedLocalTestTarget(process.env);
+before(async()=>{await verifyLocalTestIdentity(prisma,target);});
 
 const users: string[] = [];
 const sessionIds: string[] = [];
@@ -70,84 +70,33 @@ describe('internal auth', () => {
   });
 });
 
-describe('ussd menu', () => {
-  it('shows the main menu on a fresh session', async () => {
-    const sessionId = `sess-${randomUUID()}`;
-    sessionIds.push(sessionId);
+describe('OTP-authenticated USSD with encrypted context', () => {
+  it('shows a verification prompt, not patient records, on a fresh session', async () => {
+    const sessionId = `sess-${randomUUID()}`;sessionIds.push(sessionId);
     const result = await handleUssdSession(sessionId, '+255700000001', '');
-    assert.match(result.response, /A-Health/);
-    assert.equal(result.terminate, false);
+    assert.match(result.response, /OTP/);assert.equal(result.terminate, false);
+    const row=await prisma.ussdSession.findUniqueOrThrow({where:{sessionId}});
+    assert.equal((row.context as {v:number}).v,1);
   });
-
-  it('tells an unregistered caller to register, and ends the session', async () => {
-    const sessionId = `sess-${randomUUID()}`;
-    sessionIds.push(sessionId);
-    await handleUssdSession(sessionId, '+255700000002', '');
-    const result = await handleUssdSession(sessionId, '+255700000002', '2');
-    assert.match(result.response, /not registered/i);
-    assert.equal(result.terminate, true);
+  it('binds the session to its original phone number', async()=>{
+    const sessionId=`sess-${randomUUID()}`;sessionIds.push(sessionId);
+    await handleUssdSession(sessionId,'+255700000001','');
+    assert.equal((await handleUssdSession(sessionId,'+255700000002','1')).terminate,true);
   });
-
-  it('keeps a fixed session-id string under the 182-character USSD reply limit', async () => {
-    const sessionId = `sess-${randomUUID()}`;
-    sessionIds.push(sessionId);
-    const result = await handleUssdSession(sessionId, '+255700000003', '');
-    assert.ok(result.response.length <= 182);
+  it('expires the session instead of silently reopening it', async()=>{
+    const sessionId=`sess-${randomUUID()}`;sessionIds.push(sessionId);
+    await handleUssdSession(sessionId,'+255700000001','');
+    await prisma.ussdSession.update({where:{sessionId},data:{expiresAt:new Date(0)}});
+    assert.equal((await handleUssdSession(sessionId,'+255700000001','1')).terminate,true);
   });
-
-  it('expires and restarts a session past its TTL', async () => {
-    const sessionId = `sess-${randomUUID()}`;
-    sessionIds.push(sessionId);
-    await handleUssdSession(sessionId, '+255700000004', '');
-    await prisma.ussdSession.update({ where: { sessionId }, data: { expiresAt: new Date(Date.now() - 1000) } });
-
-    const result = await handleUssdSession(sessionId, '+255700000004', '2');
-    assert.match(result.response, /A-Health/);
+  it('does not resend OTP when the aggregator retries the same callback', async()=>{
+    const sessionId=`sess-${randomUUID()}`;sessionIds.push(sessionId);let sent=0;
+    const request=async()=>{sent++;return{challenge_id:randomUUID(),delivery_status:'simulated'};};
+    await handleUssdSession(sessionId,'+255700000001','',{request});
+    const [a,b]=await Promise.all([handleUssdSession(sessionId,'+255700000001','1',{request}),handleUssdSession(sessionId,'+255700000001','1',{request})]);
+    assert.equal(sent,1);assert.equal(a.response,b.response);
   });
-
-  it('keeps invalid input, caller mismatch and replay from executing a menu action', async () => {
-    const { phone } = await makeActivePatient();
-    const sessionId = `sess-${randomUUID()}`;
-    sessionIds.push(sessionId);
-    await handleUssdSession(sessionId, phone, '');
-
-    const invalid = await handleUssdSession(sessionId, phone, '9');
-    assert.match(invalid.response, /A-Health/);
-    assert.equal(invalid.terminate, false);
-
-    let internalCalls = 0;
-    const callInternal = async () => {
-      internalCalls++;
-      return { ok: true, status: 200, body: {} };
-    };
-    const mismatch = await handleUssdSession(
-      sessionId,
-      '+255700000099',
-      '2',
-      { callInternal },
-    );
-    assert.equal(mismatch.terminate, true);
-    assert.match(mismatch.response, /caller mismatch/i);
-    assert.equal(internalCalls, 0);
-
-    const status = await handleUssdSession(
-      sessionId,
-      phone,
-      '2',
-      { callInternal },
-    );
-    assert.equal(status.terminate, true);
-    assert.match(status.response, /full queue details/i);
-    assert.equal(internalCalls, 1);
-
-    const replay = await handleUssdSession(
-      sessionId,
-      phone,
-      '2',
-      { callInternal },
-    );
-    assert.equal(replay.terminate, false);
-    assert.match(replay.response, /A-Health/);
-    assert.equal(internalCalls, 1);
+  it('unverified phone token does not claim OTP authentication', async()=>{
+    const {phone}=await makeActivePatient();assert.equal((await mintTokenForPhone(phone))?.claims.amr,'gateway');
   });
 });

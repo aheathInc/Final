@@ -330,6 +330,8 @@ model User {
   emergencyReports EmergencyRequest[] @relation("EmergencyReporter")
   realtimeTickets  RealtimeTicket[]
   paymentsMade     PaymentIntent[]    @relation("Payer")
+  careBills        CareBill[]         @relation("BillPayer")
+  issuedCareBills  CareBill[]         @relation("BillIssuer")
   createdInteropSystems ExternalHealthSystem[] @relation("InteropSystemCreatedBy")
   activatedInteropSystems ExternalHealthSystem[] @relation("InteropSystemActivatedBy")
   reviewedInteropIdentities ExternalPatientIdentity[] @relation("InteropIdentityReviewedBy")
@@ -388,6 +390,7 @@ model PatientProfile {
   medicalRecords MedicalRecord[]
   digitalReferrals DigitalReferral[]
   frontDeskVisits FrontDeskVisit[]
+  careBills CareBill[]
   externalIdentities ExternalPatientIdentity[]
   externalFhirResources ExternalFhirResource[]
 
@@ -739,6 +742,7 @@ model ConsultationRequest {
   insuranceClaims InsuranceClaim[]
   incidentReports IncidentReport[]
   paymentIntents  PaymentIntent[]
+  careBill        CareBill?
   payments        Payment[]
 
   // Powers the live queue view and the SLA escalation worker.
@@ -3041,12 +3045,18 @@ model PaymentIntent {
 
   consultationId   String?              @map("consultation_id") @db.Uuid
   consultation     ConsultationRequest? @relation(fields: [consultationId], references: [id], onDelete: Restrict)
+  billId           String?              @map("bill_id") @db.Uuid
+  bill             CareBill?            @relation(fields: [billId], references: [id], onDelete: Restrict)
   dispensingId     String?              @map("dispensing_id") @db.Uuid
   insuranceClaimId String?              @map("insurance_claim_id") @db.Uuid
 
   payerUserId String? @map("payer_user_id") @db.Uuid
   payer       User?   @relation("Payer", fields: [payerUserId], references: [id], onDelete: Restrict)
   payerPhone  String? @map("payer_phone") @db.VarChar(20)
+  processor   String @default("legacy") @db.VarChar(30)
+  environment String @default("legacy") @db.VarChar(20)
+  providerTransactionId String? @map("provider_transaction_id") @db.VarChar(120)
+  lastVerifiedAt DateTime? @map("last_verified_at")
 
   /// The provider's own transaction reference. Idempotency for the webhook is
   /// keyed on this, not on our own id — the provider is the one retrying.
@@ -3081,6 +3091,9 @@ model Payment {
   method            PaymentMethod
   provider          PaymentProvider?
   providerReference String?          @map("provider_reference") @db.VarChar(120)
+  processor String @default("legacy") @db.VarChar(30)
+  environment String @default("legacy") @db.VarChar(20)
+  providerTransactionId String? @unique @map("provider_transaction_id") @db.VarChar(120)
   purpose           PaymentPurpose
   status            PaymentStatus    @default(succeeded)
 
@@ -3715,4 +3728,29 @@ model ResearchOutputRequest {
   @@index([ownerId, studyId])
   @@index([status])
   @@map("research_output_requests")
+}
+
+/// Immutable server-issued payable. Patients never choose or edit the price.
+model CareBill {
+  id String @id @default(uuid()) @db.Uuid
+  reference String @unique @db.VarChar(40)
+  payerUserId String @map("payer_user_id") @db.Uuid
+  payer User @relation("BillPayer", fields: [payerUserId], references: [id], onDelete: Restrict)
+  issuedById String @map("issued_by_id") @db.Uuid
+  issuedBy User @relation("BillIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  patientProfileId String @map("patient_profile_id") @db.Uuid
+  patient PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  consultationId String? @unique @map("consultation_id") @db.Uuid
+  consultation ConsultationRequest? @relation(fields: [consultationId], references: [id], onDelete: Restrict)
+  title String @db.VarChar(120)
+  amount Decimal @db.Decimal(12, 2)
+  currency String @default("TZS") @db.VarChar(3)
+  purpose PaymentPurpose
+  status String @default("due") @db.VarChar(20)
+  expiresAt DateTime @map("expires_at")
+  paidAt DateTime? @map("paid_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  intents PaymentIntent[]
+  @@index([payerUserId, status, createdAt])
+  @@map("care_bills")
 }

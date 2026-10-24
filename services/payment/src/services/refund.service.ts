@@ -13,12 +13,15 @@ export async function refundPayment(
   paymentId: string, caller: Caller,
   input: { amount?: number; reason: string }, meta: Meta,
 ) {
-  if (caller.role !== 'platform_admin' && caller.role !== 'facility_admin') {
+  if (caller.role !== 'platform_admin' || !caller.sub) {
     throw forbidden('ROLE_NOT_PERMITTED', 'Only finance staff may issue a refund');
   }
 
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
   if (!payment) throw notFound('Payment not found');
+  if (payment.processor !== 'console' || payment.environment !== 'simulated' || process.env.NODE_ENV === 'production') {
+    throw conflict('PAYMENT_METHOD_UNAVAILABLE', 'Provider refunds are not connected. No refund has been made.');
+  }
   if (payment.status !== 'succeeded' && payment.status !== 'partially_refunded') {
     throw conflict('PAYMENT_ALREADY_SETTLED', 'This payment is not in a refundable state');
   }
@@ -30,6 +33,9 @@ export async function refundPayment(
   }
 
   const result = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM payments WHERE id=${paymentId}::uuid FOR UPDATE`;
+    const fresh = await tx.payment.findUniqueOrThrow({where:{id:paymentId}});
+    if (fresh.version !== payment.version) throw conflict('VERSION_CONFLICT','Payment changed. Refresh before retrying.');
     const refund = await tx.paymentRefund.create({
       data: { paymentId, amount, reason: input.reason, issuedById: caller.sub ?? null },
     });
@@ -44,15 +50,16 @@ export async function refundPayment(
       },
     });
 
-    return refund;
-  });
-
   await appendAudit({
     actorUserId: caller.sub ?? null, action: 'payment.refunded',
     entityType: 'payments', entityId: paymentId,
     reason: input.reason, metadata: { amount },
     ipAddress: meta.ip, requestId: meta.requestId,
+  }, tx);
+    return refund;
   });
+
+
 
   return {
     id: result.id,

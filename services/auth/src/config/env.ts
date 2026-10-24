@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { smsSettings } from '@a-health/http/sms';
 import { z } from 'zod';
 import { resolveAuthSecuritySettings } from './security.js';
 
@@ -56,3 +57,6 @@ if (parsed.data.NODE_ENV === 'production' && /replace|placeholder|change[-_ ]?me
 }
 
 export const env = { ...parsed.data, ...security };
+
+// SMS delivery configuration is validated before the service accepts OTP requests.
+export const otpSmsSettings = smsSettings(process.env);

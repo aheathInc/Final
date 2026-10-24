@@ -2033,36 +2033,39 @@ paths:
 
   /gateway/ussd/session:
     post:
-      tags: [gateway]
+      tags:
+      - gateway
       summary: Handle one USSD menu interaction
-      description: |
-        Called by the telecom aggregator on every key press. The bridge holds
-        session state in Redis keyed by `session_id` and translates the
-        selection into an ordinary internal API call — the same
-        `POST /consultations` the app uses. There is exactly one implementation
-        of the business rules, and the channel never forks it.
-
-        Not part of the public API. Authenticated by shared secret and source-IP
-        allow-list, not by JWT. Responses must fit the aggregator's session
-        timeout and character limit.
+      description: Trusted aggregator bridge only, not a public direct carrier callback. HMAC-SHA256 covers X-Gateway-Timestamp
+        + dot + exact JSON body. Timestamp expires after 120 seconds. PostgreSQL stores AES-GCM encrypted session
+        context, bound to phone/session. OTP through Auth precedes patient-service access. Uses existing Front Desk,
+        Doctor, Appointment and Payment APIs. Physical pre-registration or published voice slots only; does not dispatch
+        emergencies or implement video.
       operationId: handleUssdSession
       security:
-        - gatewaySignature: []
+      - gatewaySignature: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [session_id, phone_number, text]
+              required:
+              - session_id
+              - phone_number
+              - text
               properties:
-                session_id: { type: string }
+                session_id:
+                  type: string
+                  maxLength: 100
                 phone_number:
                   $ref: '#/components/schemas/PhoneNumber'
-                service_code: { type: string }
+                service_code:
+                  type: string
                 text:
                   type: string
                   description: Accumulated input so far, aggregator convention.
+                  maxLength: 2048
       responses:
         '200':
           description: Menu or terminal response
@@ -2070,44 +2073,67 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [response, terminate]
+                required:
+                - response
+                - terminate
                 properties:
                   response:
                     type: string
-                    maxLength: 182
+                    maxLength: 1024
                   terminate:
                     type: boolean
                     description: True ends the USSD session.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      parameters:
+      - name: X-Gateway-Timestamp
+        in: header
+        required: true
+        schema:
+          type: string
+          pattern: ^\d{10}$
 
   /gateway/sms/inbound:
     post:
-      tags: [gateway]
+      tags:
+      - gateway
       summary: Handle an inbound SMS keyword
-      description: |
-        Maps keywords to internal calls — for example a dose confirmation reply
-        becomes `POST /adherence-logs/{id}/confirm`. Unrecognised text is routed
-        to the patient's open care thread as a message rather than discarded.
+      description: Disabled by default and forbidden in production in this release. Legacy non-production experiment
+        only; durable authenticated, patient-scoped inbound clinical reply routing is not implemented.
       operationId: handleInboundSms
       security:
-        - gatewaySignature: []
+      - gatewaySignature: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [from, text, received_at]
+              required:
+              - from
+              - text
+              - received_at
               properties:
                 from:
                   $ref: '#/components/schemas/PhoneNumber'
-                to: { type: string }
-                text: { type: string }
-                received_at: { type: string, format: date-time }
-                aggregator_message_id: { type: string }
+                to:
+                  type: string
+                text:
+                  type: string
+                received_at:
+                  type: string
+                  format: date-time
+                aggregator_message_id:
+                  type: string
       responses:
         '202':
           description: Accepted for processing
-        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '503':
+          description: Inbound SMS is not enabled
 
   # ----------------------------------------------------------------------
   # Facilities — the hospital-facing surface
@@ -4928,48 +4954,64 @@ paths:
 
   /payments/intents:
     post:
-      tags: [payment]
+      tags:
+      - payment
       summary: Create a payment intent
-      description: |
-        One intent per payable thing — a consultation fee, a pharmacy
-        purchase, an insurance co-payment. For mobile money the response
-        carries whatever the provider needs the client to show the payer (a
-        USSD push confirmation, a reference code); the intent then settles
-        asynchronously as the provider calls the webhook below.
-
-        Cash and card-on-file settle synchronously and return `succeeded`
-        immediately; mobile money almost never does.
+      description: Requires an existing authorized server-issued bill. Client-supplied amounts, cash/card settlement,
+        and arbitrary purposes are rejected. Mobile-money initiation is pending until verified server-side; retry
+        returns the unresolved bill intent. An ambiguous timeout never frees the bill for a second debit.
       operationId: createPaymentIntent
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [amount, currency, method, purpose]
+              additionalProperties: false
+              required:
+              - bill_id
+              - method
+              - provider
+              - payer_phone
               properties:
-                amount: { type: number, minimum: 1 }
-                currency:
+                bill_id:
                   type: string
-                  default: TZS
-                method: { $ref: '#/components/schemas/PaymentMethod' }
-                purpose: { $ref: '#/components/schemas/PaymentPurpose' }
-                consultation_id: { type: string, format: uuid }
-                dispensing_id: { type: string, format: uuid }
-                insurance_claim_id: { type: string, format: uuid }
+                  format: uuid
+                method:
+                  type: string
+                  enum:
+                  - mobile_money
+                provider:
+                  type: string
+                  enum:
+                  - mpesa
+                  - tigo_pesa
+                  - airtel_money
                 payer_phone:
-                  $ref: '#/components/schemas/PhoneNumber'
-                  description: Required for mobile money; the number the provider prompt is sent to.
-                return_url: { type: string, format: uri }
+                  type: string
+                  pattern: ^\+255\d{9}$
+                payer_email:
+                  type: string
+                  format: email
+                  maxLength: 150
+                  description: Required by Flutterwave. Supply the payer email, not a fabricated address.
       responses:
         '201':
           description: Intent created
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/PaymentIntent' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
   /payments/intents/{payment_intent_id}:
     get:
@@ -4993,55 +5035,60 @@ paths:
 
   /payments/intents/{payment_intent_id}/cancel:
     post:
-      tags: [payment]
-      summary: Cancel a payment intent before it settles
-      description: |
-        Only legal while `pending` or `requires_action`. Once a provider has
-        reported success there is nothing left to cancel — that is a refund.
+      tags:
+      - payment
+      summary: In-flight cancellation is not supported locally
+      description: Returns 409; decline in the provider wallet. Local cancellation must not hide a late successful
+        charge.
       operationId: cancelPaymentIntent
       parameters:
-        - $ref: '#/components/parameters/PaymentIntentId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/PaymentIntentId'
+      - $ref: '#/components/parameters/IdempotencyKey'
       responses:
-        '200':
-          description: Cancelled
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/PaymentIntent' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /payments/{payment_id}/refund:
     post:
-      tags: [payment]
+      tags:
+      - payment
       summary: Refund a settled payment, in full or in part
-      description: |
-        Admin or facility-finance action. A partial refund may be issued more
-        than once against the same payment as long as the running total does
-        not exceed what was originally paid.
+      description: Platform admin only. Enabled only for console simulated records. Live, test-provider and legacy
+        refunds fail closed until provider refund integration is implemented; no money is represented as refunded.
       operationId: refundPayment
       parameters:
-        - $ref: '#/components/parameters/PaymentId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/PaymentId'
+      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [reason]
+              required:
+              - reason
               properties:
                 amount:
                   type: number
                   description: Omit to refund the full remaining amount.
-                reason: { type: string, maxLength: 500 }
+                reason:
+                  type: string
+                  maxLength: 500
       responses:
         '201':
           description: Refund recorded
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/PaymentRefund' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+              schema:
+                $ref: '#/components/schemas/PaymentRefund'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
 
   /payments:
     get:
@@ -5073,35 +5120,56 @@ paths:
 
   /payments/webhooks/{provider}:
     post:
-      tags: [payment]
+      tags:
+      - payment
       summary: Provider settlement callback
-      description: |
-        Called by the mobile money provider, not by any client of this API.
-        Authenticated by a provider-specific signature header rather than a
-        bearer token — the provider does not have one. Idempotent by the
-        provider's own transaction reference: replays of the same callback
-        (providers retry aggressively) must resolve to the same outcome
-        without double-crediting anything.
+      description: LOCAL CONSOLE SIMULATION ONLY. Disabled when NODE_ENV=production or a real provider adapter is
+        selected. Signed payload includes provider_reference (AHP intent UUID), transaction_id, amount, currency,
+        and status. Exact intent/bill ownership and provider matching apply.
       operationId: handlePaymentWebhook
       security:
-        - webhookSignature: []
+      - webhookSignature: []
       parameters:
-        - name: provider
-          in: path
-          required: true
-          schema: { $ref: '#/components/schemas/PaymentProvider' }
+      - name: provider
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/PaymentProvider'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              additionalProperties: true
-              description: Provider-specific payload; shape varies by provider.
+              required:
+              - provider_reference
+              - transaction_id
+              - amount
+              - currency
+              - status
+              properties:
+                provider_reference:
+                  type: string
+                  format: uuid
+                transaction_id:
+                  type: string
+                amount:
+                  type: number
+                currency:
+                  type: string
+                  enum:
+                  - TZS
+                status:
+                  type: string
+                  enum:
+                  - succeeded
+                  - failed
+                  - pending
       responses:
         '200':
           description: Acknowledged
-        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
 
   /interop/systems:
     get:
@@ -6964,9 +7032,295 @@ paths:
             schema:
               $ref: '#/components/schemas/ContinuityContactOutcomeRequest'
 
+  /payments/bills:
+    get:
+      tags:
+      - payment
+      operationId: listCareBills
+      summary: List latest 100 bills authorized for the caller
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CareBill'
+                  meta:
+                    $ref: '#/components/schemas/CursorMeta'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+      - payment
+      operationId: issueCareBill
+      summary: Issue one consultation bill
+      description: Verified assigned clinician or platform admin only. Payer and patient are resolved from the consultation,
+        not request input. Repeating the same amount/title returns the existing bill. There is no patient-set price
+        and no automatic paid flag.
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - consultation_id
+              - title
+              - amount
+              properties:
+                consultation_id:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                  minLength: 3
+                  maxLength: 120
+                amount:
+                  type: integer
+                  minimum: 1
+                  maximum: 2147483647
+                currency:
+                  type: string
+                  enum:
+                  - TZS
+                  default: TZS
+      responses:
+        '201':
+          description: Bill issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareBill'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /payments/options:
+    get:
+      tags:
+      - payment
+      operationId: getPaymentOptions
+      summary: Configured payment adapter capabilities; not a provider health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentOptions'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /payments/provider/flutterwave:
+    post:
+      tags:
+      - payment
+      operationId: verifiedFlutterwaveWebhook
+      summary: Verified provider settlement callback
+      description: Uses configured HMAC-SHA256 base64 flutterwave-signature, or explicitly selected legacy verif-hash.
+        Never automatically downgrades authentication. For charge.completed, re-fetches v3 transaction and compares
+        ID, reference, amount, currency and environment before settlement.
+      security:
+      - flutterwaveSignature: []
+      - flutterwaveLegacyHash: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - event
+              - data
+              properties:
+                event:
+                  type: string
+                data:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Processed or recognized irrelevant event
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Provider verification unavailable; retry required
+
+  /research/portal/extended:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1extended'
+
+  /research/portal/warehouse/batches:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1warehouse~1batches'
+
+  /research/portal/warehouse/batches/{id}/revoke:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1warehouse~1batches~1{id}~1revoke'
+
+  /research/portal/warehouse/builds:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1warehouse~1builds'
+
+  /research/portal/warehouse/builds/{id}/inspect:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1warehouse~1builds~1{id}~1inspect'
+
+  /research/portal/warehouse/builds/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1warehouse~1builds~1{id}~1review'
+
+  /research/portal/responses/register:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1responses~1register'
+
+  /research/portal/responses/{id}/withdraw:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1responses~1{id}~1withdraw'
+
+  /research/portal/response-snapshots:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1response-snapshots'
+
+  /research/portal/response-snapshots/{id}/inspect:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1response-snapshots~1{id}~1inspect'
+
+  /research/portal/response-snapshots/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1response-snapshots~1{id}~1review'
+
+  /research/portal/response-snapshots/{id}/analytics:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1response-snapshots~1{id}~1analytics'
+
+  /research/portal/outputs:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1outputs'
+
+  /research/portal/outputs/{id}/inspect:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1outputs~1{id}~1inspect'
+
+  /research/portal/outputs/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1outputs~1{id}~1review'
+
+  /research/portal/outputs/{id}/download:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1outputs~1{id}~1download'
+
+  /research/portal/bootstrap:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1bootstrap'
+
+  /research/portal/profile:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1profile'
+
+  /research/portal/profiles/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1profiles~1{id}~1review'
+
+  /research/portal/evidence:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1evidence'
+
+  /research/portal/evidence/{id}/download:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1evidence~1{id}~1download'
+
+  /research/portal/studies:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1studies'
+
+  /research/portal/studies/{id}/submit:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1studies~1{id}~1submit'
+
+  /research/portal/studies/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1studies~1{id}~1review'
+
+  /research/portal/collections:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1collections'
+
+  /research/portal/collections/{id}/suspend:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1collections~1{id}~1suspend'
+
+  /research/portal/sources:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1sources'
+
+  /research/portal/sources/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1sources~1{id}~1review'
+
+  /research/portal/mappings:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1mappings'
+
+  /research/portal/ingest:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1ingest'
+
+  /research/portal/releases:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1releases'
+
+  /research/portal/releases/{id}/inspect:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1releases~1{id}~1inspect'
+
+  /research/portal/releases/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1releases~1{id}~1review'
+
+  /research/portal/query:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1query'
+
+  /research/portal/exports:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1exports'
+
+  /research/portal/exports/{id}/inspect:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1exports~1{id}~1inspect'
+
+  /research/portal/exports/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1exports~1{id}~1review'
+
+  /research/portal/exports/{id}/download:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1exports~1{id}~1download'
+
+  /research/portal/forms:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1forms'
+
+  /surveillance/admin-analytics:
+    get:
+      tags: [surveillance]
+      operationId: getAdminPopulationAnalytics
+      summary: Read privacy-suppressed platform aggregates
+      description: Platform administrators only. Counts below 10 are suppressed, patient totals are banded, and no patient identifiers or note text are returned.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: days
+          schema: { type: integer, enum: [30, 90, 365], default: 90 }
+      responses:
+        '200':
+          description: Suppressed aggregate population report
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /research/portal/forms/{id}/review:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1forms~1{id}~1review'
+
+  /research/portal/responses:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1responses'
+
+  /research/portal/keys:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1keys'
+
+  /research/portal/keys/{id}/revoke:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1portal~1keys~1{id}~1revoke'
+
+  /research/projects/{id}/aggregates:
+    $ref: './research-portal-v1.yaml#/paths/~1research~1projects~1{id}~1aggregates'
+
 components:
 
   securitySchemes:
+    researchProjectKey:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: ResearchKey followed by a project-scoped research token; aggregate reads only.
     webhookSignature:
       type: apiKey
       in: header
@@ -6975,6 +7329,16 @@ components:
         HMAC of the raw request body using the shared per-provider secret.
         Used only on /payments/webhooks/*, paired with a source-IP allow-list
         where the provider publishes one.
+    flutterwaveSignature:
+      type: apiKey
+      in: header
+      name: flutterwave-signature
+      description: Base64 HMAC-SHA256 of exact raw JSON using the configured webhook secret.
+    flutterwaveLegacyHash:
+      type: apiKey
+      in: header
+      name: verif-hash
+      description: Flutterwave verification hash selected explicitly by configuration; no automatic fallback.
     bearerAuth:
       type: http
       scheme: bearer
@@ -8468,16 +8832,36 @@ components:
 
     OtpChallenge:
       type: object
-      required: [challenge_id, expires_at, delivery_channel]
+      required:
+      - challenge_id
+      - expires_at
+      - delivery_channel
       properties:
-        challenge_id: { type: string, format: uuid }
-        expires_at: { type: string, format: date-time }
+        challenge_id:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
         delivery_channel:
           $ref: '#/components/schemas/Channel'
         masked_destination:
           type: string
           description: Partially redacted destination, e.g. `+2557****5678`.
-          examples: ['+2557****5678']
+          examples:
+          - +2557****5678
+        delivery_status:
+          type: string
+          enum:
+          - accepted
+          - simulated
+          description: Gateway acceptance is not handset delivery.
+        delivery_environment:
+          type: string
+          enum:
+          - simulated
+          - sandbox
+          - live
 
     TokenPair:
       type: object
@@ -10354,56 +10738,159 @@ components:
 
     PaymentIntent:
       type: object
-      required: [id, amount, currency, method, purpose, status, created_at, version]
+      required:
+      - id
+      - amount
+      - currency
+      - method
+      - purpose
+      - status
+      - created_at
+      - version
       properties:
-        id: { type: string, format: uuid }
-        amount: { type: number }
-        currency: { type: string }
-        method: { $ref: '#/components/schemas/PaymentMethod' }
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        currency:
+          type: string
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
         provider:
-          type: [string, 'null']
+          type:
+          - string
+          - 'null'
           description: Resolved once a mobile money provider is selected; null for cash.
-        purpose: { $ref: '#/components/schemas/PaymentPurpose' }
-        consultation_id: { type: [string, 'null'], format: uuid }
-        dispensing_id: { type: [string, 'null'], format: uuid }
-        insurance_claim_id: { type: [string, 'null'], format: uuid }
-        status: { $ref: '#/components/schemas/PaymentStatus' }
+        purpose:
+          $ref: '#/components/schemas/PaymentPurpose'
+        consultation_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        dispensing_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        insurance_claim_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
         provider_reference:
-          type: [string, 'null']
-          description: |
-            The provider's own transaction id. This is what a support
-            conversation with the mobile money operator is conducted against
-            — not this platform's internal id.
+          type:
+          - string
+          - 'null'
+          description: AHP intent UUID sent as merchant tx_ref; actual provider transaction ID is checked server-side.
         client_action:
-          type: [object, 'null']
-          description: What the payer must do next — e.g. dial a USSD confirmation, or nothing for card/cash.
+          type:
+          - object
+          - 'null'
+          description: Wallet instruction or explicit local simulation/reconciliation notice. Never proof of payment.
           additionalProperties: true
         payment_id:
-          type: [string, 'null']
+          type:
+          - string
+          - 'null'
           format: uuid
           description: Set once the intent settles into a completed Payment record.
-        created_at: { type: string, format: date-time }
-        expires_at: { type: [string, 'null'], format: date-time }
-        version: { type: integer }
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        version:
+          type: integer
+        processor:
+          type: string
+        environment:
+          type: string
+          enum:
+          - legacy
+          - simulated
+          - test
+          - live
+        bill_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
 
     Payment:
       type: object
-      required: [id, payment_intent_id, amount, currency, method, status, settled_at, version]
+      required:
+      - id
+      - payment_intent_id
+      - amount
+      - currency
+      - method
+      - status
+      - settled_at
+      - version
       properties:
-        id: { type: string, format: uuid }
-        payment_intent_id: { type: string, format: uuid }
-        amount: { type: number }
-        currency: { type: string }
-        method: { $ref: '#/components/schemas/PaymentMethod' }
-        provider: { type: [string, 'null'] }
-        provider_reference: { type: [string, 'null'] }
-        purpose: { $ref: '#/components/schemas/PaymentPurpose' }
-        consultation_id: { type: [string, 'null'], format: uuid }
-        payer_user_id: { type: [string, 'null'], format: uuid }
-        status: { $ref: '#/components/schemas/PaymentStatus' }
-        refunded_amount: { type: number }
-        settled_at: { type: string, format: date-time }
-        version: { type: integer }
+        id:
+          type: string
+          format: uuid
+        payment_intent_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        currency:
+          type: string
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        provider:
+          type:
+          - string
+          - 'null'
+        provider_reference:
+          type:
+          - string
+          - 'null'
+        purpose:
+          $ref: '#/components/schemas/PaymentPurpose'
+        consultation_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        payer_user_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        refunded_amount:
+          type: number
+        settled_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+        processor:
+          type: string
+        environment:
+          type: string
+          enum:
+          - legacy
+          - simulated
+          - test
+          - live
+        refund_available:
+          type: boolean
+        verified_provider_transaction_id:
+          type:
+          - string
+          - 'null'
 
     PaymentRefund:
       type: object
@@ -11003,3 +11490,29 @@ components:
             $ref: '#/components/schemas/FrontDeskDepartment'
       required:
       - data
+    CareBill:
+      type: object
+      required: [id, reference, title, amount, currency, purpose, status, created_at, expires_at]
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        title: { type: string }
+        amount: { type: number }
+        currency: { type: string, enum: [TZS] }
+        purpose: { $ref: '#/components/schemas/PaymentPurpose' }
+        status: { type: string, enum: [due, paid, void] }
+        consultation_id: { type: [string, 'null'], format: uuid }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        paid_at: { type: [string, 'null'], format: date-time }
+    PaymentOptions:
+      type: object
+      required: [method, providers, processor, environment, requires_email]
+      properties:
+        method: { type: string, enum: [mobile_money] }
+        providers:
+          type: array
+          items: { type: string, enum: [mpesa, tigo_pesa, airtel_money] }
+        processor: { type: string, enum: [console, flutterwave] }
+        environment: { type: string, enum: [simulated, test, live] }
+        requires_email: { type: boolean }

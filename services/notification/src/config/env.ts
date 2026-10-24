@@ -4,12 +4,12 @@ import { z } from 'zod';
 dotenv.config();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']),
   PORT: z.coerce.number().default(4008),
   DATABASE_URL: z.string(),
 
   /** `console` prints instead of sending. Anything else needs a gateway URL. */
-  SMS_PROVIDER: z.enum(['console', 'http']).default('console'),
+  SMS_PROVIDER: z.enum(['console', 'http', 'africastalking']).default('console'),
   SMS_GATEWAY_URL: z.string().default(''),
   SMS_GATEWAY_KEY: z.string().default(''),
   SMS_SENDER_ID: z.string().default('A-HEALTH'),

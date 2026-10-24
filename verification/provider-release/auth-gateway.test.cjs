@@ -1,0 +1,46 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const {load}=require('../lib/load-typescript.cjs');
+const errors=load('packages/http/src/errors.ts'),hash=load('packages/http/src/hash.ts');
+function authFixture(){
+ let state={challenges:[],users:[],tokens:[],audits:[],profiles:[]};let queue=Promise.resolve(),failure=false,sends=[];
+ const update=(v,d)=>{for(const[k,x]of Object.entries(d))v[k]=x?.increment?(v[k]??0)+x.increment:x;return v;};
+ const db={otpChallenge:{count:async({where})=>state.challenges.filter(x=>x.phoneNumber===where.phoneNumber&&x.createdAt>=where.createdAt.gte).length,create:async({data})=>{const x={id:crypto.randomUUID(),createdAt:new Date(),attempts:0,consumedAt:null,...data};state.challenges.push(x);return x;},findUnique:async({where})=>state.challenges.find(x=>x.id===where.id)??null,update:async({where,data})=>update(state.challenges.find(x=>x.id===where.id),data)},
+ user:{findUnique:async({where})=>state.users.find(x=>Object.entries(where).every(([k,v])=>x[k]===v))??null,findUniqueOrThrow:async({where})=>{const u=state.users.find(x=>x.id===where.id);if(!u)throw new Error('missing');return u;},create:async({data})=>{const u={id:crypto.randomUUID(),version:1,email:null,patientProfile:null,clinicianProfile:null,...data};state.users.push(u);return u;},update:async({where,data})=>update(state.users.find(x=>x.id===where.id),data)},
+ patientProfile:{create:async({data})=>{const p={id:crypto.randomUUID(),version:1,...data};state.profiles.push(p);state.users.find(x=>x.id===data.userId).patientProfile=p;return p;}},
+ refreshToken:{create:async({data})=>{state.tokens.push(data);return data;}},$queryRaw:async()=>[],$executeRaw:async()=>1};
+ db.$transaction=fn=>{const promise=queue.then(async()=>{const backup=structuredClone(state);try{return await fn(db);}catch(e){state=backup;throw e;}});queue=promise.catch(()=>{});return promise;};
+ const env={OTP_REQUESTS_PER_HOUR:5,OTP_MAX_ATTEMPTS:5,OTP_TTL_SECONDS:300,OTP_ECHO_IN_RESPONSE:true,OTP_LOG_TO_CONSOLE:false,REFRESH_TOKEN_TTL_DAYS:7,ACCESS_TOKEN_TTL_SECONDS:900};
+ const auth=load('services/auth/src/services/auth.service.ts',{
+ '@a-health/database':{prisma:db},'@a-health/http/sms':{sendSms:async(_s,to,message,key)=>{sends.push({to,message,key});return failure?{ok:false}:{ok:true,delivery:'simulated'};}},
+ // bcrypt intentionally replaced for deterministic orchestration tests, NOT a cryptographic-strength test.
+ bcrypt:{default:{hash:async x=>'hash:'+hash.sha256(x),compare:async(x,h)=>h==='hash:'+hash.sha256(x)}},'../config/env.js':{env,otpSmsSettings:{mode:'console'}},'../utils/jwt.js':{signAccessToken:()=>crypto.randomBytes(24).toString('base64url')},'../utils/hash.js':hash,'../utils/errors.js':errors,
+ './audit.service.js':{appendAudit:async(e,tx)=>{assert.equal(tx,db);state.audits.push(e);}},'./changelog.service.js':{recordChange:async()=>{}},
+ });
+ return{auth,db,env,get state(){return state;},sends,failDelivery(){failure=true;}};
+}
+test('OTP is random, hash-only at rest, and delivered to shared SMS adapter',async()=>{const f=authFixture();const a=await f.auth.requestOtp('+255700000001','sms'),b=await f.auth.requestOtp('+255700000002','sms');assert.match(a.dev_code,/^\d{6}$/);assert.equal(f.sends.length,2);assert.ok(f.sends[0].message.includes(a.dev_code));assert.ok(!JSON.stringify(f.state.challenges).includes(a.dev_code));assert.equal(a.delivery_status,'simulated');assert.notEqual(a.challenge_id,b.challenge_id);});
+test('OTP cannot verify after failed provider delivery',async()=>{const f=authFixture();f.failDelivery();await assert.rejects(()=>f.auth.requestOtp('+255700000001','sms'),e=>e.statusCode===503);assert.ok(f.state.challenges[0].consumedAt);assert.equal(f.state.tokens.length,0);});
+test('concurrent OTP quota is checked inside serialized transaction',async()=>{const f=authFixture();const results=await Promise.allSettled(Array.from({length:8},()=>f.auth.requestOtp('+255700000001','sms')));assert.equal(results.filter(x=>x.status==='fulfilled').length,5);assert.equal(f.sends.length,5);});
+test('wrong OTP attempts survive transaction and exhaust challenge',async()=>{const f=authFixture(),c=await f.auth.requestOtp('+255700000001','sms');const wrong=c.dev_code==='000000'?'111111':'000000';for(let n=0;n<5;n++)await assert.rejects(()=>f.auth.verifyOtp(c.challenge_id,wrong,'device',{}));assert.equal(f.state.challenges[0].attempts,5);assert.ok(f.state.challenges[0].consumedAt);await assert.rejects(()=>f.auth.verifyOtp(c.challenge_id,c.dev_code,'device',{}));assert.equal(f.state.tokens.length,0);});
+test('expiry is enforced without issuing a session',async()=>{const f=authFixture(),c=await f.auth.requestOtp('+255700000001','sms');f.state.challenges[0].expiresAt=new Date(0);await assert.rejects(()=>f.auth.verifyOtp(c.challenge_id,c.dev_code,'device',{}),e=>e.code==='OTP_EXPIRED');});
+test('same OTP simultaneously verified creates one session in transaction double',async()=>{const f=authFixture(),c=await f.auth.requestOtp('+255700000001','sms');const result=await Promise.allSettled([f.auth.verifyOtp(c.challenge_id,c.dev_code,'device',{}),f.auth.verifyOtp(c.challenge_id,c.dev_code,'device',{})]);assert.equal(result.filter(x=>x.status==='fulfilled').length,1);assert.equal(f.state.tokens.length,1);assert.equal(f.state.users.length,1);assert.equal(f.state.audits.length,1);});
+test('suspended user never obtains OTP session',async()=>{const f=authFixture();f.state.users.push({id:crypto.randomUUID(),phoneNumber:'+255700000001',status:'suspended',role:'patient'});const c=await f.auth.requestOtp('+255700000001','sms');await assert.rejects(()=>f.auth.verifyOtp(c.challenge_id,c.dev_code,'device',{}));assert.equal(f.state.tokens.length,0);assert.ok(f.state.challenges[0].consumedAt);});
+test('production-compatible response omits code when echo is disabled',async()=>{const f=authFixture();f.env.OTP_ECHO_IN_RESPONSE=false;const c=await f.auth.requestOtp('+255700000001','sms');assert.equal(c.dev_code,undefined);});
+const security=load('services/gateway/src/services/ussd-security.ts'),flow=load('services/gateway/src/services/ussd-flow.ts');
+function ussdFixture(){
+ const rows=[],calls=[];let gate=Promise.resolve();let mintCount=0;
+ const db={ussdSession:{findUnique:async({where})=>rows.find(x=>x.sessionId===where.sessionId)??null,create:async({data})=>{rows.push({...data});return rows.at(-1);},update:async({where,data})=>Object.assign(rows.find(x=>x.sessionId===where.sessionId),data)},$executeRaw:async()=>1};
+ db.$transaction=fn=>{const job=gate.then(()=>fn(db));gate=job.catch(()=>{});return job;};
+ const env={USSD_CONTEXT_KEY:'01'.repeat(32),GATEWAY_SHARED_SECRET:'fixture',NODE_ENV:'test',USSD_SESSION_TTL_SECONDS:180};
+ const service=load('services/gateway/src/services/ussd.service.ts',{'@a-health/database':{prisma:db},'../config/env.js':{env},'./internalAuth.js':{mintTokenForPhone:async()=>{throw new Error('must inject');}},'./ussd-security.js':security,'./ussd-flow.js':flow});
+ const deps={request:async(...a)=>{calls.push(a);if(a[1]==='/auth/otp/request')return{challenge_id:'challenge',delivery_status:'accepted'};if(a[1]==='/auth/otp/verify'){if(a[3].code!=='123456')throw new Error('invalid');return{access_token:'test-access',user:{role:'patient',phone_number:'+255700000001'}};}if(a[1]==='/auth/logout')return{};return{data:[]};},mint:async()=>{mintCount++;return{token:'scoped-short-lived-token'};}};
+ return {rows,calls,service,deps,get mintCount(){return mintCount;},async send(text,phone='+255700000001'){return service.handleUssdSession('fixture-session',phone,text,deps);}};
+}
+test('USSD starts with consent, not authenticated health data',async()=>{const f=ussdFixture();const r=await f.send('');assert.match(r.response,/OTP/);assert.equal(f.calls.length,0);assert.equal(f.mintCount,0);assert.equal(f.rows[0].context.v,1);});
+test('duplicate callback never resends an OTP',async()=>{const f=ussdFixture();await f.send('');await f.send('1');await f.send('1');assert.equal(f.calls.filter(x=>x[1]==='/auth/otp/request').length,1);});
+test('wrong OTP never grants service access',async()=>{const f=ussdFixture();await f.send('');await f.send('1');await f.send('1*000000');assert.equal(f.mintCount,0);assert.equal(f.rows[0].menuState,'otp');});
+test('verified OTP grants bounded access and revokes transient refresh session',async()=>{const f=ussdFixture();await f.send('');await f.send('1');const r=await f.send('1*123456');assert.match(r.response,/Pata huduma/);assert.ok(f.calls.find(x=>x[1]==='/auth/logout'));await f.send('1*123456*2');assert.equal(f.mintCount,1);assert.ok(!JSON.stringify(f.rows[0].context).includes('123456'));});
+test('session is bound to originating phone',async()=>{const f=ussdFixture();await f.send('');const r=await f.send('1','+255700000002');assert.equal(r.terminate,true);assert.equal(f.calls.length,0);});
+test('expired session cannot be reopened',async()=>{const f=ussdFixture();await f.send('');f.rows[0].expiresAt=new Date(0);assert.equal((await f.send('1')).terminate,true);assert.equal(f.calls.length,0);});
+test('out-of-order cumulative text is rejected before API mutation',async()=>{const f=ussdFixture();await f.send('');assert.equal((await f.send('1*1')).terminate,true);assert.equal(f.calls.length,0);});

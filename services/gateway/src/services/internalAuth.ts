@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import { createTokenService, type AccessTokenClaims } from '@a-health/http';
 import { env } from '../config/env.js';
@@ -18,7 +19,7 @@ const tokens = createTokenService({
  * account belongs to auth's own OTP flow — reimplementing it here would be
  * the second business-rule path this design exists to prevent.
  */
-export async function mintTokenForPhone(phoneNumber: string): Promise<{ token: string; claims: AccessTokenClaims } | null> {
+export async function mintTokenForPhone(phoneNumber: string, otpVerified = false): Promise<{ token: string; claims: AccessTokenClaims } | null> {
   const user = await prisma.user.findUnique({
     where: { phoneNumber },
     include: { patientProfile: true, clinicianProfile: true },
@@ -39,8 +40,8 @@ export async function mintTokenForPhone(phoneNumber: string): Promise<{ token: s
     ppid: user.patientProfile?.id,
     cpid: user.clinicianProfile?.id,
     vst: user.clinicianProfile?.verificationStatus,
-    amr: 'otp',
-    jti: `gw-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    amr: otpVerified ? 'otp' : 'gateway',
+    jti: randomUUID(),
   };
   return { token: tokens.sign(claims), claims };
 }

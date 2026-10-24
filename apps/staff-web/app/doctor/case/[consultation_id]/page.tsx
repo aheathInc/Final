@@ -10,6 +10,7 @@ import { OrderInvestigation } from '@/components/OrderInvestigation';
 import { ReferForOpinion } from '@/components/ReferForOpinion';
 import { urgencyStyle } from '@/lib/urgency';
 import { dateTime } from '@/lib/format';
+import { BillIssuer } from '@/components/BillIssuer';
 
 export default async function CasePage({ params }: { params: { consultation_id: string } }) {
   const session = await getServerSession(authOptions);
@@ -70,6 +71,7 @@ export default async function CasePage({ params }: { params: { consultation_id: 
         </div>
         <OrderInvestigation careThreadId={c.care_thread_id} consultationId={c.id} />
         <ReferForOpinion careThreadId={c.care_thread_id} />
+        <BillIssuer consultationId={c.id} />
       </div>
     </PageShell>
   );

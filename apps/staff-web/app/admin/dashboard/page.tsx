@@ -6,6 +6,8 @@ import { MetricBars } from '@/components/premium/MetricBars';
 import { Icon } from '@/components/premium/Icon';
 import { serverGet } from '@/lib/serverToken';
 import type { ClinicianDirectoryEntry, Device, EmergencyRequest, Facility, IncidentReport, Page, Payment } from '@/lib/api';
+import { AdminPopulationPanel } from '@/components/admin/AdminPopulationPanel';
+import type { AdminAnalyticsReport } from '@/components/admin/types';
 
 function Stat({ label, value, href }: { label: string; value: number | string; href: string }) {
   return (
@@ -17,13 +19,14 @@ function Stat({ label, value, href }: { label: string; value: number | string; h
 }
 
 export default async function AdminDashboard() {
-  const [emergencies, verifications, payments, devices, facilities, incidents, session] = await Promise.all([
+  const [emergencies, verifications, payments, devices, facilities, incidents, population, session] = await Promise.all([
     serverGet<Page<EmergencyRequest>>('/emergency-requests?limit=20'),
     serverGet<Page<ClinicianDirectoryEntry>>('/clinicians?verification_status=pending&limit=20'),
     serverGet<Page<Payment>>('/payments?limit=20'),
     serverGet<{ data: Device[] }>('/devices'),
     serverGet<Page<Facility>>('/facilities?limit=20'),
     serverGet<Page<IncidentReport>>('/incident-reports?limit=20'),
+    serverGet<AdminAnalyticsReport>('/surveillance/admin-analytics?days=90'),
     getServerSession(authOptions),
   ]);
 
@@ -42,6 +45,10 @@ export default async function AdminDashboard() {
         <Stat label="Active devices" value={devices ? activeDevices : 'Unavailable'} href="/admin/devices" />
         <Stat label="Open incidents" value={incidents ? openIncidents : 'Unavailable'} href="/admin/incidents" />
       </section>
+
+      {session?.user?.role === 'platform_admin' && (population
+        ? <AdminPopulationPanel data={population} />
+        : <Card><p className="ahp-caption">Population analytics are temporarily unavailable. No values are inferred.</p></Card>)}
 
       <section className="ahp-bento">
         <Card><div className="ahp-section-heading"><h2>Care operations</h2><span className="ahp-caption">Choose your next action</span></div>

@@ -27,7 +27,7 @@ export interface AccessTokenClaims {
   vst?: string;
   did?: string;
   /** How the session was established. Password changes depend on this. */
-  amr?: 'otp' | 'password';
+  amr?: 'otp' | 'password' | 'gateway';
   jti: string;
 }
 

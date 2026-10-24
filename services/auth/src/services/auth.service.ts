@@ -1,7 +1,8 @@
-import { prisma } from '@a-health/database';
+import { prisma, type Prisma } from '@a-health/database';
+import { sendSms } from '@a-health/http/sms';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'node:crypto';
-import { env } from '../config/env.js';
+import { env, otpSmsSettings } from '../config/env.js';
 import { signAccessToken } from '../utils/jwt.js';
 import {
   generateOpaqueToken,
@@ -35,22 +36,46 @@ async function issueOtp(
   purpose: string,
   channel: string,
 ) {
+  if (channel !== 'sms') {
+    throw new AppError('VALIDATION_FAILED', 422, 'OTP delivery currently supports SMS only.');
+  }
   const code = generateOtpCode(6);
-  const challenge = await prisma.otpChallenge.create({
-    data: {
+  const codeHash = await bcrypt.hash(code, SALT_ROUNDS);
+  const challenge = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`otp-request:${phoneNumber}`}, 0))`;
+    const recent = await tx.otpChallenge.count({
+      where: { phoneNumber, createdAt: { gte: new Date(Date.now() - 3_600_000) } },
+    });
+    if (recent >= env.OTP_REQUESTS_PER_HOUR) {
+      throw new AppError('RATE_LIMITED', 429, 'Too many verification codes requested. Try again later.');
+    }
+    return tx.otpChallenge.create({
+      data: {
       phoneNumber,
-      codeHash: await bcrypt.hash(code, SALT_ROUNDS),
-      deliveryChannel: channel as never,
+      codeHash,
+      deliveryChannel: 'sms',
       purpose,
       maxAttempts: env.OTP_MAX_ATTEMPTS,
       expiresAt: new Date(Date.now() + env.OTP_TTL_SECONDS * 1000),
-    },
+      },
+    });
   });
+
+  const delivery = await sendSms(
+    otpSmsSettings,
+    phoneNumber,
+    `A-Health: verification code ${code}. Expires in ${Math.ceil(env.OTP_TTL_SECONDS / 60)} minutes. Do not share this code.`,
+    challenge.id,
+  );
+  if (!delivery.ok) {
+    await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date() } });
+    throw new AppError('SERVICE_UNAVAILABLE', 503, 'We could not send a verification code. Please try again later.');
+  }
 
   // Console delivery is a separate, explicit local-only capability. Response
   // echo is independently controlled by OTP_ECHO_IN_RESPONSE.
   if (env.OTP_LOG_TO_CONSOLE) {
-    console.log(`[dev] OTP for ${maskPhone(phoneNumber)} (${purpose}): ${code}`);
+    console.info('[auth] Local OTP challenge created; code logging is disabled.');
   }
 
   return {
@@ -70,6 +95,8 @@ function challengeResponse(
     expires_at: challenge.expiresAt.toISOString(),
     delivery_channel: challenge.deliveryChannel,
     masked_destination: maskPhone(phoneNumber),
+    delivery_status: otpSmsSettings.mode === 'console' ? 'simulated' : 'accepted',
+    delivery_environment: otpSmsSettings.mode === 'console' ? 'simulated' : otpSmsSettings.environment,
     ...(devCode ? { dev_code: devCode } : {}),
   };
 }
@@ -249,7 +276,7 @@ export async function requestOtp(phoneNumber: string, channel: string) {
   // No user? Still burn a challenge and answer identically. The caller cannot
   // tell registered numbers from unregistered ones.
   const { challenge, devCode } = await issueOtp(user?.id ?? null, phoneNumber, 'login', channel);
-  return challengeResponse(challenge, phoneNumber, user ? devCode : undefined);
+  return challengeResponse(challenge, phoneNumber, devCode);
 }
 
 export async function verifyOtp(
@@ -258,98 +285,42 @@ export async function verifyOtp(
   deviceId: string | undefined,
   meta: RequestMeta,
 ) {
-  const challenge = await prisma.otpChallenge.findUnique({ where: { id: challengeId } });
-  if (!challenge) throw unauthenticated('OTP_INVALID', 'Verification code is not valid');
-  if (challenge.consumedAt) throw unauthenticated('OTP_INVALID', 'Code has already been used');
-  if (challenge.expiresAt < new Date()) {
-    throw unauthenticated('OTP_EXPIRED', 'Verification code has expired');
-  }
-  if (challenge.attempts >= challenge.maxAttempts) {
-    throw unauthenticated('OTP_ATTEMPTS_EXCEEDED', 'Too many attempts. Request a new code.');
-  }
 
-  const matches = await bcrypt.compare(code, challenge.codeHash);
-  if (!matches) {
-    const updated = await prisma.otpChallenge.update({
-      where: { id: challengeId },
-      data: { attempts: { increment: 1 } },
-    });
-    // Exhausting the attempts kills the challenge outright rather than leaving
-    // it open to further guessing.
-    if (updated.attempts >= updated.maxAttempts) {
-      await prisma.otpChallenge.update({
-        where: { id: challengeId },
-        data: { consumedAt: new Date() },
-      });
-      throw unauthenticated('OTP_ATTEMPTS_EXCEEDED', 'Too many attempts. Request a new code.');
+  // Return failures from the transaction so incorrect-attempt counters COMMIT.
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM otp_challenges WHERE id = ${challengeId}::uuid FOR UPDATE`;
+    const challenge = await tx.otpChallenge.findUnique({where:{id:challengeId}});
+    const fail = (code:'OTP_INVALID'|'OTP_EXPIRED'|'OTP_ATTEMPTS_EXCEEDED', message:string) => ({ error:unauthenticated(code,message) });
+    if (!challenge || challenge.consumedAt) return fail('OTP_INVALID','Verification code is not valid');
+    if (challenge.expiresAt <= new Date()) return fail('OTP_EXPIRED','Verification code has expired');
+    if (challenge.attempts >= challenge.maxAttempts) return fail('OTP_ATTEMPTS_EXCEEDED','Too many attempts. Request a new code.');
+    if (!await bcrypt.compare(code,challenge.codeHash)) {
+      const exhausted = challenge.attempts + 1 >= challenge.maxAttempts;
+      await tx.otpChallenge.update({where:{id:challenge.id},data:{attempts:{increment:1},...(exhausted?{consumedAt:new Date()}:{} )}});
+      return fail(exhausted?'OTP_ATTEMPTS_EXCEEDED':'OTP_INVALID',exhausted?'Too many attempts. Request a new code.':'Verification code is not valid');
     }
-    throw unauthenticated('OTP_INVALID', 'Verification code is not valid');
-  }
-
-  let user = await prisma.user.findUnique({
-    where: { phoneNumber: challenge.phoneNumber },
-    include: { patientProfile: true, clinicianProfile: true },
-  });
-
-  if (!user) {
-    user = await prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({
-        data: {
-          phoneNumber: challenge.phoneNumber,
-          role: 'patient',
-          status: 'active',
-          fullName: null,
-          preferredLanguage: 'en',
-        },
-        include: { patientProfile: true, clinicianProfile: true },
-      });
-      await tx.patientProfile.create({
-        data: {
-          userId: created.id,
-          fullName: 'Patient',
-        },
-      });
-      return await tx.user.findUniqueOrThrow({
-        where: { id: created.id },
-        include: { patientProfile: true, clinicianProfile: true },
-      });
-    });
-  }
-
-  await prisma.otpChallenge.update({
-    where: { id: challengeId },
-    data: { consumedAt: new Date() },
-  });
-
-  // A clinician stays pending_verification until an admin approves the licence.
-  // Verifying a phone number proves possession of a handset, not a right to
-  // practise medicine.
-  if (user.status === 'pending_verification' && user.role === 'patient') {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { status: 'active', version: { increment: 1 } },
-    });
-    user.status = 'active';
-  }
-
-  if (user.status === 'suspended' || user.status === 'deactivated') {
-    throw forbidden('FORBIDDEN', 'This account is not active');
-  }
-
-  await appendAudit({
-    actorUserId: user.id,
-    action: 'auth.otp_verified',
-    entityType: 'users',
-    entityId: user.id,
-    ipAddress: meta.ip,
-    requestId: meta.requestId,
-  });
-
-  const session = await issueSession(user, deviceId);
-  return {
-    ...session,
-    user: serialiseSessionUser(user),
-  };
+    // Distinct challenges for one phone must not concurrently create two identities.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`otp-user:${challenge.phoneNumber}`},0))`;
+    let user = await tx.user.findUnique({where:{phoneNumber:challenge.phoneNumber},include:{patientProfile:true,clinicianProfile:true}});
+    if (!user) {
+      const created=await tx.user.create({data:{phoneNumber:challenge.phoneNumber,role:'patient',status:'active',fullName:null,preferredLanguage:'sw'}});
+      const profile=await tx.patientProfile.create({data:{userId:created.id,fullName:'Patient'}});
+      await recordChange(tx,{entity:'patient_profiles',entityId:profile.id,op:'create',version:profile.version,patientProfileId:profile.id});
+      user=await tx.user.findUniqueOrThrow({where:{id:created.id},include:{patientProfile:true,clinicianProfile:true}});
+    }
+    if (user.status === 'suspended' || user.status === 'deactivated') {
+      await tx.otpChallenge.update({where:{id:challenge.id},data:{consumedAt:new Date()}});
+      return {error:forbidden('FORBIDDEN','This account is not active')};
+    }
+    await tx.otpChallenge.update({where:{id:challenge.id},data:{consumedAt:new Date()}});
+    if (user.status==='pending_verification' && user.role==='patient') {
+      await tx.user.update({where:{id:user.id},data:{status:'active',version:{increment:1}}}); user.status='active';
+    }
+    await appendAudit({actorUserId:user.id,action:'auth.otp_verified',entityType:'users',entityId:user.id,ipAddress:meta.ip,requestId:meta.requestId},tx);
+    return {session:{...await issueSession(user,deviceId,undefined,'otp',tx),user:serialiseSessionUser(user)}};
+  },{maxWait:10_000,timeout:15_000});
+  if ('error' in result) throw result.error;
+  return result.session;
 }
 
 // ---------------------------------------------------------------------------
@@ -446,10 +417,11 @@ async function issueSession(
   deviceId?: string,
   familyId: string = randomUUID(),
   amr: 'otp' | 'password' = 'otp',
+  db: Prisma.TransactionClient = prisma,
 ) {
   const refreshToken = generateOpaqueToken();
 
-  await prisma.refreshToken.create({
+  await db.refreshToken.create({
     data: {
       userId: user.id,
       tokenHash: sha256(refreshToken),
@@ -703,7 +675,7 @@ export async function updateMe(userId: string, input: UpdateMeInput) {
  */
 export async function setPassword(
   userId: string,
-  amr: 'otp' | 'password' | undefined,
+  amr: 'otp' | 'password' | 'gateway' | undefined,
   newPassword: string,
   currentPassword: string | undefined,
   meta: RequestMeta,

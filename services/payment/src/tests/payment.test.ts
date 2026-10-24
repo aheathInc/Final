@@ -1,301 +1,54 @@
-import { after, before, describe, it } from 'node:test';
+import { before, after, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { randomInt, randomUUID, createHmac } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
-import type { AppError } from '@a-health/http';
-import * as intents from '../services/intent.service.js';
-import * as refunds from '../services/refund.service.js';
-import { handleWebhook } from '../services/webhook.service.js';
-import { verifyHmacSignature } from '../services/webhookAuth.js';
-import { createConsoleAdapter, type ProviderAdapter } from '../adapters/provider.js';
-import { env } from '../config/env.js';
+import { createConsoleAdapter } from '../adapters/provider.js';
+import { issueBill, listBills } from '../services/bill.service.js';
+import { createPaymentIntent, getPaymentIntent, cancelPaymentIntent } from '../services/intent.service.js';
+import { settleVerifiedCharge } from '../services/settlement.service.js';
+import { refundPayment } from '../services/refund.service.js';
+import { paymentSettings } from '../config/env.js';
 
-const testTarget = assertIsolatedLocalTestTarget(process.env);
-
-const meta = { ip: '127.0.0.1', requestId: 'test' };
-const users: string[] = [];
-const intentIds: string[] = [];
-
-before(async () => { await verifyLocalTestIdentity(prisma, testTarget); });
-
-after(async () => {
-  for (const id of intentIds) {
-    const intent = await prisma.paymentIntent.findUnique({ where: { id } }).catch(() => null);
-    if (intent?.paymentId) {
-      await prisma.paymentRefund.deleteMany({ where: { paymentId: intent.paymentId } }).catch(() => undefined);
-      await prisma.paymentIntent.update({ where: { id }, data: { paymentId: null } }).catch(() => undefined);
-      await prisma.payment.delete({ where: { id: intent.paymentId } }).catch(() => undefined);
-    }
-    await prisma.paymentIntent.delete({ where: { id } }).catch(() => undefined);
-  }
-  for (const id of users) {
-    await prisma.user.delete({ where: { id } }).catch(() => undefined);
-  }
-  await prisma.$disconnect();
-});
-
-async function makeUser() {
-  const user = await prisma.user.create({
-    data: { phoneNumber: `+2557${randomInt(10_000_000, 99_999_999)}`, role: 'patient', status: 'active', fullName: 'Payment Test' },
-  });
-  users.push(user.id);
-  return user;
+// Changed contract: clients may no longer set prices or auto-settle cash/card.
+// Fixtures are retained in the explicitly isolated schema for inspection.
+const target = assertIsolatedLocalTestTarget(process.env);
+if (paymentSettings.mode !== 'console') throw new Error('DB regression never charges a provider: select console.');
+before(async () => { await verifyLocalTestIdentity(prisma,target); });
+after(async () => { await prisma.$disconnect(); });
+async function fixture() {
+  const phone=()=>`+2557${randomInt(10_000_000,99_999_999)}`;
+  const p=await prisma.user.create({data:{phoneNumber:phone(),role:'patient',status:'active',fullName:'Synthetic Billing Patient'}});
+  const profile=await prisma.patientProfile.create({data:{userId:p.id,fullName:'Synthetic Billing Patient'}});
+  const staff=await prisma.user.create({data:{phoneNumber:phone(),role:'clinician',status:'active',fullName:'Synthetic Billing Clinician'}});
+  const doctor=await prisma.clinicianProfile.create({data:{userId:staff.id,licenseNumber:`TEST-${randomUUID()}`,specialty:'general_practice',verificationStatus:'verified'}});
+  const thread=await prisma.careThread.create({data:{patientProfileId:profile.id}});
+  const visit=await prisma.consultationRequest.create({data:{careThreadId:thread.id,patientProfileId:profile.id,assignedClinicianId:doctor.id,channel:'app',urgencyLevel:'routine',triageRuleVersion:'test-billing',status:'in_progress',slaDeadlineAt:new Date(Date.now()+3600000)}});
+  const caller={sub:p.id,role:'patient'},clinician={sub:staff.id,role:'clinician'};
+  const input={consultation_id:visit.id,amount:15000,currency:'TZS',title:'Consultation'};
+  const bill=await issueBill(clinician,input);
+  const adapters={mpesa:createConsoleAdapter('mpesa')};
+  const checkout={bill_id:bill.id,method:'mobile_money',provider:'mpesa' as const,payer_phone:p.phoneNumber};
+  return {caller,clinician,input,bill,adapters,checkout,visit};
 }
-
-const mpesaStub: Record<string, ProviderAdapter> = { mpesa: createConsoleAdapter('mpesa') };
-
-describe('cash and card settle synchronously', () => {
-  it('creates a succeeded intent and a matching Payment in one step', async () => {
-    const user = await makeUser();
-    const result = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 5000, currency: 'TZS', method: 'cash', purpose: 'consultation_fee' },
-      {},
-    );
-    intentIds.push(result.id);
-    assert.equal(result.status, 'succeeded');
-    assert.ok(result.payment_id);
-
-    const payment = await prisma.payment.findUniqueOrThrow({ where: { id: result.payment_id! } });
-    assert.equal(Number(payment.amount), 5000);
-    assert.equal(payment.status, 'succeeded');
-  });
-});
-
-describe('mobile money', () => {
-  it('requires a payer phone', async () => {
-    const user = await makeUser();
-    await assert.rejects(
-      () => intents.createPaymentIntent(
-        { sub: user.id, role: 'patient' },
-        { amount: 3000, currency: 'TZS', method: 'mobile_money', purpose: 'pharmacy_purchase' },
-        mpesaStub,
-      ),
-      (e: AppError) => e.code === 'VALIDATION_FAILED',
-    );
-  });
-
-  it('goes to processing with a client action while waiting for the provider', async () => {
-    const user = await makeUser();
-    const result = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 3000, currency: 'TZS', method: 'mobile_money', purpose: 'pharmacy_purchase', payer_phone: '+255712345678' },
-      mpesaStub,
-    );
-    intentIds.push(result.id);
-    assert.equal(result.status, 'processing');
-    assert.ok(result.provider_reference);
-    assert.ok(result.client_action);
-  });
-
-  it('fails cleanly when no provider is configured', async () => {
-    const user = await makeUser();
-    await assert.rejects(
-      () => intents.createPaymentIntent(
-        { sub: user.id, role: 'patient' },
-        { amount: 1000, currency: 'TZS', method: 'mobile_money', purpose: 'other', payer_phone: '+255712345678' },
-        {},
-      ),
-      (e: AppError) => e.code === 'PAYMENT_METHOD_UNAVAILABLE',
-    );
-    const failed = await prisma.paymentIntent.findFirstOrThrow({
-      where: { payerUserId: user.id, status: 'failed' },
-    });
-    intentIds.push(failed.id);
-  });
-});
-
-describe('cancellation', () => {
-  it('cancels a pending mobile money intent', async () => {
-    const user = await makeUser();
-    const created = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 2000, currency: 'TZS', method: 'mobile_money', purpose: 'other', payer_phone: '+255712345678' },
-      mpesaStub,
-    );
-    intentIds.push(created.id);
-    const cancelled = await intents.cancelPaymentIntent(created.id, { sub: user.id, role: 'patient' }, meta);
-    assert.equal(cancelled.status, 'cancelled');
-  });
-
-  it('refuses to cancel an already-settled intent', async () => {
-    const user = await makeUser();
-    const created = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 2000, currency: 'TZS', method: 'cash', purpose: 'other' },
-      {},
-    );
-    intentIds.push(created.id);
-    await assert.rejects(
-      () => intents.cancelPaymentIntent(created.id, { sub: user.id, role: 'patient' }, meta),
-      (e: AppError) => e.code === 'STATE_TRANSITION_INVALID',
-    );
-  });
-});
-
-describe('payment ownership', () => {
-  it('lists only the current patient\u2019s payment records', async () => {
-    const owner = await makeUser();
-    const other = await makeUser();
-    const ownIntent = await intents.createPaymentIntent(
-      { sub: owner.id, role: 'patient' },
-      { amount: 1000, currency: 'TZS', method: 'cash', purpose: 'other' },
-      {},
-    );
-    const otherIntent = await intents.createPaymentIntent(
-      { sub: other.id, role: 'patient' },
-      { amount: 2000, currency: 'TZS', method: 'cash', purpose: 'other' },
-      {},
-    );
-    intentIds.push(ownIntent.id, otherIntent.id);
-
-    const result = await intents.listPayments(
-      { sub: owner.id, role: 'patient' },
-      { limit: 25 },
-    );
-    assert.deepEqual(
-      result.data.map((row) => (row as { payment_intent_id: string }).payment_intent_id),
-      [ownIntent.id],
-    );
-  });
-
-  it('denies a different patient reading another patient\u2019s payment intent', async () => {
-    const owner = await makeUser();
-    const other = await makeUser();
-    const intent = await intents.createPaymentIntent(
-      { sub: owner.id, role: 'patient' },
-      { amount: 1000, currency: 'TZS', method: 'cash', purpose: 'other' },
-      {},
-    );
-    intentIds.push(intent.id);
-
-    await assert.rejects(
-      () => intents.getPaymentIntent(intent.id, { sub: other.id, role: 'patient' }),
-      (e: AppError) => e.code === 'NOT_RESOURCE_OWNER',
-    );
-  });
-});
-
-describe('webhook signature', () => {
-  it('verifies a correctly signed payload', () => {
-    const secret = 'test-secret';
-    const body = JSON.stringify({ status: 'succeeded', provider_reference: 'x' });
-    const sig = createHmac('sha256', secret).update(body, 'utf8').digest('hex');
-    assert.equal(verifyHmacSignature(body, sig, secret), true);
-  });
-
-  it('rejects a tampered payload', () => {
-    const secret = 'test-secret';
-    const body = JSON.stringify({ status: 'succeeded', provider_reference: 'x' });
-    const sig = createHmac('sha256', secret).update(body, 'utf8').digest('hex');
-    assert.equal(verifyHmacSignature(body + 'tampered', sig, secret), false);
-  });
-
-  it('rejects a missing signature', () => {
-    assert.equal(verifyHmacSignature('{}', undefined, 'secret'), false);
-  });
-});
-
-describe('webhook settlement', () => {
-  // env.ts parses process.env into a frozen object once, at module import
-  // time. Mutating process.env after that point (as a previous version of
-  // this test tried to do) has no effect on what webhook.service.ts already
-  // captured — so the secret used here has to be the one actually baked into
-  // .env at startup, not one injected at runtime.
-  const secret = env.WEBHOOK_SECRET_MPESA;
-
-  it('settles a processing intent into a Payment', async () => {
-    const user = await makeUser();
-    const created = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 4000, currency: 'TZS', method: 'mobile_money', purpose: 'consultation_fee', payer_phone: '+255712345678' },
-      mpesaStub,
-    );
-    intentIds.push(created.id);
-
-    const payload = { provider_reference: created.provider_reference ?? undefined, status: 'succeeded' };
-    const body = JSON.stringify(payload);
-    const sig = createHmac('sha256', secret).update(body, 'utf8').digest('hex');
-
-    const { handled } = await handleWebhook('mpesa', body, sig, payload);
-    assert.equal(handled, true);
-
-    const reloaded = await prisma.paymentIntent.findUniqueOrThrow({ where: { id: created.id } });
-    assert.equal(reloaded.status, 'succeeded');
-    assert.ok(reloaded.paymentId);
-  });
-
-  it('rejects a webhook with a bad signature', async () => {
-    await assert.rejects(
-      () => handleWebhook('mpesa', '{}', 'wrong-signature', { provider_reference: 'nope', status: 'succeeded' }),
-      (e: AppError) => e.code === 'TOKEN_INVALID',
-    );
-  });
-});
-
-describe('refunds', () => {
-  it('refunds the full amount by default and marks refunded', async () => {
-    const user = await makeUser();
-    const created = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 6000, currency: 'TZS', method: 'cash', purpose: 'consultation_fee' },
-      {},
-    );
-    intentIds.push(created.id);
-
-    const refund = await refunds.refundPayment(
-      created.payment_id!, { sub: randomUUID(), role: 'platform_admin' }, { reason: 'Patient did not receive service' }, meta,
-    );
-    assert.equal(refund.amount, 6000);
-
-    const payment = await prisma.payment.findUniqueOrThrow({ where: { id: created.payment_id! } });
-    assert.equal(payment.status, 'refunded');
-  });
-
-  it('allows a second partial refund and marks partially_refunded first', async () => {
-    const user = await makeUser();
-    const created = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 10000, currency: 'TZS', method: 'cash', purpose: 'consultation_fee' },
-      {},
-    );
-    intentIds.push(created.id);
-
-    await refunds.refundPayment(created.payment_id!, { sub: randomUUID(), role: 'platform_admin' }, { amount: 3000, reason: 'partial' }, meta);
-    const midway = await prisma.payment.findUniqueOrThrow({ where: { id: created.payment_id! } });
-    assert.equal(midway.status, 'partially_refunded');
-
-    await refunds.refundPayment(created.payment_id!, { sub: randomUUID(), role: 'platform_admin' }, { amount: 7000, reason: 'remainder' }, meta);
-    const final = await prisma.payment.findUniqueOrThrow({ where: { id: created.payment_id! } });
-    assert.equal(final.status, 'refunded');
-  });
-
-  it('refuses a refund exceeding what remains', async () => {
-    const user = await makeUser();
-    const created = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 1000, currency: 'TZS', method: 'cash', purpose: 'other' },
-      {},
-    );
-    intentIds.push(created.id);
-    await assert.rejects(
-      () => refunds.refundPayment(created.payment_id!, { sub: randomUUID(), role: 'platform_admin' }, { amount: 5000, reason: 'too much' }, meta),
-      (e: AppError) => e.code === 'VALIDATION_FAILED',
-    );
-  });
-
-  it('refuses a refund from a non-finance role', async () => {
-    const user = await makeUser();
-    const created = await intents.createPaymentIntent(
-      { sub: user.id, role: 'patient' },
-      { amount: 1000, currency: 'TZS', method: 'cash', purpose: 'other' },
-      {},
-    );
-    intentIds.push(created.id);
-    await assert.rejects(
-      () => refunds.refundPayment(created.payment_id!, { sub: randomUUID(), role: 'patient' }, { reason: 'trying' }, meta),
-      (e: AppError) => e.code === 'ROLE_NOT_PERMITTED',
-    );
-  });
+async function checkedCharge(f:Awaited<ReturnType<typeof fixture>>) {
+ const dto=await createPaymentIntent(f.caller,f.checkout,f.adapters);
+ const row=await prisma.paymentIntent.findUniqueOrThrow({where:{id:dto.id}});
+ return {dto,row,charge:{reference:row.id,transactionId:row.providerTransactionId!,amount:15000,currency:'TZS',status:'succeeded' as const}};
+}
+describe('server-issued consultation billing',()=>{
+ it('only assigned verified clinician or platform admin may issue',async()=>{const f=await fixture();await assert.rejects(()=>issueBill(f.caller,f.input));await assert.rejects(()=>issueBill({sub:randomUUID(),role:'clinician'},f.input));});
+ it('idempotent issue returns the same bill; changing price conflicts',async()=>{const f=await fixture();assert.equal((await issueBill(f.clinician,f.input)).id,f.bill.id);await assert.rejects(()=>issueBill(f.clinician,{...f.input,amount:1}));});
+ it('only payer sees own bills',async()=>{const f=await fixture(),other=await fixture();assert.ok((await listBills(f.caller)).data.some(x=>x.id===f.bill.id));assert.ok(!(await listBills(other.caller)).data.some(x=>x.id===f.bill.id));});
+ it('rejects patient-supplied prices',async()=>{const f=await fixture();await assert.rejects(()=>createPaymentIntent(f.caller,{...f.checkout,amount:1},f.adapters));});
+ it('rejects cash/card client success shortcut',async()=>{const f=await fixture();for(const method of ['cash','card'])await assert.rejects(()=>createPaymentIntent(f.caller,{...f.checkout,method},f.adapters));});
+ it('rejects another payer and expired bills',async()=>{const f=await fixture(),other=await fixture();await assert.rejects(()=>createPaymentIntent(other.caller,f.checkout,f.adapters));await prisma.careBill.update({where:{id:f.bill.id},data:{expiresAt:new Date(0)}});await assert.rejects(()=>createPaymentIntent(f.caller,f.checkout,f.adapters));});
+ it('reserves one intent under actual concurrent requests',async()=>{const f=await fixture();const [a,b]=await Promise.all([createPaymentIntent(f.caller,f.checkout,f.adapters),createPaymentIntent(f.caller,f.checkout,f.adapters)]);assert.equal(a.id,b.id);assert.equal(await prisma.paymentIntent.count({where:{billId:f.bill.id}}),1);});
+ it('pending does not create receipt; non-owner cannot read intent',async()=>{const f=await fixture();const {dto}=await checkedCharge(f);assert.equal(dto.status,'processing');assert.equal(dto.environment,'simulated');assert.equal(await prisma.payment.count({where:{paymentIntentId:dto.id}}),0);await assert.rejects(()=>getPaymentIntent(dto.id,{sub:randomUUID(),role:'patient'}));});
+ it('cannot cancel an in-flight provider request locally',async()=>{const f=await fixture(),{dto}=await checkedCharge(f);await assert.rejects(()=>cancelPaymentIntent(dto.id,f.caller,{}));});
+ it('rejects wrong amount/currency/transaction',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);for(const edit of [{amount:1},{currency:'USD'},{transactionId:'wrong'}])await assert.rejects(()=>settleVerifiedCharge({...charge,...edit},'console','simulated'));assert.equal(await prisma.payment.count({where:{paymentIntentId:charge.reference}}),0);});
+ it('deduplicates actual concurrent settlement and keeps notification/audit atomic',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);await Promise.all([settleVerifiedCharge(charge,'console','simulated'),settleVerifiedCharge(charge,'console','simulated')]);assert.equal(await prisma.payment.count({where:{paymentIntentId:charge.reference}}),1);assert.equal((await prisma.careBill.findUniqueOrThrow({where:{id:f.bill.id}})).status,'paid');assert.equal(await prisma.notificationLog.count({where:{userId:f.caller.sub,templateKey:'payment.simulated'}}),1);});
+ it('live callback cannot settle simulated intent',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);assert.equal((await settleVerifiedCharge(charge,'flutterwave','live')).handled,false);});
+ it('late success after failed state is blocked for manual reconciliation',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);await settleVerifiedCharge({...charge,status:'failed'},'console','simulated');await assert.rejects(()=>settleVerifiedCharge(charge,'console','simulated'));});
+ it('real-provider refund is refused rather than falsely recorded',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);await settleVerifiedCharge(charge,'console','simulated');const p=await prisma.payment.findUniqueOrThrow({where:{paymentIntentId:charge.reference}});await prisma.payment.update({where:{id:p.id},data:{processor:'flutterwave',environment:'test'}});await assert.rejects(()=>refundPayment(p.id,{sub:f.clinician.sub,role:'platform_admin'},{reason:'Synthetic test'},{}));assert.equal(await prisma.paymentRefund.count({where:{paymentId:p.id}}),0);});
 });

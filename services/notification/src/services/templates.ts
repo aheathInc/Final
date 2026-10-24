@@ -13,17 +13,25 @@ export type LanguageCode = 'sw' | 'en' | 'fr' | 'ha' | 'am';
 type Template = (vars: Record<string, string>) => string;
 
 const TEMPLATES: Record<string, Partial<Record<LanguageCode, Template>>> = {
+  'payment.verified': {
+    sw:(v)=>`A-Health: Malipo ya ${v.reference??'bili yako'} yamethibitishwa. Fungua A-Health kwa risiti.`,
+    en:(v)=>`A-Health: Payment for ${v.reference??'your bill'} is verified. Open A-Health for your receipt.`,
+  },
+  'payment.simulated': {
+    sw:()=> 'A-Health MAJARIBIO: Hali ya malipo ya mfano imesasishwa. Hakuna fedha halisi zilizothibitishwa.',
+    en:()=> 'A-Health TEST: Sandbox payment updated. No real funds were verified.',
+  },
   'thread.message': {
-    sw: (v) => `A-health: ${v.sender ?? 'Daktari'} amekutumia ujumbe. Piga *150*88# au fungua app kusoma.`,
-    en: (v) => `A-health: ${v.sender ?? 'Your clinician'} sent you a message. Dial *150*88# or open the app to read it.`,
+    sw: (v) => `A-health: ${v.sender ?? 'Daktari'} amekutumia ujumbe. Fungua A-Health au tumia huduma ya USSD iliyoidhinishwa.`,
+    en: (v) => `A-health: ${v.sender ?? 'Your clinician'} sent you a message. Open A-Health or use the approved USSD service.`,
   },
   'consultation.assigned': {
-    sw: () => 'A-health: Daktari amepokea ombi lako. Fungua app au piga *150*88# kuendelea.',
-    en: () => 'A-health: A clinician has picked up your request. Open the app or dial *150*88# to continue.',
+    sw: () => 'A-health: Daktari amepokea ombi lako. Fungua A-Health au tumia USSD iliyoidhinishwa.',
+    en: () => 'A-health: A clinician has picked up your request. Open A-Health or use the approved USSD service.',
   },
   'consultation.completed': {
-    sw: () => 'A-health: Una taarifa mpya. Fungua app au piga *150*88# kwa maelezo.',
-    en: () => 'A-health: You have an update. Open the app or dial *150*88# for details.',
+    sw: () => 'A-health: Una taarifa mpya. Fungua A-Health kwa maelezo.',
+    en: () => 'A-health: You have an update. Open A-Health for details.',
   },
   'referral.update': {
     sw: () => 'A-health: Kuna taarifa mpya ya rufaa yako. Fungua app kuangalia hali na hatua zinazofuata.',
@@ -48,12 +56,12 @@ const TEMPLATES: Record<string, Partial<Record<LanguageCode, Template>>> = {
     en: () => 'A-Health: Your follow-up check-in is due. Open the app to respond or contact your care team.',
   },
   'adherence.reminder': {
-    sw: () => 'A-health: Ni wakati wa dawa yako. Jibu 1 ikiwa umetumia, 2 ikiwa hujatumia.',
-    en: () => 'A-health: It is time for your medicine. Reply 1 if taken, 2 if not.',
+    sw: () => 'A-health: Una kikumbusho cha huduma. Fungua app au wasiliana na timu yako kwa maelezo.',
+    en: () => 'A-health: You have a care reminder. Open the app or contact your care team for details.',
   },
   'checkin.due': {
-    sw: () => 'A-health: Ni wakati wa kujibu maswali ya ufuatiliaji. Piga *150*88# au fungua app.',
-    en: () => 'A-health: Time for your follow-up check-in. Dial *150*88# or open the app.',
+    sw: () => 'A-health: Ni wakati wa kujibu maswali ya ufuatiliaji. Fungua A-Health.',
+    en: () => 'A-health: Time for your follow-up check-in. Open A-Health.',
   },
   'screening.invitation': {
     sw: () => 'A-health: Una taarifa mpya ya huduma ya afya. Fungua app kwa maelezo.',

@@ -199,6 +199,9 @@ export interface IncidentReport {
 }
 
 export interface Payment {
+  environment?: 'live' | 'test' | 'simulated' | 'legacy';
+  processor?: string;
+  refund_available?: boolean;
   id: string;
   payment_intent_id: string;
   amount: number;

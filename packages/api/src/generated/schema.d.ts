@@ -159,6 +159,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/password/set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set, change, or reset a password
+         * @description Set a password after OTP verification, or change a password after a
+         *     password login by supplying the current password. Patient accounts
+         *     cannot use password authentication. All active refresh sessions are
+         *     revoked after a successful change.
+         */
+        post: operations["setPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/audit/ledger": {
         parameters: {
             query?: never;
@@ -1140,15 +1163,7 @@ export interface paths {
         put?: never;
         /**
          * Handle one USSD menu interaction
-         * @description Called by the telecom aggregator on every key press. The bridge holds
-         *     session state in Redis keyed by `session_id` and translates the
-         *     selection into an ordinary internal API call — the same
-         *     `POST /consultations` the app uses. There is exactly one implementation
-         *     of the business rules, and the channel never forks it.
-         *
-         *     Not part of the public API. Authenticated by shared secret and source-IP
-         *     allow-list, not by JWT. Responses must fit the aggregator's session
-         *     timeout and character limit.
+         * @description Trusted aggregator bridge only, not a public direct carrier callback. HMAC-SHA256 covers X-Gateway-Timestamp + dot + exact JSON body. Timestamp expires after 120 seconds. PostgreSQL stores AES-GCM encrypted session context, bound to phone/session. OTP through Auth precedes patient-service access. Uses existing Front Desk, Doctor, Appointment and Payment APIs. Physical pre-registration or published voice slots only; does not dispatch emergencies or implement video.
          */
         post: operations["handleUssdSession"];
         delete?: never;
@@ -1168,9 +1183,7 @@ export interface paths {
         put?: never;
         /**
          * Handle an inbound SMS keyword
-         * @description Maps keywords to internal calls — for example a dose confirmation reply
-         *     becomes `POST /adherence-logs/{id}/confirm`. Unrecognised text is routed
-         *     to the patient's open care thread as a message rather than discarded.
+         * @description Disabled by default and forbidden in production in this release. Legacy non-production experiment only; durable authenticated, patient-scoped inbound clinical reply routing is not implemented.
          */
         post: operations["handleInboundSms"];
         delete?: never;
@@ -3092,14 +3105,7 @@ export interface paths {
         put?: never;
         /**
          * Create a payment intent
-         * @description One intent per payable thing — a consultation fee, a pharmacy
-         *     purchase, an insurance co-payment. For mobile money the response
-         *     carries whatever the provider needs the client to show the payer (a
-         *     USSD push confirmation, a reference code); the intent then settles
-         *     asynchronously as the provider calls the webhook below.
-         *
-         *     Cash and card-on-file settle synchronously and return `succeeded`
-         *     immediately; mobile money almost never does.
+         * @description Requires an existing authorized server-issued bill. Client-supplied amounts, cash/card settlement, and arbitrary purposes are rejected. Mobile-money initiation is pending until verified server-side; retry returns the unresolved bill intent. An ambiguous timeout never frees the bill for a second debit.
          */
         post: operations["createPaymentIntent"];
         delete?: never;
@@ -3141,9 +3147,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Cancel a payment intent before it settles
-         * @description Only legal while `pending` or `requires_action`. Once a provider has
-         *     reported success there is nothing left to cancel — that is a refund.
+         * In-flight cancellation is not supported locally
+         * @description Returns 409; decline in the provider wallet. Local cancellation must not hide a late successful charge.
          */
         post: operations["cancelPaymentIntent"];
         delete?: never;
@@ -3163,9 +3168,7 @@ export interface paths {
         put?: never;
         /**
          * Refund a settled payment, in full or in part
-         * @description Admin or facility-finance action. A partial refund may be issued more
-         *     than once against the same payment as long as the running total does
-         *     not exceed what was originally paid.
+         * @description Platform admin only. Enabled only for console simulated records. Live, test-provider and legacy refunds fail closed until provider refund integration is implemented; no money is represented as refunded.
          */
         post: operations["refundPayment"];
         delete?: never;
@@ -3202,12 +3205,7 @@ export interface paths {
         put?: never;
         /**
          * Provider settlement callback
-         * @description Called by the mobile money provider, not by any client of this API.
-         *     Authenticated by a provider-specific signature header rather than a
-         *     bearer token — the provider does not have one. Idempotent by the
-         *     provider's own transaction reference: replays of the same callback
-         *     (providers retry aggressively) must resolve to the same outcome
-         *     without double-crediting anything.
+         * @description LOCAL CONSOLE SIMULATION ONLY. Disabled when NODE_ENV=production or a real provider adapter is selected. Signed payload includes provider_reference (AHP intent UUID), transaction_id, amount, currency, and status. Exact intent/bill ownership and provider matching apply.
          */
         post: operations["handlePaymentWebhook"];
         delete?: never;
@@ -3934,6 +3932,965 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/payments/bills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List latest 100 bills authorized for the caller */
+        get: operations["listCareBills"];
+        put?: never;
+        /**
+         * Issue one consultation bill
+         * @description Verified assigned clinician or platform admin only. Payer and patient are resolved from the consultation, not request input. Repeating the same amount/title returns the existing bill. There is no patient-set price and no automatic paid flag.
+         */
+        post: operations["issueCareBill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configured payment adapter capabilities; not a provider health check */
+        get: operations["getPaymentOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/provider/flutterwave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verified provider settlement callback
+         * @description Uses configured HMAC-SHA256 base64 flutterwave-signature, or explicitly selected legacy verif-hash. Never automatically downgrades authentication. For charge.completed, re-fetches v3 transaction and compares ID, reference, amount, currency and environment before settlement.
+         */
+        post: operations["verifiedFlutterwaveWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/extended": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read warehouse and response metadata scoped to the authenticated role
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        get: operations["readExtendedResearchWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/warehouse/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stage an authorized structured OMOP source batch
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["ingestStructuredOmopBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/warehouse/batches/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a source batch and dependent releases
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["revokeOmopBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/warehouse/builds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Queue a dedicated-database ETL build
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["queueOmopWarehouseBuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/warehouse/builds/{id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review quality checks and approved aggregate cells
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        get: operations["inspectOmopWarehouseBuild"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/warehouse/builds/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Independently publish, reject or revoke a warehouse release
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["reviewOmopWarehouseBuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/responses/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read participant pseudonyms and withdrawal versions, never answers
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["readEcrfResponseRegister"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/responses/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record withdrawal; old response analyses and downloads become stale
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["withdrawEcrfResponse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/response-snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare fixed bins and encrypted immutable response snapshot
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["prepareEcrfResponseSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/response-snapshots/{id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect the protected disclosure summary
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        get: operations["inspectEcrfResponseSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/response-snapshots/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Independently approve or revoke a response analysis
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["reviewEcrfResponseSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/response-snapshots/{id}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read approved fixed distributions after current-scope validation
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        get: operations["readEcrfResponseAnalytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/outputs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an exact approved source output; fee is zero
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["requestControlledResearchOutput"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/outputs/{id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect output schema and scope before independent review
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        get: operations["inspectControlledResearchOutput"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/outputs/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve, reject or revoke a specific output request
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        post: operations["reviewControlledResearchOutput"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/outputs/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reauthorize, hash-check and audit an approved file download
+         * @description Current account, role, source grants, project scope, expiry and independent approvals are enforced. Aggregate project keys cannot call this endpoint. No patient values enter audit metadata.
+         */
+        get: operations["downloadControlledResearchOutput"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read role-scoped research workspace
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        get: operations["researchPortalGetBootstrap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Submit or resubmit researcher verification
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        put: operations["researchPortalPutProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/profiles/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review researcher identity
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostProfilesIdReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scan, encrypt and attach PDF evidence
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/evidence/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download an authorized encrypted document
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        get: operations["researchPortalGetEvidenceIdDownload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/studies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create project authorization draft
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostStudies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/studies/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit project with required evidence
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostStudiesIdSubmit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/studies/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve, reject or revoke a project
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostStudiesIdReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create research collection
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostCollections"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/collections/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend dataset access
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostCollectionsIdSuspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a hospital source grant
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostSources"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/sources/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Independently approve or revoke source grant
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostSourcesIdReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record an independently verified vocabulary mapping
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostMappings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest bounded structured events from a named hospital steward
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostIngest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare immutable aggregate release
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostReleases"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/releases/{id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect prepared release and quality metadata
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        get: operations["researchPortalGetReleasesIdInspect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/releases/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Independently review publication or revoke release
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostReleasesIdReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Query published fixed cells under project authorization
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostQuery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request free controlled aggregate export
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostExports"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/exports/{id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect exact requested output before approval
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        get: operations["researchPortalGetExportsIdInspect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/exports/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve or reject export request
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostExportsIdReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/exports/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recheck authorization and download aggregate file
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        get: operations["researchPortalGetExportsIdDownload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/forms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a bounded typed eCRF draft
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostForms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/surveillance/admin-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read privacy-suppressed platform aggregates
+         * @description Platform administrators only. Counts below 10 are suppressed, patient totals are banded, and no patient identifiers or note text are returned.
+         */
+        get: operations["getAdminPopulationAnalytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/forms/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review eCRF against protocol
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostFormsIdReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/responses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record consented encrypted research-only answers
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostResponses"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List own API key metadata without secrets
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        get: operations["researchPortalGetKeys"];
+        put?: never;
+        /**
+         * Create one-time project read-only API key
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostKeys"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/portal/keys/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a project key
+         * @description Free service. Live account, role, identity and project/source authorization are enforced. Approval actions require base_version and explicit applicable review checks. Metadata fields use the endpoint-defined names; row metadata preserves the existing domain casing.
+         */
+        post: operations["researchPortalPostKeysIdRevoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/research/projects/{id}/aggregates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project-scoped aggregate read in JSON or XML */
+        get: operations["researchProjectAggregateApi"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4504,6 +5461,13 @@ export interface components {
              * @example +2557****5678
              */
             masked_destination?: string;
+            /**
+             * @description Gateway acceptance is not handset delivery.
+             * @enum {string}
+             */
+            delivery_status?: "accepted" | "simulated";
+            /** @enum {string} */
+            delivery_environment?: "simulated" | "sandbox" | "live";
         };
         TokenPair: {
             access_token: string;
@@ -6126,13 +7090,9 @@ export interface components {
             /** Format: uuid */
             insurance_claim_id?: string | null;
             status: components["schemas"]["PaymentStatus"];
-            /**
-             * @description The provider's own transaction id. This is what a support
-             *     conversation with the mobile money operator is conducted against
-             *     — not this platform's internal id.
-             */
+            /** @description AHP intent UUID sent as merchant tx_ref; actual provider transaction ID is checked server-side. */
             provider_reference?: string | null;
-            /** @description What the payer must do next — e.g. dial a USSD confirmation, or nothing for card/cash. */
+            /** @description Wallet instruction or explicit local simulation/reconciliation notice. Never proof of payment. */
             client_action?: {
                 [key: string]: unknown;
             } | null;
@@ -6146,6 +7106,11 @@ export interface components {
             /** Format: date-time */
             expires_at?: string | null;
             version: number;
+            processor?: string;
+            /** @enum {string} */
+            environment?: "legacy" | "simulated" | "test" | "live";
+            /** Format: uuid */
+            bill_id?: string | null;
         };
         Payment: {
             /** Format: uuid */
@@ -6167,6 +7132,11 @@ export interface components {
             /** Format: date-time */
             settled_at: string;
             version: number;
+            processor?: string;
+            /** @enum {string} */
+            environment?: "legacy" | "simulated" | "test" | "live";
+            refund_available?: boolean;
+            verified_provider_transaction_id?: string | null;
         };
         PaymentRefund: {
             /** Format: uuid */
@@ -6400,6 +7370,819 @@ export interface components {
         FrontDeskDepartmentList: {
             data: components["schemas"]["FrontDeskDepartment"][];
         };
+        CareBill: {
+            /** Format: uuid */
+            id: string;
+            reference: string;
+            title: string;
+            amount: number;
+            /** @enum {string} */
+            currency: "TZS";
+            purpose: components["schemas"]["PaymentPurpose"];
+            /** @enum {string} */
+            status: "due" | "paid" | "void";
+            /** Format: uuid */
+            consultation_id?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            paid_at?: string | null;
+        };
+        PaymentOptions: {
+            /** @enum {string} */
+            method: "mobile_money";
+            providers: ("mpesa" | "tigo_pesa" | "airtel_money")[];
+            /** @enum {string} */
+            processor: "console" | "flutterwave";
+            /** @enum {string} */
+            environment: "simulated" | "test" | "live";
+            requires_email: boolean;
+        };
+        Envelope: {
+            data: unknown;
+        };
+        Error: {
+            error: {
+                code: string;
+                message: string;
+            };
+        };
+        OmopBundle: {
+            /** @enum {string} */
+            cdm_version: "5.4";
+            /** @description Structured OMOP source rows. Only permitted tables; no raw notes, identifying attributes, precise DOB, DDL or SQL. Record IDs are source-assigned strings or integers; the server pseudonymizes them. Required-value and referential checks run at materialization. */
+            tables: {
+                person?: {
+                    person_id?: number | string | null;
+                    gender_concept_id?: number | null;
+                    year_of_birth?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    month_of_birth?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    day_of_birth?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    birth_datetime?: null;
+                    race_concept_id?: number | null;
+                    ethnicity_concept_id?: number | null;
+                    location_id?: number | string | null;
+                    provider_id?: number | string | null;
+                    care_site_id?: number | string | null;
+                    person_source_value?: string | null;
+                    gender_source_value?: string | null;
+                    gender_source_concept_id?: number | null;
+                    race_source_value?: string | null;
+                    race_source_concept_id?: number | null;
+                    ethnicity_source_value?: string | null;
+                    ethnicity_source_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                observation_period?: {
+                    observation_period_id?: number | string | null;
+                    person_id?: number | string | null;
+                    /** Format: date */
+                    observation_period_start_date?: string | null;
+                    /** Format: date */
+                    observation_period_end_date?: string | null;
+                    period_type_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                visit_occurrence?: {
+                    visit_occurrence_id?: number | string | null;
+                    person_id?: number | string | null;
+                    visit_concept_id?: number | null;
+                    /** Format: date */
+                    visit_start_date?: string | null;
+                    /** Format: date-time */
+                    visit_start_datetime?: string | null;
+                    /** Format: date */
+                    visit_end_date?: string | null;
+                    /** Format: date-time */
+                    visit_end_datetime?: string | null;
+                    visit_type_concept_id?: number | null;
+                    provider_id?: number | string | null;
+                    care_site_id?: number | string | null;
+                    visit_source_value?: string | null;
+                    visit_source_concept_id?: number | null;
+                    admitted_from_concept_id?: number | null;
+                    admitted_from_source_value?: string | null;
+                    discharged_to_concept_id?: number | null;
+                    discharged_to_source_value?: string | null;
+                    preceding_visit_occurrence_id?: number | string | null;
+                    _code_system?: string;
+                }[];
+                visit_detail?: {
+                    visit_detail_id?: number | string | null;
+                    person_id?: number | string | null;
+                    visit_detail_concept_id?: number | null;
+                    /** Format: date */
+                    visit_detail_start_date?: string | null;
+                    /** Format: date-time */
+                    visit_detail_start_datetime?: string | null;
+                    /** Format: date */
+                    visit_detail_end_date?: string | null;
+                    /** Format: date-time */
+                    visit_detail_end_datetime?: string | null;
+                    visit_detail_type_concept_id?: number | null;
+                    provider_id?: number | string | null;
+                    care_site_id?: number | string | null;
+                    visit_detail_source_value?: string | null;
+                    visit_detail_source_concept_id?: number | null;
+                    admitted_from_concept_id?: number | null;
+                    admitted_from_source_value?: string | null;
+                    discharged_to_source_value?: string | null;
+                    discharged_to_concept_id?: number | null;
+                    preceding_visit_detail_id?: number | string | null;
+                    parent_visit_detail_id?: number | string | null;
+                    visit_occurrence_id?: number | string | null;
+                    _code_system?: string;
+                }[];
+                condition_occurrence?: {
+                    condition_occurrence_id?: number | string | null;
+                    person_id?: number | string | null;
+                    condition_concept_id?: number | null;
+                    /** Format: date */
+                    condition_start_date?: string | null;
+                    /** Format: date-time */
+                    condition_start_datetime?: string | null;
+                    /** Format: date */
+                    condition_end_date?: string | null;
+                    /** Format: date-time */
+                    condition_end_datetime?: string | null;
+                    condition_type_concept_id?: number | null;
+                    condition_status_concept_id?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    stop_reason?: null;
+                    provider_id?: number | string | null;
+                    visit_occurrence_id?: number | string | null;
+                    visit_detail_id?: number | string | null;
+                    condition_source_value?: string | null;
+                    condition_source_concept_id?: number | null;
+                    condition_status_source_value?: string | null;
+                    _code_system?: string;
+                }[];
+                drug_exposure?: {
+                    drug_exposure_id?: number | string | null;
+                    person_id?: number | string | null;
+                    drug_concept_id?: number | null;
+                    /** Format: date */
+                    drug_exposure_start_date?: string | null;
+                    /** Format: date-time */
+                    drug_exposure_start_datetime?: string | null;
+                    /** Format: date */
+                    drug_exposure_end_date?: string | null;
+                    /** Format: date-time */
+                    drug_exposure_end_datetime?: string | null;
+                    /** Format: date */
+                    verbatim_end_date?: string | null;
+                    drug_type_concept_id?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    stop_reason?: null;
+                    refills?: number | null;
+                    quantity?: number | null;
+                    days_supply?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    sig?: null;
+                    route_concept_id?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    lot_number?: null;
+                    provider_id?: number | string | null;
+                    visit_occurrence_id?: number | string | null;
+                    visit_detail_id?: number | string | null;
+                    drug_source_value?: string | null;
+                    drug_source_concept_id?: number | null;
+                    route_source_value?: string | null;
+                    dose_unit_source_value?: string | null;
+                    _code_system?: string;
+                }[];
+                procedure_occurrence?: {
+                    procedure_occurrence_id?: number | string | null;
+                    person_id?: number | string | null;
+                    procedure_concept_id?: number | null;
+                    /** Format: date */
+                    procedure_date?: string | null;
+                    /** Format: date-time */
+                    procedure_datetime?: string | null;
+                    /** Format: date */
+                    procedure_end_date?: string | null;
+                    /** Format: date-time */
+                    procedure_end_datetime?: string | null;
+                    procedure_type_concept_id?: number | null;
+                    modifier_concept_id?: number | null;
+                    quantity?: number | null;
+                    provider_id?: number | string | null;
+                    visit_occurrence_id?: number | string | null;
+                    visit_detail_id?: number | string | null;
+                    procedure_source_value?: string | null;
+                    procedure_source_concept_id?: number | null;
+                    modifier_source_value?: string | null;
+                    _code_system?: string;
+                }[];
+                device_exposure?: {
+                    device_exposure_id?: number | string | null;
+                    person_id?: number | string | null;
+                    device_concept_id?: number | null;
+                    /** Format: date */
+                    device_exposure_start_date?: string | null;
+                    /** Format: date-time */
+                    device_exposure_start_datetime?: string | null;
+                    /** Format: date */
+                    device_exposure_end_date?: string | null;
+                    /** Format: date-time */
+                    device_exposure_end_datetime?: string | null;
+                    device_type_concept_id?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    unique_device_id?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    production_id?: null;
+                    quantity?: number | null;
+                    provider_id?: number | string | null;
+                    visit_occurrence_id?: number | string | null;
+                    visit_detail_id?: number | string | null;
+                    device_source_value?: string | null;
+                    device_source_concept_id?: number | null;
+                    unit_concept_id?: number | null;
+                    unit_source_value?: string | null;
+                    unit_source_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                measurement?: {
+                    measurement_id?: number | string | null;
+                    person_id?: number | string | null;
+                    measurement_concept_id?: number | null;
+                    /** Format: date */
+                    measurement_date?: string | null;
+                    /** Format: date-time */
+                    measurement_datetime?: string | null;
+                    measurement_time?: string | null;
+                    measurement_type_concept_id?: number | null;
+                    operator_concept_id?: number | null;
+                    value_as_number?: number | null;
+                    value_as_concept_id?: number | null;
+                    unit_concept_id?: number | null;
+                    range_low?: number | null;
+                    range_high?: number | null;
+                    provider_id?: number | string | null;
+                    visit_occurrence_id?: number | string | null;
+                    visit_detail_id?: number | string | null;
+                    measurement_source_value?: string | null;
+                    measurement_source_concept_id?: number | null;
+                    unit_source_value?: string | null;
+                    unit_source_concept_id?: number | null;
+                    value_source_value?: string | null;
+                    measurement_event_id?: number | string | null;
+                    meas_event_field_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                observation?: {
+                    observation_id?: number | string | null;
+                    person_id?: number | string | null;
+                    observation_concept_id?: number | null;
+                    /** Format: date */
+                    observation_date?: string | null;
+                    /** Format: date-time */
+                    observation_datetime?: string | null;
+                    observation_type_concept_id?: number | null;
+                    value_as_number?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    value_as_string?: null;
+                    value_as_concept_id?: number | null;
+                    qualifier_concept_id?: number | null;
+                    unit_concept_id?: number | null;
+                    provider_id?: number | string | null;
+                    visit_occurrence_id?: number | string | null;
+                    visit_detail_id?: number | string | null;
+                    observation_source_value?: string | null;
+                    observation_source_concept_id?: number | null;
+                    unit_source_value?: string | null;
+                    qualifier_source_value?: string | null;
+                    value_source_value?: string | null;
+                    observation_event_id?: number | string | null;
+                    obs_event_field_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                death?: {
+                    person_id?: number | string | null;
+                    /** Format: date */
+                    death_date?: string | null;
+                    /** Format: date-time */
+                    death_datetime?: string | null;
+                    death_type_concept_id?: number | null;
+                    cause_concept_id?: number | null;
+                    cause_source_value?: string | null;
+                    cause_source_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                specimen?: {
+                    specimen_id?: number | string | null;
+                    person_id?: number | string | null;
+                    specimen_concept_id?: number | null;
+                    specimen_type_concept_id?: number | null;
+                    /** Format: date */
+                    specimen_date?: string | null;
+                    /** Format: date-time */
+                    specimen_datetime?: string | null;
+                    quantity?: number | null;
+                    unit_concept_id?: number | null;
+                    anatomic_site_concept_id?: number | null;
+                    disease_status_concept_id?: number | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    specimen_source_id?: null;
+                    specimen_source_value?: string | null;
+                    unit_source_value?: string | null;
+                    anatomic_site_source_value?: string | null;
+                    disease_status_source_value?: string | null;
+                    _code_system?: string;
+                }[];
+                fact_relationship?: {
+                    domain_concept_id_1?: number | null;
+                    fact_id_1?: number | string | null;
+                    domain_concept_id_2?: number | null;
+                    fact_id_2?: number | string | null;
+                    relationship_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                location?: {
+                    location_id?: number | string | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    address_1?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    address_2?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    city?: null;
+                    state?: string | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    zip?: null;
+                    county?: string | null;
+                    location_source_value?: string | null;
+                    country_concept_id?: number | null;
+                    country_source_value?: string | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    latitude?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    longitude?: null;
+                    _code_system?: string;
+                }[];
+                care_site?: {
+                    care_site_id?: number | string | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    care_site_name?: null;
+                    place_of_service_concept_id?: number | null;
+                    location_id?: number | string | null;
+                    care_site_source_value?: string | null;
+                    place_of_service_source_value?: string | null;
+                    _code_system?: string;
+                }[];
+                provider?: {
+                    provider_id?: number | string | null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    provider_name?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    npi?: null;
+                    /** @description Identifying/unreviewed free-text input is forbidden. */
+                    dea?: null;
+                    specialty_concept_id?: number | null;
+                    care_site_id?: number | string | null;
+                    year_of_birth?: number | null;
+                    gender_concept_id?: number | null;
+                    provider_source_value?: string | null;
+                    specialty_source_value?: string | null;
+                    specialty_source_concept_id?: number | null;
+                    gender_source_value?: string | null;
+                    gender_source_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                payer_plan_period?: {
+                    payer_plan_period_id?: number | string | null;
+                    person_id?: number | string | null;
+                    /** Format: date */
+                    payer_plan_period_start_date?: string | null;
+                    /** Format: date */
+                    payer_plan_period_end_date?: string | null;
+                    payer_concept_id?: number | null;
+                    payer_source_value?: string | null;
+                    payer_source_concept_id?: number | null;
+                    plan_concept_id?: number | null;
+                    plan_source_value?: string | null;
+                    plan_source_concept_id?: number | null;
+                    sponsor_concept_id?: number | null;
+                    sponsor_source_value?: string | null;
+                    sponsor_source_concept_id?: number | null;
+                    family_source_value?: string | null;
+                    stop_reason_concept_id?: number | null;
+                    stop_reason_source_value?: string | null;
+                    stop_reason_source_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                cost?: {
+                    cost_id?: number | string | null;
+                    cost_event_id?: number | string | null;
+                    cost_domain_id?: string | null;
+                    cost_type_concept_id?: number | null;
+                    currency_concept_id?: number | null;
+                    total_charge?: number | null;
+                    total_cost?: number | null;
+                    total_paid?: number | null;
+                    paid_by_payer?: number | null;
+                    paid_by_patient?: number | null;
+                    paid_patient_copay?: number | null;
+                    paid_patient_coinsurance?: number | null;
+                    paid_patient_deductible?: number | null;
+                    paid_by_primary?: number | null;
+                    paid_ingredient_cost?: number | null;
+                    paid_dispensing_fee?: number | null;
+                    payer_plan_period_id?: number | string | null;
+                    amount_allowed?: number | null;
+                    revenue_code_concept_id?: number | null;
+                    revenue_code_source_value?: string | null;
+                    drg_concept_id?: number | null;
+                    drg_source_value?: string | null;
+                    _code_system?: string;
+                }[];
+                drug_era?: {
+                    drug_era_id?: number | string | null;
+                    person_id?: number | string | null;
+                    drug_concept_id?: number | null;
+                    /** Format: date */
+                    drug_era_start_date?: string | null;
+                    /** Format: date */
+                    drug_era_end_date?: string | null;
+                    drug_exposure_count?: number | null;
+                    gap_days?: number | null;
+                    _code_system?: string;
+                }[];
+                dose_era?: {
+                    dose_era_id?: number | string | null;
+                    person_id?: number | string | null;
+                    drug_concept_id?: number | null;
+                    unit_concept_id?: number | null;
+                    dose_value?: number | null;
+                    /** Format: date */
+                    dose_era_start_date?: string | null;
+                    /** Format: date */
+                    dose_era_end_date?: string | null;
+                    _code_system?: string;
+                }[];
+                condition_era?: {
+                    condition_era_id?: number | string | null;
+                    person_id?: number | string | null;
+                    condition_concept_id?: number | null;
+                    /** Format: date */
+                    condition_era_start_date?: string | null;
+                    /** Format: date */
+                    condition_era_end_date?: string | null;
+                    condition_occurrence_count?: number | null;
+                    _code_system?: string;
+                }[];
+                episode?: {
+                    episode_id?: number | string | null;
+                    person_id?: number | string | null;
+                    episode_concept_id?: number | null;
+                    /** Format: date */
+                    episode_start_date?: string | null;
+                    /** Format: date-time */
+                    episode_start_datetime?: string | null;
+                    /** Format: date */
+                    episode_end_date?: string | null;
+                    /** Format: date-time */
+                    episode_end_datetime?: string | null;
+                    episode_parent_id?: number | string | null;
+                    episode_number?: number | null;
+                    episode_object_concept_id?: number | null;
+                    episode_type_concept_id?: number | null;
+                    episode_source_value?: string | null;
+                    episode_source_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+                episode_event?: {
+                    episode_id?: number | string | null;
+                    event_id?: number | string | null;
+                    episode_event_field_concept_id?: number | null;
+                    _code_system?: string;
+                }[];
+            };
+        };
+        WarehouseIngest: {
+            /** Format: uuid */
+            source_id: string;
+            request_key: string;
+            synthetic: boolean;
+            bundle: components["schemas"]["OmopBundle"];
+        };
+        VersionAction: {
+            base_version: number;
+        };
+        WarehouseBuild: {
+            /** Format: uuid */
+            source_id: string;
+            /** @enum {string} */
+            date_policy: "restricted_source_dates" | "shifted_dates";
+        };
+        WarehouseReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "published" | "rejected" | "revoked";
+            mapping_checked?: boolean;
+            date_policy_checked?: boolean;
+            disclosure_checked?: boolean;
+            note: string;
+        };
+        ResponseRegister: {
+            /** Format: uuid */
+            form_id: string;
+        };
+        ResponseWithdrawal: {
+            base_version: number;
+            /** @enum {string} */
+            reason: "participant_withdrew" | "consent_invalid" | "record_error";
+        };
+        ResponsePrepare: {
+            /** Format: uuid */
+            form_id: string;
+            /** @description Protocol-fixed numeric-bin boundaries. First approved-form analysis plan cannot change. Default is five equal bins across each field range. */
+            bins?: {
+                [key: string]: number[];
+            };
+        };
+        ResponseReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "published" | "rejected" | "revoked";
+            protocol_checked?: boolean;
+            disclosure_checked?: boolean;
+            note: string;
+        };
+        ReviewedResponseCell: {
+            field: string;
+            label: string;
+            /** @enum {string} */
+            kind: "number" | "boolean" | "choice";
+            bucket: string;
+            lower: number | null;
+            upper: number | null;
+            participants: number;
+        };
+        ResponseAnalytics: {
+            /** Format: uuid */
+            id: string;
+            content_hash: string;
+            minimum_cell_size: number;
+            cells: components["schemas"]["ReviewedResponseCell"][];
+            notice: string;
+            /** @constant */
+            fee_tzs: 0;
+        };
+        ControlledOutputRequest: {
+            /** Format: uuid */
+            study_id: string;
+            /** @enum {string} */
+            kind: "ecrf_aggregate" | "ecrf_rows" | "omop";
+            /** Format: uuid */
+            snapshot_id?: string;
+            /** Format: uuid */
+            build_id?: string;
+            /** @enum {string} */
+            format: "csv" | "xlsx" | "json" | "xml" | "omop_zip";
+        };
+        ControlledOutputReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "approved" | "rejected" | "revoked";
+            output_checked?: boolean;
+            row_level_checked?: boolean;
+            note: string;
+        };
+        ProfileInput: {
+            /** @enum {string} */
+            kind: "independent" | "institutional";
+            display_name: string;
+            institution?: string | null;
+            credential_reference: string;
+            base_version?: number;
+        };
+        ProfileReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "verified" | "rejected" | "suspended";
+            identity_checked?: boolean;
+            note: string;
+        };
+        EvidenceInput: {
+            /** Format: uuid */
+            study_id?: string;
+            /** Format: uuid */
+            source_id?: string;
+            /** @enum {string} */
+            kind: "identity" | "protocol" | "ethics" | "controller" | "agreement";
+            /** @description Canonical base64 PDF, at most 512 KiB decoded. ClamAV scanning is mandatory. */
+            content_base64: string;
+        };
+        FileEnvelope: {
+            data: {
+                file_name: string;
+                content_type: string;
+                content_base64: string;
+                sha256: string;
+            };
+        };
+        StudyInput: {
+            title: string;
+            purpose: string;
+            /** Format: uuid */
+            dataset_id: string;
+            ethics_reference: string;
+            /** Format: date-time */
+            ethics_expires_at: string;
+            controller_reference: string;
+            /** Format: date-time */
+            expires_at: string;
+            allow_export: boolean;
+            allow_ecrf: boolean;
+            /**
+             * @description Separate person-level OMOP/eCRF scope; independent protocol/controller approval required.
+             * @default false
+             */
+            allow_row_level: boolean;
+        };
+        VersionInput: {
+            base_version: number;
+        };
+        StudyReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "approved" | "rejected" | "revoked";
+            ethics_checked?: boolean;
+            controller_checked?: boolean;
+            scope_checked?: boolean;
+            note: string;
+            row_level_checked?: boolean;
+        };
+        CollectionInput: {
+            name: string;
+            description: string;
+            domains: ("condition" | "measurement" | "drug" | "procedure" | "observation" | "imaging")[];
+            minimum_cell_size: number;
+            synthetic_only: boolean;
+        };
+        SourceInput: {
+            /** Format: uuid */
+            dataset_id: string;
+            /** Format: uuid */
+            facility_id: string;
+            /** Format: uuid */
+            steward_id: string;
+            agreement_reference: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        SourceReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "approved" | "revoked";
+            agreement_checked?: boolean;
+        };
+        MappingInput: {
+            /** @enum {string} */
+            system: "ICD10" | "ICD11" | "LOINC" | "RxNorm" | "SNOMED" | "CPT" | "LOCAL";
+            source_code: string;
+            /** @enum {string} */
+            domain: "condition" | "measurement" | "drug" | "procedure" | "observation" | "imaging";
+            concept_id: number;
+            vocabulary_version: string;
+            label: string;
+            standard_concept: boolean;
+            mapping_checked: boolean;
+        };
+        IngestInput: {
+            /** Format: uuid */
+            source_id: string;
+            synthetic: boolean;
+            records: {
+                event_id: string;
+                subject_key: string;
+                age: number;
+                /** @enum {string} */
+                sex: "female" | "male" | "other" | "unknown";
+                region_code: string;
+                /** Format: date */
+                event_date: string;
+                /** @enum {string} */
+                domain: "condition" | "measurement" | "drug" | "procedure" | "observation" | "imaging";
+                /** @enum {string} */
+                code_system: "ICD10" | "ICD11" | "LOINC" | "RxNorm" | "SNOMED" | "CPT" | "LOCAL";
+                code: string;
+                value?: number | null;
+                unit?: string | null;
+                dose?: number | null;
+                duration_days?: number | null;
+                /**
+                 * @deprecated
+                 * @description Discarded in memory, never retained. Omit at source.
+                 */
+                name?: unknown;
+                /**
+                 * @deprecated
+                 * @description Discarded in memory, never retained. Omit at source.
+                 */
+                phone?: unknown;
+                /**
+                 * @deprecated
+                 * @description Discarded in memory, never retained. Omit at source.
+                 */
+                national_id?: unknown;
+                /**
+                 * @deprecated
+                 * @description Discarded in memory, never retained. Omit at source.
+                 */
+                address?: unknown;
+                /**
+                 * @deprecated
+                 * @description Discarded in memory, never retained. Omit at source.
+                 */
+                patient_id?: unknown;
+            }[];
+        };
+        ReleaseInput: {
+            /** Format: uuid */
+            dataset_id: string;
+        };
+        ReleaseReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "published" | "rejected" | "revoked";
+            disclosure_checked?: boolean;
+            provenance_checked?: boolean;
+            note: string;
+        };
+        QueryInput: {
+            /** Format: uuid */
+            study_id: string;
+            filters?: {
+                age_band?: string;
+                sex?: string;
+                region?: string;
+                period?: string;
+                domain?: string;
+                code?: string;
+            };
+        };
+        ExportInput: {
+            /** Format: uuid */
+            study_id: string;
+            /** @enum {string} */
+            format: "csv" | "xlsx" | "json" | "xml";
+            filters?: {
+                age_band?: string;
+                sex?: string;
+                region?: string;
+                period?: string;
+                domain?: string;
+                code?: string;
+            };
+        };
+        ExportReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "approved" | "rejected";
+            output_checked?: boolean;
+        };
+        FormInput: {
+            /** Format: uuid */
+            study_id: string;
+            title: string;
+            fields: {
+                key: string;
+                label: string;
+                /** @enum {string} */
+                type: "number" | "choice" | "boolean";
+                required: boolean;
+                min?: number;
+                max?: number;
+                choices?: string[];
+            }[];
+        };
+        FormReview: {
+            base_version: number;
+            /** @enum {string} */
+            decision: "published" | "rejected";
+            protocol_checked?: boolean;
+        };
+        ResponseInput: {
+            /** Format: uuid */
+            form_id: string;
+            subject_code: string;
+            consent_reference: string;
+            consent_confirmed: boolean;
+            answers: {
+                [key: string]: number | string | boolean;
+            };
+        };
+        KeyInput: {
+            /** Format: uuid */
+            study_id: string;
+        };
+        EmptyInput: Record<string, never>;
     };
     responses: {
         /** @description Malformed request */
@@ -6734,6 +8517,47 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Unauthenticated"];
+        };
+    };
+    setPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: password */
+                    new_password: string;
+                    /**
+                     * Format: password
+                     * @description Required for password-authenticated sessions; omit after OTP verification.
+                     */
+                    current_password?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Password set or changed; active refresh sessions revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not authenticated, or current password is incorrect */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableEntity"];
         };
     };
     listAuditLedgerEvents: {
@@ -8337,7 +10161,9 @@ export interface operations {
     handleUssdSession: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "X-Gateway-Timestamp": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8366,6 +10192,8 @@ export interface operations {
                     };
                 };
             };
+            401: components["responses"]["Unauthenticated"];
+            422: components["responses"]["UnprocessableEntity"];
         };
     };
     handleInboundSms: {
@@ -8396,6 +10224,13 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["Unauthenticated"];
+            /** @description Inbound SMS is not enabled */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     listFacilities: {
@@ -11616,21 +13451,18 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    amount: number;
-                    /** @default TZS */
-                    currency: string;
-                    method: components["schemas"]["PaymentMethod"];
-                    purpose: components["schemas"]["PaymentPurpose"];
                     /** Format: uuid */
-                    consultation_id?: string;
-                    /** Format: uuid */
-                    dispensing_id?: string;
-                    /** Format: uuid */
-                    insurance_claim_id?: string;
-                    /** @description Required for mobile money; the number the provider prompt is sent to. */
-                    payer_phone?: components["schemas"]["PhoneNumber"];
-                    /** Format: uri */
-                    return_url?: string;
+                    bill_id: string;
+                    /** @enum {string} */
+                    method: "mobile_money";
+                    /** @enum {string} */
+                    provider: "mpesa" | "tigo_pesa" | "airtel_money";
+                    payer_phone: string;
+                    /**
+                     * Format: email
+                     * @description Required by Flutterwave. Supply the payer email, not a fabricated address.
+                     */
+                    payer_email?: string;
                 };
             };
         };
@@ -11644,6 +13476,9 @@ export interface operations {
                     "application/json": components["schemas"]["PaymentIntent"];
                 };
             };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableEntity"];
         };
     };
@@ -11688,15 +13523,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Cancelled */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaymentIntent"];
-                };
-            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
         };
     };
@@ -11780,7 +13608,14 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    [key: string]: unknown;
+                    /** Format: uuid */
+                    provider_reference: string;
+                    transaction_id: string;
+                    amount: number;
+                    /** @enum {string} */
+                    currency: "TZS";
+                    /** @enum {string} */
+                    status: "succeeded" | "failed" | "pending";
                 };
             };
         };
@@ -13660,6 +15495,4441 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    listCareBills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["CareBill"][];
+                        meta: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    issueCareBill: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID, created at the moment the user acted. Reused
+                 *     unchanged across every retry of the same intent. The server replays the
+                 *     original response for 24 hours.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    consultation_id: string;
+                    title: string;
+                    amount: number;
+                    /**
+                     * @default TZS
+                     * @enum {string}
+                     */
+                    currency?: "TZS";
+                };
+            };
+        };
+        responses: {
+            /** @description Bill issued */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareBill"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableEntity"];
+        };
+    };
+    getPaymentOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOptions"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+        };
+    };
+    verifiedFlutterwaveWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    event: string;
+                    data: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Processed or recognized irrelevant event */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            409: components["responses"]["Conflict"];
+            /** @description Provider verification unavailable; retry required */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    readExtendedResearchWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    ingestStructuredOmopBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarehouseIngest"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    revokeOmopBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionAction"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    queueOmopWarehouseBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarehouseBuild"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    inspectOmopWarehouseBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    reviewOmopWarehouseBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarehouseReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    readEcrfResponseRegister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponseRegister"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    withdrawEcrfResponse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponseWithdrawal"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    prepareEcrfResponseSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponsePrepare"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    inspectEcrfResponseSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    reviewEcrfResponseSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponseReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    readEcrfResponseAnalytics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ResponseAnalytics"];
+                    };
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    requestControlledResearchOutput: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControlledOutputRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    inspectControlledResearchOutput: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    reviewControlledResearchOutput: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ControlledOutputReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    downloadControlledResearchOutput: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version conflict, stale consent snapshot, changed source or duplicate conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Bounded input or download size exceeded */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Structured validation, quality or review checks failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or outstanding-output limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Warehouse, portal, licensed vocabulary or evidence scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalGetBootstrap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPutProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostProfilesIdReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalGetEvidenceIdDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileEnvelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostStudies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudyInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostStudiesIdSubmit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostStudiesIdReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudyReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostCollections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostCollectionsIdSuspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostSourcesIdReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostMappings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MappingInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostIngest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IngestInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostReleases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalGetReleasesIdInspect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostReleasesIdReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostQuery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueryInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostExports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalGetExportsIdInspect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostExportsIdReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalGetExportsIdDownload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileEnvelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostForms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAdminPopulationAnalytics: {
+        parameters: {
+            query?: {
+                days?: 30 | 90 | 365;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suppressed aggregate population report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    researchPortalPostFormsIdReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormReview"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostResponses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponseInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalGetKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KeyInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchPortalPostKeysIdRevoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmptyInput"];
+            };
+        };
+        responses: {
+            /** @description Authorized response; data envelope. Downloads contain base64 file bytes for the existing BFF. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+            /** @description Invalid authentication */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Access denied, revoked, expired or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Version, duplicate or immutable mapping conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description HTTP request body limit */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Validation or missing evidence */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate or operation limit */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Portal, keys or document scanner unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    researchProjectAggregateApi: {
+        parameters: {
+            query?: {
+                format?: "json" | "xml";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published aggregate cells; never patient rows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                    "application/xml": string;
+                };
+            };
+            /** @description Key invalid or expired */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Grant inactive */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unsupported query */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Disabled portal */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
 }

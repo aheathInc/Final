@@ -8,7 +8,7 @@ export const ROLE_HOME: Record<string, string> = {
   dispatcher: '/admin/emergency',
   facility_admin: '/admin/facilities',
   platform_admin: '/admin/dashboard',
-  researcher: '/analytics/surveillance',
+  researcher: '/analytics/research',
 };
 
 export function homeForRole(role?: string | null) {

@@ -10,7 +10,7 @@ function homeFor(role?: string) {
   if (role === 'platform_admin') return '/admin/dashboard';
   if (role === 'dispatcher') return '/admin/emergency';
   if (role === 'facility_admin') return '/admin/facilities';
-  if (role === 'researcher') return '/analytics/surveillance';
+  if (role === 'researcher') return '/analytics/research';
   return '/login';
 }
 
@@ -21,7 +21,7 @@ function within(path: string, root: string) {
 function allowedAdmin(path: string, role?: string) {
   if (role === 'platform_admin') return true;
   if (role === 'facility_admin') {
-    return ['/admin/facilities', '/admin/incidents', '/admin/settings'].some((root) => within(path, root));
+    return ['/admin/facilities', '/admin/incidents', '/admin/settings', '/admin/research'].some((root) => within(path, root));
   }
   if (role === 'dispatcher') {
     return ['/admin/emergency', '/admin/devices'].some((root) => within(path, root));

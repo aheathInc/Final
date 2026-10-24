@@ -20,7 +20,7 @@ function load(session){
   if(!Object.hasOwn(deps,s))throw new Error('Unconfigured collaborator');return deps[s];
  },m,m.exports);return m.exports;
 }
-for(const [role,home] of Object.entries({clinician:'/doctor/queue',pharmacist:'/pharmacy',platform_admin:'/admin/dashboard',dispatcher:'/admin/emergency',facility_admin:'/admin/facilities',researcher:'/analytics/surveillance'})){
+for(const [role,home] of Object.entries({clinician:'/doctor/queue',pharmacist:'/pharmacy',platform_admin:'/admin/dashboard',dispatcher:'/admin/emergency',facility_admin:'/admin/facilities',researcher:'/analytics/research'})){
  test(`${role} resolves to the existing role-specific home`,()=>assert.equal(load(null).homeForRole(role),home));
 }
 for(const role of [undefined,null,'','unknown','patient','__proto__','constructor','toString']){
