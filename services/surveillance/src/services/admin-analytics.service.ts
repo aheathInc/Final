@@ -27,7 +27,7 @@ export async function getAdminAnalytics(role: string, days: ReportDays): Promise
   const now = new Date();
   const from = new Date(now.getTime() - days * 86_400_000);
 
-  const [profileCount, facilityCount, consultationCount, signedCount, regionGroups, genderGroups, ageRows, diagnosisRows, monthRows] = await Promise.all([
+  const [profileCount, facilityCount, consultationCount, signedCount, regionGroups, genderGroups, ageRows, monthRows] = await Promise.all([
     prisma.patientProfile.count(),
     prisma.facility.count(),
     prisma.consultationRequest.count({ where: { createdAt: { gte: from } } }),
@@ -44,16 +44,6 @@ export async function getAdminAnalytics(role: string, days: ReportDays): Promise
         ELSE '65+'
       END AS label, COUNT(*)::bigint AS count
       FROM patient_profiles GROUP BY 1
-    `,
-    prisma.$queryRaw<Row[]>`
-      SELECT codes.code AS label, COUNT(DISTINCT cn.id)::bigint AS count
-      FROM consultation_notes cn
-      CROSS JOIN LATERAL jsonb_array_elements_text(
-        CASE WHEN jsonb_typeof(cn.diagnosis_codes) = 'array' THEN cn.diagnosis_codes ELSE '[]'::jsonb END
-      ) AS codes(code)
-      WHERE cn.signed_at >= ${from}
-        AND codes.code ~ '^[A-Za-z0-9][A-Za-z0-9.\\-]{1,39}$'
-      GROUP BY codes.code ORDER BY count DESC LIMIT 20
     `,
     prisma.$queryRaw<Row[]>`
       SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS label,
@@ -78,7 +68,8 @@ export async function getAdminAnalytics(role: string, days: ReportDays): Promise
     regions: publishCounts(regionGroups.map((r) => ({ label: r.regionCode?.trim() || 'Not recorded', count: r._count._all }))),
     genders: publishCounts(genderGroups.map((r) => ({ label: r.sex ?? 'Not recorded', count: r._count._all }))),
     ages: publishCounts(numberRows(ageRows)),
-    conditions: publishCounts(numberRows(diagnosisRows)),
+    // Avoid live disease totals that could undo the new monthly release suppression.
+    conditions: [],
     monthlyConsultations: publishCounts(numberRows(monthRows)).sort((a, b) => a.label.localeCompare(b.label)),
   };
 }

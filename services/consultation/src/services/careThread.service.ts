@@ -77,9 +77,27 @@ export async function listCareThreads(
       ...(query.status ? { status: query.status as never } : {}),
     },
     orderBy: { updatedAt: 'desc' },
+    include: {
+      primaryClinician: { select: { user: { select: { fullName: true } } } },
+      patient: { select: { fullName: true } },
+      messages: { orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 1,
+        select: { body: true, attachmentType: true, createdAt: true, senderUserId: true } },
+      _count: { select: { messages: { where: { senderUserId: { not: caller.sub }, readAt: null } } } },
+    },
     ...cursorArgs(query.cursor, query.limit),
   });
-  return toCursorPage(rows, query.limit, serialiseThread);
+  return toCursorPage(rows, query.limit, (t) => ({
+    ...serialiseThread(t),
+    clinician_name: t.primaryClinician?.user.fullName ?? null,
+    patient_name: t.patient.fullName,
+    unread_count: t._count.messages,
+    last_message: t.messages[0] ? {
+      body: t.messages[0].body?.slice(0, 180) ?? null,
+      attachment_type: t.messages[0].attachmentType,
+      created_at: t.messages[0].createdAt.toISOString(),
+      sender_user_id: t.messages[0].senderUserId,
+    } : null,
+  }));
 }
 
 /**

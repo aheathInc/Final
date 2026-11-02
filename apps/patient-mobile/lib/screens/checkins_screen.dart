@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -89,8 +90,8 @@ class _CheckInsScreenState extends State<CheckInsScreen> {
     if (localStatus == 'queued' || localStatus == 'sending') return;
     if (!_online) {
       setState(
-        () => _error =
-            'ONLINE REQUIRED: unganisha intaneti kabla ya kujibu swali hili.',
+        () => _error = L.tr(
+            'ONLINE REQUIRED: unganisha intaneti kabla ya kujibu swali hili.'),
       );
       return;
     }
@@ -102,28 +103,31 @@ class _CheckInsScreenState extends State<CheckInsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     return Scaffold(
-      appBar: AppBar(title: const Text(S.checkIns)),
+      appBar: AppBar(title: Text(S.checkIns)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 if (!_online) ...[
-                  const Notice(
-                    'Hakuna mtandao. Maswali ya follow-up hayajahifadhiwa kwa matumizi offline.',
+                  Notice(
+                    L.tr(
+                        'Hakuna mtandao. Maswali ya follow-up hayajahifadhiwa kwa matumizi offline.'),
                     tone: NoticeTone.attention,
                   ),
                   if (_syncStates.values.any(
                     (status) => status == 'queued' || status == 'sending',
                   ))
-                    const Notice(
-                      'Pending sync: jibu la follow-up linasubiri uthibitisho wa seva.',
+                    Notice(
+                      L.tr(
+                          'Pending sync: jibu la follow-up linasubiri uthibitisho wa seva.'),
                       tone: NoticeTone.attention,
                     ),
                   if (_syncStates.values.any((status) => status == 'failed'))
-                    const Notice(
-                      'Jibu la awali linahitaji kuangaliwa mtandaoni.',
+                    Notice(
+                      L.tr('Jibu la awali linahitaji kuangaliwa mtandaoni.'),
                       tone: NoticeTone.attention,
                     ),
                   const SizedBox(height: 16),
@@ -135,8 +139,10 @@ class _CheckInsScreenState extends State<CheckInsScreen> {
                 if (_items.isEmpty)
                   Empty(
                     _online
-                        ? 'Huna swali linalosubiri jibu. Hii ni habari njema.'
-                        : 'Hakuna swali la follow-up lililohifadhiwa kwenye kifaa hiki.',
+                        ? L.tr(
+                            'Huna swali linalosubiri jibu. Hii ni habari njema.')
+                        : L.tr(
+                            'Hakuna swali la follow-up lililohifadhiwa kwenye kifaa hiki.'),
                   )
                 else
                   ..._items.map((c) {
@@ -154,8 +160,8 @@ class _CheckInsScreenState extends State<CheckInsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Daktari anataka kujua hali yako',
+                            Text(
+                              L.tr('Daktari anataka kujua hali yako'),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -163,12 +169,14 @@ class _CheckInsScreenState extends State<CheckInsScreen> {
                             ),
                             if (c['_local_sync_status'] == 'queued' ||
                                 c['_local_sync_status'] == 'sending')
-                              const Text(
-                                'Pending sync — jibu halijathibitishwa na seva.',
+                              Text(
+                                L.tr(
+                                    'Pending sync — jibu halijathibitishwa na seva.'),
                               ),
                             if (c['_local_sync_status'] == 'failed')
-                              const Text(
-                                'Jibu la awali halikuthibitishwa; unganisha intaneti kabla ya kujibu tena.',
+                              Text(
+                                L.tr(
+                                    'Jibu la awali halikuthibitishwa; unganisha intaneti kabla ya kujibu tena.'),
                               ),
                             if (at != null) ...[
                               const SizedBox(height: 4),
@@ -235,15 +243,15 @@ class _CheckInFormState extends State<_CheckInForm> {
       setState(() {
         _submitted = true;
         _message = status == null
-            ? 'Jibu limehifadhiwa na seva.'
-            : 'Jibu limehifadhiwa na seva. Hali: $status';
+            ? L.tr('Jibu limehifadhiwa na seva.')
+            : L.tr("Jibu limehifadhiwa na seva. Hali: {0}", [status]);
         _busy = false;
       });
     } on Queued {
       setState(() {
         _queued = true;
-        _message =
-            'Pending sync: jibu lipo kwenye simu tu na halijathibitishwa na seva.';
+        _message = L.tr(
+            'Pending sync: jibu lipo kwenye simu tu na halijathibitishwa na seva.');
         _busy = false;
       });
     } on ApiException catch (e) {
@@ -261,6 +269,7 @@ class _CheckInFormState extends State<_CheckInForm> {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     const labels = [
       'Vibaya sana',
       'Vibaya',
@@ -269,23 +278,23 @@ class _CheckInFormState extends State<_CheckInForm> {
       'Vizuri sana',
     ];
     return Scaffold(
-      appBar: AppBar(title: const Text('Hali yako')),
+      appBar: AppBar(title: Text(L.tr('Hali yako'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           if (_submitted || _queued) ...[
             Notice(
-              _message ?? 'Jibu limehifadhiwa na seva.',
+              _message ?? L.tr('Jibu limehifadhiwa na seva.'),
               tone: NoticeTone.attention,
             ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(_submitted || _queued),
-              child: const Text('Funga'),
+              child: Text(L.tr('Funga')),
             ),
           ] else ...[
-            const Text(
-              'Unajisikiaje leo?',
+            Text(
+              L.tr('Unajisikiaje leo?'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 16),
@@ -319,8 +328,8 @@ class _CheckInFormState extends State<_CheckInForm> {
               );
             }),
             const SizedBox(height: 20),
-            const Text(
-              'Kuna kitu kingine unataka daktari ajue?',
+            Text(
+              L.tr('Kuna kitu kingine unataka daktari ajue?'),
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),

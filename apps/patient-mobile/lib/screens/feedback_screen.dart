@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -80,7 +81,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         _completed = rows;
         if (!requestedFound) {
           _consultationId = null;
-          _error = 'Ombi hili halipo kwenye orodha ya matibabu yaliyokamilika.';
+          _error = L
+              .tr('Ombi hili halipo kwenye orodha ya matibabu yaliyokamilika.');
         } else if (_consultationId == null ||
             !rows.any((row) => row['id'] == _consultationId)) {
           _consultationId = rows.isEmpty ? null : rows.first['id'] as String;
@@ -92,7 +94,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       setState(() {
         _error = error is ApiException
             ? error.message
-            : 'Matibabu yaliyokamilika hayakusomeka.';
+            : L.tr('Matibabu yaliyokamilika hayakusomeka.');
         _loading = false;
       });
     }
@@ -100,11 +102,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   String _errorMessage(Object error) {
     if (error is ApiException && error.code == 'ALREADY_RATED') {
-      return 'Tathmini ya ombi hili tayari imetumwa.';
+      return L.tr('Tathmini ya ombi hili tayari imetumwa.');
     }
     return error is ApiException
         ? '${error.message} (${error.code ?? error.status})'
-        : 'Ombi halikuhifadhiwa. Jaribu tena.';
+        : L.tr('Ombi halikuhifadhiwa. Jaribu tena.');
   }
 
   Future<void> _submitRating() async {
@@ -166,164 +168,171 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Maoni na malalamiko')),
-        body: RefreshIndicator(
-          onRefresh: _loadCompleted,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (_error != null) ...[
-                Notice(_error!),
-                const SizedBox(height: 12)
-              ],
-              const SectionTitle('Tathmini ya matibabu yaliyokamilika'),
-              const Text(
-                'Tathmini hutumwa kwa huduma ya ubora; tathmini moja inaruhusiwa kwa kila ombi.',
-              ),
-              const SizedBox(height: 10),
-              if (_loading)
-                const Center(child: CircularProgressIndicator())
-              else if (_completed.isEmpty)
-                const Empty(
-                    'Hakuna ombi lililokamilika linaloweza kutathminiwa.'),
-              if (_completed.isNotEmpty) ...[
-                DropdownButtonFormField<String>(
-                  initialValue: _consultationId,
-                  decoration: const InputDecoration(
-                    labelText: 'Ombi lililokamilika',
-                  ),
-                  items: [
-                    for (final row in _completed)
-                      DropdownMenuItem(
-                        value: row['id'] as String,
-                        child: Text(_consultationLabel(row)),
-                      ),
-                  ],
-                  onChanged: _busy || _rating != null
-                      ? null
-                      : (value) => setState(() => _consultationId = value),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  children: [
-                    for (var score = 1; score <= 5; score++)
-                      ChoiceChip(
-                        label: Text('$score'),
-                        selected: _score == score,
-                        onSelected: _busy || _rating != null
-                            ? null
-                            : (_) => setState(() => _score = score),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _ratingComment,
-                  maxLength: 1000,
-                  enabled: !_busy && _rating == null,
-                  decoration:
-                      const InputDecoration(labelText: 'Maoni ya hiari'),
-                ),
-                FilledButton(
-                  onPressed: _busy || _rating != null ? null : _submitRating,
-                  child: const Text('Tuma tathmini'),
-                ),
-                if (_rating != null) ...[
-                  const SizedBox(height: 8),
-                  Panel(
-                    child: Text(
-                      'Tathmini imehifadhiwa. Rejea: ${_rating!['id']} · Alama: ${_rating!['score']}',
-                    ),
-                  ),
-                ],
-              ],
-              const SizedBox(height: 28),
-              const SectionTitle('Ripoti tukio au malalamiko'),
-              const Text(
-                'Ripoti itahifadhiwa kwa timu ya ubora. Hali itaonyeshwa kama ilivyorudishwa na huduma; hakuna suluhisho linalodaiwa.',
-              ),
-              const SizedBox(height: 10),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Maoni na malalamiko'))),
+      body: RefreshIndicator(
+        onRefresh: _loadCompleted,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            if (_error != null) ...[
+              Notice(_error!),
+              const SizedBox(height: 12)
+            ],
+            SectionTitle(L.tr('Tathmini ya matibabu yaliyokamilika')),
+            Text(
+              L.tr(
+                  'Tathmini hutumwa kwa huduma ya ubora; tathmini moja inaruhusiwa kwa kila ombi.'),
+            ),
+            const SizedBox(height: 10),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_completed.isEmpty)
+              Empty(
+                  L.tr('Hakuna ombi lililokamilika linaloweza kutathminiwa.')),
+            if (_completed.isNotEmpty) ...[
               DropdownButtonFormField<String>(
-                initialValue: _category,
-                decoration:
-                    const InputDecoration(labelText: 'Muktadha wa ripoti'),
-                items: [
-                  for (final category in _incidentCategories)
-                    DropdownMenuItem(value: category, child: Text(category)),
-                ],
-                onChanged: _busy
-                    ? null
-                    : (value) => setState(() => _category = value ?? _category),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: _incidentConsultationId ?? '',
-                decoration: const InputDecoration(
-                  labelText: 'Ombi linalohusiana (hiari)',
+                initialValue: _consultationId,
+                decoration: InputDecoration(
+                  labelText: L.tr('Ombi lililokamilika'),
                 ),
                 items: [
-                  const DropdownMenuItem(
-                      value: '', child: Text('Hakuna ombi maalum')),
                   for (final row in _completed)
                     DropdownMenuItem(
                       value: row['id'] as String,
                       child: Text(_consultationLabel(row)),
                     ),
                 ],
-                onChanged: _busy
+                onChanged: _busy || _rating != null
                     ? null
-                    : (value) =>
-                        setState(() => _incidentConsultationId = value),
+                    : (value) => setState(() => _consultationId = value),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                children: [
+                  for (var score = 1; score <= 5; score++)
+                    ChoiceChip(
+                      label: Text('$score'),
+                      selected: _score == score,
+                      onSelected: _busy || _rating != null
+                          ? null
+                          : (_) => setState(() => _score = score),
+                    ),
+                ],
               ),
               const SizedBox(height: 10),
               TextField(
-                controller: _incidentDescription,
-                minLines: 3,
-                maxLines: 6,
-                maxLength: 4000,
-                decoration: const InputDecoration(labelText: 'Maelezo'),
-                onChanged: (_) => setState(() {}),
+                controller: _ratingComment,
+                maxLength: 1000,
+                enabled: !_busy && _rating == null,
+                decoration: InputDecoration(labelText: L.tr('Maoni ya hiari')),
               ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Ripoti bila kutaja jina'),
-                value: _anonymous,
-                onChanged: _busy
-                    ? null
-                    : (value) => setState(() => _anonymous = value ?? false),
+              FilledButton(
+                onPressed: _busy || _rating != null ? null : _submitRating,
+                child: Text(L.tr('Tuma tathmini')),
               ),
-              FilledButton.icon(
-                onPressed: _busy || _incidentDescription.text.trim().isEmpty
-                    ? null
-                    : _submitIncident,
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('Hifadhi ripoti'),
-              ),
-              if (_incident != null) ...[
-                const SizedBox(height: 12),
+              if (_rating != null) ...[
+                const SizedBox(height: 8),
                 Panel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Ripoti imehifadhiwa na huduma.'),
-                      Text('Rejea: ${_incident!['id']}'),
-                      Text('Hali: ${_incident!['status']}'),
-                      const Text(
-                        'Ripoti hii inaweza kuonekana kwa Admin aliyeidhinishwa; hali baada ya kufunga ukurasa haiwezi kusomwa na mgonjwa kupitia API iliyopo.',
-                      ),
-                    ],
+                  child: Text(
+                    L.tr("Tathmini imehifadhiwa. Rejea: {0} · Alama: {1}",
+                        [_rating!['id'], _rating!['score']]),
                   ),
                 ),
               ],
             ],
-          ),
+            const SizedBox(height: 28),
+            SectionTitle(L.tr('Ripoti tukio au malalamiko')),
+            Text(
+              L.tr(
+                  'Ripoti itahifadhiwa kwa timu ya ubora. Hali itaonyeshwa kama ilivyorudishwa na huduma; hakuna suluhisho linalodaiwa.'),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: _category,
+              decoration:
+                  InputDecoration(labelText: L.tr('Muktadha wa ripoti')),
+              items: [
+                for (final category in _incidentCategories)
+                  DropdownMenuItem(value: category, child: Text(category)),
+              ],
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _category = value ?? _category),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: _incidentConsultationId ?? '',
+              decoration: InputDecoration(
+                labelText: L.tr('Ombi linalohusiana (hiari)'),
+              ),
+              items: [
+                DropdownMenuItem(
+                    value: '', child: Text(L.tr('Hakuna ombi maalum'))),
+                for (final row in _completed)
+                  DropdownMenuItem(
+                    value: row['id'] as String,
+                    child: Text(_consultationLabel(row)),
+                  ),
+              ],
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _incidentConsultationId = value),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _incidentDescription,
+              minLines: 3,
+              maxLines: 6,
+              maxLength: 4000,
+              decoration: InputDecoration(labelText: L.tr('Maelezo')),
+              onChanged: (_) => setState(() {}),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(L.tr('Ripoti bila kutaja jina')),
+              value: _anonymous,
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _anonymous = value ?? false),
+            ),
+            FilledButton.icon(
+              onPressed: _busy || _incidentDescription.text.trim().isEmpty
+                  ? null
+                  : _submitIncident,
+              icon: const Icon(Icons.flag_outlined),
+              label: Text(L.tr('Hifadhi ripoti')),
+            ),
+            if (_incident != null) ...[
+              const SizedBox(height: 12),
+              Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(L.tr('Ripoti imehifadhiwa na huduma.')),
+                    Text(L.tr("Rejea: {0}", [_incident!['id']])),
+                    Text(L.tr("Hali: {0}", [_incident!['status']])),
+                    Text(
+                      L.tr(
+                          'Ripoti hii inaweza kuonekana kwa Admin aliyeidhinishwa; hali baada ya kufunga ukurasa haiwezi kusomwa na mgonjwa kupitia API iliyopo.'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   String _consultationLabel(Map<String, dynamic> row) {
     final summary = (row['symptom_text'] as String?)?.trim();
-    return summary == null || summary.isEmpty ? 'Ombi ${row['id']}' : summary;
+    return summary == null || summary.isEmpty
+        ? L.tr("Ombi {0}", [row['id']])
+        : summary;
   }
 }

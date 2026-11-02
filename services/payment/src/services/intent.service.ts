@@ -3,6 +3,7 @@ import { appendAudit,conflict,cursorArgs,forbidden,notFound,toCursorPage,unproce
 import { env } from '../config/env.js';
 import type { ProviderAdapter } from '../adapters/provider.js';
 import type { Carrier } from './policy.js';
+import { isFreeConsultation } from '@a-health/database/consultation-billing';
 export interface Caller{sub?:string;role?:string}
 export interface Meta{ip?:string|null;requestId?:string|null}
 export function serialiseIntent(i:PaymentIntent){return {id:i.id,bill_id:i.billId,amount:Number(i.amount),currency:i.currency,method:i.method,provider:i.provider,purpose:i.purpose,
@@ -19,6 +20,11 @@ export async function createPaymentIntent(caller:Caller,input:{bill_id?:string;m
    await tx.$queryRaw`SELECT id FROM care_bills WHERE id=${input.bill_id}::uuid FOR UPDATE`;
    const bill=await tx.careBill.findUnique({where:{id:input.bill_id}});
    if(!bill||bill.payerUserId!==caller.sub)throw notFound('Bill not found.');
+   if(bill.purpose==='consultation_fee'){
+     if(!bill.consultationId)throw conflict('CONSULTATION_FEE_NOT_APPLICABLE','A consultation reference is required before payment.');
+     const consultation=await tx.consultationRequest.findUnique({where:{id:bill.consultationId}});
+     if(!consultation||isFreeConsultation(consultation))throw conflict('CONSULTATION_FEE_NOT_APPLICABLE','This consultation is free or unavailable. Its consultation bill cannot be paid.');
+   }
    if(bill.status!=='due')throw conflict('PAYMENT_ALREADY_SETTLED','This bill is not payable.');
    if(bill.expiresAt<=new Date())throw conflict('STATE_TRANSITION_INVALID','Bill has expired. Contact the service desk.');
    const unresolved=await tx.paymentIntent.findFirst({where:{billId:bill.id,status:{in:['pending','requires_action','processing']}}});

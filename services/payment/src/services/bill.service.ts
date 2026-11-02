@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import { appendAudit,forbidden,notFound,conflict,unprocessable } from '@a-health/http';
 import { requireTzs } from './policy.js';
+import { isFreeConsultation } from '@a-health/database/consultation-billing';
 export interface BillCaller {sub?:string;role?:string}
 export function serialiseBill(b:{id:string;reference:string;title:string;amount:unknown;currency:string;purpose:string;status:string;consultationId:string|null;createdAt:Date;expiresAt:Date;paidAt:Date|null}){
  return {id:b.id,reference:b.reference,title:b.title,amount:Number(b.amount),currency:b.currency,purpose:b.purpose,status:b.status,
@@ -15,6 +16,8 @@ export async function issueBill(caller:BillCaller,input:{consultation_id:string;
    if(!actor||actor.status!=='active'||actor.role!==caller.role)throw forbidden('ROLE_NOT_PERMITTED','Billing permission unavailable.');
    const consultation=await tx.consultationRequest.findUnique({where:{id:input.consultation_id},include:{patient:true}});
    if(!consultation)throw notFound('Consultation not found.');
+   if(isFreeConsultation(consultation))throw conflict('CONSULTATION_FEE_NOT_APPLICABLE','This consultation is free. A consultation fee cannot be issued.');
+   if(consultation.feePolicyVersion && (consultation.consultationFeeAmount===null || amount!==consultation.consultationFeeAmount))throw conflict('CONSULTATION_FEE_MISMATCH','Use the server-calculated remote consultation fee.');
    if(actor.role==='clinician'&&(actor.clinicianProfile?.verificationStatus!=='verified'||consultation.assignedClinicianId!==actor.clinicianProfile.id))throw forbidden('NOT_RESOURCE_OWNER','Only the assigned clinician may issue this consultation bill.');
    const payer=consultation.patient.userId??consultation.patient.guardianUserId;
    if(!payer)throw unprocessable('A bill requires a registered payer.');
@@ -29,6 +32,9 @@ export async function issueBill(caller:BillCaller,input:{consultation_id:string;
 }
 export async function listBills(caller:BillCaller){
  if(!caller.sub||!['patient','platform_admin','clinician'].includes(caller.role??''))throw forbidden('ROLE_NOT_PERMITTED','Not permitted.');
- const rows=await prisma.careBill.findMany({where:caller.role==='platform_admin'?{}:caller.role==='clinician'?{issuedById:caller.sub}:{payerUserId:caller.sub},orderBy:[{createdAt:'desc'},{id:'desc'}],take:100});
- return {data:rows.map(serialiseBill),meta:{next_cursor:null,limit:100}};
+ const rows=await prisma.careBill.findMany({where:caller.role==='platform_admin'?{}:caller.role==='clinician'?{issuedById:caller.sub}:{payerUserId:caller.sub},include:{consultation:true},orderBy:[{createdAt:'desc'},{id:'desc'}],take:100});
+ return {data:rows.map(b=>{
+   const free=b.purpose==='consultation_fee'&&(!b.consultation||isFreeConsultation(b.consultation));
+   return {...serialiseBill(b),payable:!free&&b.status==='due'&&b.expiresAt>new Date(),payment_block_reason:free?'This consultation is free. No consultation payment is required.':null};
+ }),meta:{next_cursor:null,limit:100}};
 }

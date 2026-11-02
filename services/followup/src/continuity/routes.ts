@@ -3,6 +3,7 @@ import { createAuthGuards, createIdempotency, createTokenService, pathParam } fr
 import { env } from '../config/env.js';
 import * as s from './service.js';
 import * as v from './types.js';
+import * as medication from './medication.js';
 const { requireAuth } = createAuthGuards(createTokenService({ secret: env.JWT_SECRET, issuer: env.JWT_ISSUER,
   audience: env.JWT_AUDIENCE, ttlSeconds: env.ACCESS_TOKEN_TTL_SECONDS }));
 const idem = createIdempotency(env.IDEMPOTENCY_TTL_HOURS);
@@ -15,6 +16,10 @@ const handle = (fn: (r: Request, response: Response) => Promise<unknown>) => asy
 export const continuityRouter = Router();
 continuityRouter.use('/care-continuity', requireAuth);
 continuityRouter.get('/care-continuity/me', handle(r => s.patientOverview(caller(r), v.patientQuerySchema.parse(r.query))));
+continuityRouter.get('/care-continuity/medication-alarms',handle(r=>medication.medicationAlarms(caller(r))));
+continuityRouter.get('/care-continuity/medication-summary',handle(r=>medication.medicationSummary(caller(r),v.medicationSummaryQuery.parse(r.query))));
+continuityRouter.post('/care-continuity/doses/:id/snooze',idem,handle((r,res)=>medication.snoozeDose(resourceId(r),caller(r),v.medicationSnoozeSchema.parse(r.body),meta(r,res))));
+continuityRouter.post('/care-continuity/items/:id/supply',idem,handle((r,res)=>medication.saveSupply(resourceId(r),caller(r),v.medicationSupplySchema.parse(r.body),meta(r,res))));
 continuityRouter.post('/care-continuity/patients/:id/preferences', idem, handle((r, res) => s.updatePreference(caller(r), resourceId(r), v.preferenceSchema.parse(r.body), meta(r, res))));
 continuityRouter.post('/care-continuity/reminders/:id/read', idem, handle(r => s.markRead(resourceId(r), caller(r))));
 continuityRouter.get('/care-continuity/prescriptions', handle(r => s.medicationWorklist(caller(r), v.medicationQuerySchema.parse(r.query))));

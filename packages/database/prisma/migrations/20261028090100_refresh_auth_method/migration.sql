@@ -1,0 +1,1 @@
+ALTER TABLE "refresh_tokens" ADD COLUMN "auth_method" VARCHAR(20) NOT NULL DEFAULT 'password';

@@ -291,3 +291,32 @@ describe('digital referral network', () => {
       (error: AppError) => error.code === 'REFERRAL_CONSENT_REQUIRED' || error.code === 'STATE_TRANSITION_INVALID');
   });
 });
+
+it('secures referral handoff messages, retries and patient references against consent withdrawal',async()=>{
+ const origin=await makeFacility('handoff source'),destination=await makeFacility('handoff destination'),other=await makeFacility('unrelated');
+ const source=await makeClinician(origin.facility.id,origin.department.id,true),receiver=await makeClinician(destination.facility.id,destination.department.id,true),outsider=await makeClinician(other.facility.id,other.department.id,true);
+ const patient=await makePatient('handoff'),record=await makeCase(source,patient),consent=await grantFacilityConsent(patient.profileId,record.threadId,destination.facility.id);
+ const referral=await create(source,record,destination.facility.id,consent.id);
+ assert.equal(referral.patient_reference,patient.profileId);
+ const input={body:'Synthetic handoff detail',client_message_id:randomUUID()};
+ await assert.rejects(()=>referrals.createReferralMessage(referral.id,source,input,meta));
+ await referrals.submitReferral(referral.id,source,meta);
+ await assert.rejects(()=>referrals.listReferralMessages(referral.id,outsider,{limit:50},meta));
+ await assert.rejects(()=>referrals.listReferralMessages(referral.id,patient,{limit:50},meta));
+ const a=await referrals.createReferralMessage(referral.id,source,input,meta);
+ assert.equal((await referrals.createReferralMessage(referral.id,source,input,meta)).id,a.id);
+ await assert.rejects(()=>referrals.createReferralMessage(referral.id,source,{...input,body:'Changed'},meta));
+ const b=await referrals.createReferralMessage(referral.id,receiver,{body:'Synthetic receiving response',client_message_id:randomUUID()},meta);
+ assert.notEqual(a.id,b.id);assert.equal((await referrals.listReferralMessages(referral.id,receiver,{limit:50},meta)).data.length,2);
+ await referrals.receiveReferral(referral.id,receiver,meta);
+ await referrals.acceptReferral(referral.id,receiver,meta);
+ await referrals.startReferralCare(referral.id,receiver,meta);
+ await referrals.completeReferral(referral.id,receiver,{outcome_status:'care_provided'},meta);
+ assert.equal((await referrals.listReferralMessages(referral.id,source,{limit:50},meta)).data.length,2);
+ await assert.rejects(()=>referrals.createReferralMessage(referral.id,source,{...input,client_message_id:randomUUID()},meta),{code:'REFERRAL_CLOSED'});
+ await prisma.patientConsent.update({where:{id:consent.id},data:{revokedAt:new Date(),allowed:false}});
+ await assert.rejects(()=>referrals.listReferralMessages(referral.id,receiver,{limit:50},meta));
+ await assert.rejects(()=>referrals.createReferralMessage(referral.id,source,input,meta));
+ const redacted=await referrals.getReferral(referral.id,source,meta);
+ assert.equal(redacted.clinical_summary,null);assert.equal(redacted.patient_reference,null);assert.notEqual(redacted.purpose,referral.purpose);
+});

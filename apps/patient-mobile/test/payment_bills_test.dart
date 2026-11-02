@@ -79,6 +79,16 @@ void main() {
     expect(repo.writes, 0);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+  testWidgets('a free consultation bill cannot be selected for payment', (tester) async {
+    final repo = FakeBills()..values = [{...bill(), 'payable': false,
+      'payment_block_reason': 'This consultation is free. No consultation payment is required.'}];
+    await tester.pumpWidget(MaterialApp(home: PaymentBillsScreen(repository: repo)));
+    await tester.pumpAndSettle();
+    expect(find.text('Chagua bili'), findsNothing);
+    expect(find.text('This consultation is free. No consultation payment is required.'), findsOneWidget);
+    expect(repo.writes, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('API failure is distinct from authorized empty state',
       (tester) async {
     final repo = FakeBills()..fail = true;

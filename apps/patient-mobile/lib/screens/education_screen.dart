@@ -1,3 +1,5 @@
+import '../core/l10n.dart';
+import 'patient_community_screen.dart' show emergency;
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -20,6 +22,12 @@ class _EducationScreenState extends State<EducationScreen> {
   Map<String, Map<String, dynamic>> _topics = {};
   String? _error;
   bool _loading = true;
+  final _search = TextEditingController();
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -31,7 +39,10 @@ class _EducationScreenState extends State<EducationScreen> {
     widget.onDiagnostic?.call('REQUEST_STARTED');
     try {
       final values = await Future.wait([
-        Api.get('/education/articles', query: {'limit': 100}),
+        Api.get('/education/articles', query: {
+          'limit': 100,
+          if (_search.text.trim().isNotEmpty) 'q': _search.text.trim()
+        }),
         Api.get('/education/topics'),
       ]);
       widget.onDiagnostic?.call('BODY_DECODED');
@@ -56,7 +67,7 @@ class _EducationScreenState extends State<EducationScreen> {
       );
       if (mounted) {
         setState(() {
-          _error = 'Makala za elimu hazikuweza kupakiwa.';
+          _error = L.tr('Makala za elimu hazikuweza kupakiwa.');
           _loading = false;
         });
       }
@@ -64,81 +75,100 @@ class _EducationScreenState extends State<EducationScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Elimu ya afya')),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    const Text(
-                      'Makala yaliyochapishwa na kukaguliwa. Maudhui yanaonyeshwa katika lugha iliyohifadhiwa.',
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Elimu ya afya'))),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  TextField(
+                      controller: _search,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (_) => _load(),
+                      decoration: InputDecoration(
+                          labelText: L.tr('Tafuta ugonjwa'),
+                          hintText: L.tr('Mfano: malaria'),
+                          suffixIcon: IconButton(
+                              onPressed: _load,
+                              icon: const Icon(Icons.search),
+                              tooltip: L.tr('Tafuta')))),
+                  const SizedBox(height: 16),
+                  Text(
+                    L.tr(
+                        'Makala yaliyochapishwa na kukaguliwa. Maudhui yanaonyeshwa katika lugha iliyohifadhiwa.'),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Notice(_error!),
+                  ],
+                  if (_error == null && _articles.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 20),
+                      child: Empty(
+                          L.tr('Hakuna makala zilizochapishwa kwa sasa.')),
                     ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      Notice(_error!),
-                    ],
-                    if (_error == null && _articles.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 20),
-                        child: Empty('Hakuna makala zilizochapishwa kwa sasa.'),
-                      ),
-                    ..._articles.map((article) {
-                      final topic = _topics[article['topic_slug']];
-                      final category = topic?['category'] as String? ??
-                          article['topic_slug'] as String? ??
-                          'Elimu ya afya';
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Panel(
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => EducationArticleScreen(
-                                slug: article['slug'] as String,
-                                language: article['language'] as String?,
-                                category: category,
-                              ),
+                  ..._articles.map((article) {
+                    final topic = _topics[article['topic_slug']];
+                    final category = topic?['category'] as String? ??
+                        article['topic_slug'] as String? ??
+                        L.tr('Elimu ya afya');
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Panel(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => EducationArticleScreen(
+                              slug: article['slug'] as String,
+                              language: article['language'] as String?,
+                              category: category,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      article['title'] as String,
-                                      style: const TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    article['title'] as String,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const Icon(
-                                    Icons.chevron_right,
-                                    color: AppColors.inkSoft,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 5),
-                              Text(article['summary'] as String),
-                              const SizedBox(height: 8),
-                              Text(
-                                '$category  |  ${article['language'] ?? 'lugha haijatajwa'}  |  Imechapishwa',
-                                style:
-                                    const TextStyle(color: AppColors.inkSoft),
-                              ),
-                            ],
-                          ),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: AppColors.inkSoft,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+                            Text(article['summary'] as String),
+                            const SizedBox(height: 8),
+                            Text(
+                              L.tr("{0}  |  {1}  |  Imechapishwa", [
+                                category,
+                                article['language'] ?? 'lugha haijatajwa'
+                              ]),
+                              style: const TextStyle(color: AppColors.inkSoft),
+                            ),
+                          ],
                         ),
-                      );
-                    }),
-                  ],
-                ),
+                      ),
+                    );
+                  }),
+                ],
               ),
-      );
+            ),
+    );
+  }
 }
 
 class EducationArticleScreen extends StatefulWidget {
@@ -180,51 +210,89 @@ class _EducationArticleScreenState extends State<EducationArticleScreen> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _error = 'Makala hii haipatikani sasa.');
+      if (mounted)
+        setState(() => _error = L.tr('Makala hii haipatikani sasa.'));
     }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Makala ya afya')),
-        body: _article == null
-            ? Center(
-                child: _error == null
-                    ? const CircularProgressIndicator()
-                    : Notice(_error!),
-              )
-            : ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text(
-                    widget.category,
-                    style: const TextStyle(color: AppColors.petrol),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Makala ya afya'))),
+      body: _article == null
+          ? Center(
+              child: _error == null
+                  ? const CircularProgressIndicator()
+                  : Notice(_error!),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Text(
+                  widget.category,
+                  style: const TextStyle(color: AppColors.petrol),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _article!['title'] as String,
+                  style: const TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 8),
+                ),
+                const SizedBox(height: 8),
+                Text(L
+                    .tr("Lugha: {0}", [_article!['language'] ?? 'haijatajwa'])),
+                const SizedBox(height: 12),
+                Text(
+                  _article!['summary'] as String? ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 16),
+                if ((_article!['body'] as String?)?.isNotEmpty ?? false)
                   Text(
-                    _article!['title'] as String,
-                    style: const TextStyle(
-                      fontSize: 23,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Lugha: ${_article!['language'] ?? 'haijatajwa'}'),
-                  const SizedBox(height: 12),
-                  Text(
-                    _article!['summary'] as String? ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _article!['body'] as String? ??
-                        _article!['summary'] as String? ??
-                        '',
+                    _article!['body'] as String,
                     style: const TextStyle(fontSize: 16, height: 1.5),
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Hali: imechapishwa'),
+                const SizedBox(height: 16),
+                if ((_article!['disease_guide'] as Map?)?.isNotEmpty ??
+                    false) ...[
+                  for (final section in {
+                    'causes': L.tr('Sababu'),
+                    'symptoms': L.tr('Dalili'),
+                    'prevention': L.tr('Kinga'),
+                    'diagnosis': L.tr('Uchunguzi'),
+                    'treatment': L.tr('Chaguo za matibabu'),
+                    'warning_signs': L.tr('Dalili za hatari')
+                  }.entries) ...[
+                    Padding(
+                        padding: const EdgeInsets.only(top: 20, bottom: 8),
+                        child: Text(section.value,
+                            style: Theme.of(context).textTheme.titleLarge)),
+                    Text(
+                        _article!['disease_guide'][section.key] ??
+                            L.tr('Taarifa hii haijaongezwa.'),
+                        style: Theme.of(context).textTheme.bodyLarge),
+                  ],
                 ],
-              ),
-      );
+                const SizedBox(height: 16),
+                Text(L.tr(
+                    'Elimu hii si utambuzi wa ugonjwa wala agizo la dawa. Ongea na mtaalamu kuhusu hali yako.')),
+                TextButton.icon(
+                    onPressed: () => emergency(context),
+                    icon: const Icon(Icons.emergency_outlined),
+                    label: Text(L.tr('Pata msaada wa dharura'))),
+                if (_article!['reviewed_at'] != null)
+                  Text(L.tr("Imepitiwa: {0}", [_article!["reviewed_at"]])),
+                for (final source in (_article!['sources'] as List? ?? []))
+                  Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: SelectableText(
+                          '${source["title"]}\n${source["url"]}')),
+                Text(L.tr('Hali: imechapishwa')),
+              ],
+            ),
+    );
+  }
 }

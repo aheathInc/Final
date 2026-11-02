@@ -8,6 +8,8 @@ export interface ReferralMeta { ip?: string | null; requestId?: string | null }
 
 const referralInclude = {
   patient: { select: { id: true, userId: true, guardianUserId: true } },
+  sourceFacility: { select: { id: true, name: true } },
+  sourceDepartment: { select: { id: true, name: true } },
   consultation: { select: { id: true, careThreadId: true, patientProfileId: true } },
   sourceClinician: {
     include: {
@@ -40,19 +42,19 @@ type ReferralRow = Prisma.DigitalReferralGetPayload<{ include: typeof referralIn
 const terminalStatuses = ['declined', 'completed', 'cancelled', 'expired'] as const;
 const activeStatuses = ['draft', 'submitted', 'received', 'accepted', 'in_care'] as const;
 
-async function currentClinician(caller: ReferralCaller) {
+async function currentClinician(caller: ReferralCaller, db: Prisma.TransactionClient = prisma) {
   if (caller.role !== 'clinician' || !caller.cpid) {
     throw forbidden('ROLE_NOT_PERMITTED', 'A clinician account is required');
   }
-  const clinician = await prisma.clinicianProfile.findFirst({
+  const clinician = await db.clinicianProfile.findFirst({
     where: { id: caller.cpid, userId: caller.sub },
     include: {
-      user: { select: { status: true } },
+      user: { select: { status: true, role: true } },
       facility: { select: { id: true, isActive: true } },
       department: { select: { id: true, facilityId: true, isActive: true } },
     },
   });
-  if (!clinician || clinician.verificationStatus !== 'verified' || clinician.user.status !== 'active') {
+  if (!clinician || clinician.verificationStatus !== 'verified' || clinician.user.status !== 'active' || clinician.user.role !== 'clinician') {
     throw forbidden('CLINICIAN_NOT_VERIFIED', 'An active, verified clinician account is required');
   }
   if (!clinician.facilityId || !clinician.facility?.isActive) {
@@ -96,13 +98,14 @@ function serialise(row: ReferralRow, options: { includeClinical: boolean; includ
     id: row.id,
     status: row.status,
     priority: row.priority,
-    purpose: row.purpose,
+    patient_reference: options.includeClinical ? row.patientProfileId : null,
+    purpose: options.includeClinical ? row.purpose : 'Clinical reason unavailable',
     clinical_summary: options.includeClinical ? row.clinicalSummary : null,
     consultation_id: row.consultationId,
     source: {
       clinician: clinician(row.sourceClinician),
-      facility: { id: row.sourceFacilityId, name: row.sourceClinician.facility?.name ?? 'Source facility' },
-      department: row.sourceClinician.department ? { id: row.sourceClinician.department.id, name: row.sourceClinician.department.name } : null,
+      facility: { id: row.sourceFacilityId, name: row.sourceFacility.name },
+      department: row.sourceDepartment ? { id: row.sourceDepartment.id, name: row.sourceDepartment.name } : null,
     },
     destination: {
       facility: { id: row.destinationFacilityId, name: row.destinationFacility.name },
@@ -117,7 +120,7 @@ function serialise(row: ReferralRow, options: { includeClinical: boolean; includ
     received_at: row.receivedAt?.toISOString() ?? null,
     accepted_at: row.acceptedAt?.toISOString() ?? null,
     declined_at: row.declinedAt?.toISOString() ?? null,
-    decline_reason: row.declineReason,
+    decline_reason: options.includeClinical ? row.declineReason : null,
     care_started_at: row.careStartedAt?.toISOString() ?? null,
     completed_at: row.completedAt?.toISOString() ?? null,
     cancelled_at: row.cancelledAt?.toISOString() ?? null,
@@ -598,3 +601,50 @@ export const declineReferral = (id: string, caller: ReferralCaller, reason: stri
 export const startReferralCare = (id: string, caller: ReferralCaller, meta: ReferralMeta) => transition('startCare', id, caller, meta);
 export const completeReferral = (id: string, caller: ReferralCaller, input: CompleteReferralInput, meta: ReferralMeta) => transition('complete', id, caller, meta, { outcome: input });
 export const cancelReferral = (id: string, caller: ReferralCaller, meta: ReferralMeta) => transition('cancel', id, caller, meta);
+
+const messageAuthor = { author: { select: { user: { select: { fullName: true } } } } } as const;
+function serialiseMessage(row: Prisma.DigitalReferralMessageGetPayload<{ include: typeof messageAuthor }>) {
+  return { id: row.id, referral_id: row.referralId, author_clinician_id: row.authorClinicianId,
+    author_name: row.author.user.fullName, body: row.body, created_at: row.createdAt.toISOString() };
+}
+async function messageAccess(tx: Prisma.TransactionClient, id: string, caller: ReferralCaller, write: boolean) {
+  const row = await lockReferral(tx, id);
+  if (!row) throw notFound('Referral not found');
+  const actor = await currentClinician(caller, tx);
+  if (row.sourceClinicianId !== actor.id && !destinationEligible(row, actor)) {
+    throw forbidden('NOT_RESOURCE_OWNER', 'Only the referring clinician and authorized destination clinicians may access this handoff.');
+  }
+  if (!consentActive(row) || ['draft', 'cancelled', 'expired'].includes(row.status)) {
+    throw forbidden('REFERRAL_COMMUNICATION_UNAVAILABLE', 'Handoff messages require a submitted referral and active patient authorization.');
+  }
+  if (write && !['submitted', 'received', 'accepted', 'in_care'].includes(row.status)) {
+    throw conflict('REFERRAL_CLOSED', 'This referral is closed. Its conversation is read-only.');
+  }
+  return actor;
+}
+export async function listReferralMessages(id: string, caller: ReferralCaller, query: {cursor?:string;limit:number}, meta: ReferralMeta) {
+  await expireOrCancelIfNeeded(id);
+  return prisma.$transaction(async tx => {
+    await messageAccess(tx, id, caller, false);
+    const rows = await tx.digitalReferralMessage.findMany({ where:{referralId:id}, include:messageAuthor,
+      orderBy:[{createdAt:'asc'},{id:'asc'}], ...cursorArgs(query.cursor,query.limit) });
+    await audit({caller, action:'referral.messages_read', id, meta},tx);
+    return toCursorPage(rows,query.limit,serialiseMessage);
+  });
+}
+export async function createReferralMessage(id: string, caller: ReferralCaller, input: {body:string;client_message_id:string}, meta: ReferralMeta) {
+  await expireOrCancelIfNeeded(id);
+  return prisma.$transaction(async tx => {
+    const actor = await messageAccess(tx,id,caller,true);
+    const body = input.body.trim();
+    if (!body || body.length > 4000) throw unprocessable('A message must contain 1 to 4000 characters.');
+    const existing = await tx.digitalReferralMessage.findUnique({where:{referralId_authorClinicianId_requestKey:{referralId:id,authorClinicianId:actor.id,requestKey:input.client_message_id}},include:messageAuthor});
+    if (existing) {
+      if(existing.body !== body) throw conflict('IDEMPOTENCY_KEY_CONFLICT','This message key has already been used.');
+      return serialiseMessage(existing);
+    }
+    const row = await tx.digitalReferralMessage.create({data:{referralId:id,authorClinicianId:actor.id,body,requestKey:input.client_message_id},include:messageAuthor});
+    await audit({caller,action:'referral.message_sent',id,meta,metadata:{messageId:row.id}},tx);
+    return serialiseMessage(row);
+  });
+}

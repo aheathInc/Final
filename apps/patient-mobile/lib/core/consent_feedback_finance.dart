@@ -55,16 +55,19 @@ List<Map<String, dynamic>> consentsFromJson(Object? value) =>
 
 List<Map<String, dynamic>> consentAuditHistoryFromJson(Object? value) =>
     _pageRows(value, 'consent audit history').map((row) {
-      final eventType = _requiredString(row, 'event_type', 'consent audit history');
+      final eventType =
+          _requiredString(row, 'event_type', 'consent audit history');
       const supported = {
         'consent.granted',
         'consent.revoked',
         'emergency.context_break_glass_access',
       };
       if (!supported.contains(eventType)) {
-        throw const FormatException('Consent audit history contains an unsupported event');
+        throw const FormatException(
+            'Consent audit history contains an unsupported event');
       }
-      final occurredAt = _requiredString(row, 'occurred_at', 'consent audit history');
+      final occurredAt =
+          _requiredString(row, 'occurred_at', 'consent audit history');
       return {
         'event_type': eventType,
         'occurred_at': occurredAt,
@@ -164,7 +167,8 @@ class ConsentFeedbackFinanceRepository {
   Future<List<Map<String, dynamic>>> consents(String profileId) async =>
       consentsFromJson(await _get('/patient-profiles/$profileId/consents'));
 
-  Future<List<Map<String, dynamic>>> consentAuditHistory(String profileId) async =>
+  Future<List<Map<String, dynamic>>> consentAuditHistory(
+          String profileId) async =>
       consentAuditHistoryFromJson(
         await _get('/patient-profiles/$profileId/audit-history'),
       );

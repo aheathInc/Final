@@ -8,8 +8,9 @@ import { Button, Field, Notice, areaClass, inputClass } from './ui';
 interface Item {
   medication_name: string; dosage: string;
   frequency_per_day: number; duration_days: number; instructions: string; quantity_prescribed: number | '';
+  medication_image_url: string; medication_education: string;
 }
-const EMPTY: Item = { medication_name: '', dosage: '', frequency_per_day: 2, duration_days: 5, instructions: '', quantity_prescribed: '' };
+const EMPTY: Item = { medication_name: '', dosage: '', frequency_per_day: 2, duration_days: 5, instructions: '', quantity_prescribed: '', medication_image_url: '', medication_education: '' };
 
 /**
  * One form, one submit. The backend writes the note, the prescription and the
@@ -55,7 +56,7 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
           advice_text: advice,
           red_flags_discussed: redFlags.split('\n').map((s) => s.trim()).filter(Boolean),
         },
-        ...(prescribing ? { prescription: { items: usable, valid_until: validUntil } } : {}),
+        ...(prescribing ? { prescription: { items: usable.map(({medication_image_url,medication_education,...item})=>({...item,...(medication_image_url.trim()?{medication_image_url:medication_image_url.trim()}:{}),...(medication_education.trim()?{medication_education:medication_education.trim()}:{} )})), valid_until: validUntil } } : {}),
         ...(scheduling ? { follow_up_cycle: { frequency, duration_days: days } } : {}),
         close_care_thread: closeThread,
       }, idem());
@@ -126,6 +127,14 @@ export function CloseCaseForm({ consultationId }: { consultationId: string }) {
                 </Field>
                 <input value={it.instructions} onChange={(e) => patch(i, { instructions: e.target.value })}
                   placeholder="Maelekezo (baada ya chakula)" className={`${inputClass} mt-2`} />
+                <Field label="Picha ya dawa kutoka kwa daktari (hiari)" htmlFor={`medication-image-${i}`} hint="Kiungo cha HTTPS cha picha sahihi ya dawa hii; picha itaonekana kwenye Patient App.">
+                  <input id={`medication-image-${i}`} type="url" pattern="https://.*" maxLength={1000} value={it.medication_image_url}
+                    onChange={(e)=>patch(i,{medication_image_url:e.target.value})} className={`${inputClass} mt-1`} />
+                </Field>
+                <Field label="Elimu ya dawa iliyohakikiwa (hiari)" htmlFor={`medication-education-${i}`} hint="Maelezo yako kwa mgonjwa kuhusu matumizi na tahadhari za dawa hii.">
+                  <textarea id={`medication-education-${i}`} maxLength={3000} value={it.medication_education}
+                    onChange={(e)=>patch(i,{medication_education:e.target.value})} className={`${areaClass} mt-1`} />
+                </Field>
                 {/* Frequency alone is not consent to an inferred clock-time reminder. */}
                 <p className="mt-2 text-xs text-ink-soft">
                   Mara {it.frequency_per_day} kwa siku kwa siku {it.duration_days} — jumla ya

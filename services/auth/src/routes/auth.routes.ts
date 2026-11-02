@@ -4,6 +4,7 @@ import { requireAuth } from '../middlewares/auth.middleware.js';
 import { idempotency } from '../middlewares/idempotency.middleware.js';
 
 export const authRouter = Router();
+authRouter.use('/auth',(_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();});
 
 // Registration creates state, so it carries Idempotency-Key. A phone that
 // retried three times over a bad connection must produce one account.

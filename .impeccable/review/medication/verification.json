@@ -1,0 +1,53 @@
+{
+  "feature": "patient medication follow-up",
+  "build_number": 2012,
+  "mobile_regression": {
+    "passed": 197,
+    "skipped": 8,
+    "failed": 0,
+    "log": ".local/medication-regression.log"
+  },
+  "mobile_focused": {
+    "passed": 8,
+    "log": ".local/medication-focused.log"
+  },
+  "backend_pure": {
+    "passed": 4,
+    "log": ".local/medication-backend-tests.log"
+  },
+  "backend_database": {
+    "result": "pass",
+    "isolation": "retained unique ahp_test_medication schema with synthetic records",
+    "live_patient_records_modified": false,
+    "log": ".local/medication-database-test.log"
+  },
+  "typescript": {
+    "followup": "pass",
+    "consultation": "pass",
+    "staff_web": "pass"
+  },
+  "targeted_analysis": {
+    "result": "No issues found",
+    "log": ".local/medication-analyze.log"
+  },
+  "native_review": "ship; eight settled phone portrait captures; Skia per-launch emulator flag disclosed",
+  "physical_device": "disconnected; medication build not installed",
+  "providers": {
+    "sms": "no real provider configured",
+    "whatsapp": "not configured",
+    "remote_push": "not implemented; native cached Android alarms used"
+  },
+  "documentation": ".impeccable/review/medication/documentation.md",
+  "native_notifications": {
+    "result": "pass",
+    "evidence": "phone-native-notifications.png",
+    "scope": "explicit notification permission; synthetic AlarmManager event and refill observed; generic private channel with default sound; no hardware audio assertion"
+  },
+  "normal_apk": {
+    "target": "lib/main.dart",
+    "build": 2012,
+    "result": "build and emulator install-r succeeded; normal French login confirmed; synthetic reminders/notifications cleared",
+    "sha256": "2BBD38283AD10535B7BC1732C63ED642DBB3ECE083DC7E921C15F388F1FDA5C2"
+  },
+  "services": "restart in progress"
+}

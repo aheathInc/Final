@@ -1,14 +1,14 @@
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomInt, randomUUID } from 'node:crypto';
 import { prisma } from '@a-health/database';
 import type { AppError } from '@a-health/http';
 import { computeFlag, isCriticalFlag } from '../engine/resultFlag.js';
 import * as investigations from '../services/investigation.service.js';
+import { assertIsolatedLocalTestTarget, verifyLocalTestIdentity } from '@a-health/database/test-safety';
 
-if (!/_dev|_test|localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? '')) {
-  throw new Error('Refusing to run tests outside a development database');
-}
+const target = assertIsolatedLocalTestTarget();
+before(() => verifyLocalTestIdentity(prisma, target));
 
 const meta = { ip: '127.0.0.1', requestId: 'test' };
 const users: string[] = [];

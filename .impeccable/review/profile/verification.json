@@ -1,0 +1,12 @@
+﻿{
+    "Device":  "Pixel 4",
+    "Package":  "com.example.a_health_patient.debug",
+    "VersionCode":  2008,
+    "Install":  "adb install -r: Success",
+    "Target":  "lib/main.dart",
+    "ProfileTests":  7,
+    "LoginReceiptRegressionTests":  6,
+    "Analyzer":  "No issues found",
+    "ReviewDisposition":  "ship",
+    "VerifiedAt":  "2026-10-28T12:30:39.4700098+03:00"
+}

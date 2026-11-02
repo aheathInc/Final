@@ -25,9 +25,19 @@ export const createArticleSchema = z.object({
   format: contentFormat.optional(),
   reading_level: readingLevel.optional(),
   media_key: z.string().optional(),
+  disease_guide: z.object({
+    causes:z.string().trim().min(1).max(6000),
+    symptoms:z.string().trim().min(1).max(6000),
+    prevention:z.string().trim().min(1).max(6000),
+    diagnosis:z.string().trim().min(1).max(6000),
+    treatment:z.string().trim().min(1).max(6000),
+    warning_signs:z.string().trim().min(1).max(6000),
+  }).optional(),
+  sources:z.array(z.object({title:z.string().min(1).max(200),url:z.url().refine(v=>v.startsWith('https://'),'HTTPS source required')})).max(20).optional(),
 });
 
 export const listArticlesQuery = z.object({
+  q:z.string().trim().max(100).optional(),
   topic_slug: z.string().optional(),
   language: languageCode.optional(),
   format: contentFormat.optional(),

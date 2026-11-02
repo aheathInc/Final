@@ -8,6 +8,9 @@ import { env, paymentSettings } from '../config/env.js';
 import * as bills from '../services/bill.service.js';
 import { carriers } from '../services/policy.js';
 import { handleFlutterwaveWebhook } from '../services/webhook.service.js';
+import { getBillReceipt } from '../services/receipt.service.js';
+import { renderReceipt } from '../services/receipt-pdf.js';
+import { z } from 'zod';
 import {
   createIntentSchema, issueBillSchema, listPaymentsQuery, refundSchema, webhookProviderParam,
 } from '../types/payment.types.js';
@@ -66,6 +69,14 @@ export async function webhook(req: Request, res: Response, next: NextFunction) {
 
 export const issueBill=handle(req=>bills.issueBill(caller(req),issueBillSchema.parse(req.body)),201);
 export const listBills=handle(req=>bills.listBills(caller(req)));
+export async function downloadBillReceipt(req: Request, res: Response, next: NextFunction) {
+  try {
+    const receipt = await getBillReceipt(z.uuid().parse(pathParam(req, 'bill_id')), caller(req));
+    const pdf = await renderReceipt(receipt);
+    res.setHeader('Content-Disposition', `attachment; filename="${receipt.number}.pdf"`);
+    res.type('application/pdf').send(pdf);
+  } catch (error) { next(error); }
+}
 export const options=handle(async()=>({method:'mobile_money',providers:[...carriers],processor:paymentSettings.mode,environment:paymentSettings.environment,requires_email:paymentSettings.mode==='flutterwave'}));
 export const reconcile=handle(async(req)=>{
   const id=pathParam(req,'payment_intent_id');await intents.getPaymentIntent(id,caller(req));

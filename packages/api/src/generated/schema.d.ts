@@ -87,12 +87,188 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Verify an OTP and issue tokens
+         * Verify OTP and return a session or restricted patient registration
          * @description Six digits, five-minute expiry, maximum five attempts per challenge.
          *     Exceeding the attempt limit invalidates the challenge entirely — a new
-         *     one must be requested.
+         *     one must be requested. New patients receive a restricted registration token,
+         *     not access or refresh tokens, until profile, verified TZS 4000 payment and
+         *     password setup are complete. Existing active patients keep ordinary login.
          */
         post: operations["verifyOtp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resume own verified-phone registration
+         * @description Uses the opaque registration token in Authorization Bearer; ordinary login JWTs are not accepted. Returns step, phone_number, fee, profile, bill and payment.
+         */
+        get: operations["getPatientRegistration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/registration/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suggest places in Tanzania as the patient types
+         * @description Requires a valid opaque registration token. Only the place query is sent to the configured Photon provider. Returns up to five labels; free-text residence remains supported. No GPS or inferred administrative hierarchy is stored.
+         */
+        post: operations["searchRegistrationResidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/registration/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save registration details and issue the single TZS 4000 bill
+         * @description Requires the opaque registration token. Phone is inherited from OTP verification and cannot be changed here.
+         */
+        put: operations["savePatientRegistrationProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/registration/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set password after verified registration payment and activate account
+         * @description Requires the single-use opaque registration token, completed profile and verified unrefunded server-priced payment. Production requires live payment.
+         */
+        post: operations["completePatientRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/patient/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Patient phone and password login */
+        post: operations["loginPatientPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/registration/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download own settled registration receipt before account activation
+         * @description Requires an unexpired opaque enrollment token. Uses only its own registration bill. Simulated/test payments are prominently labelled and refunds are included.
+         */
+        get: operations["downloadRegistrationReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/bills/{bill_id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a settled bill receipt as a PDF
+         * @description Active payer or active platform administrator only. Includes original paid amount and current refund totals. Does not include clinical details.
+         */
+        get: operations["downloadBillReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/registration/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configured payment options for an opaque registration token */
+        get: operations["getRegistrationPaymentOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payments/registration/intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay the registration token owner's server-issued bill
+         * @description Requires the opaque registration token. Reuses a pending intent; clients cannot set price, currency, bill ID or settlement status.
+         */
+        post: operations["createRegistrationPaymentIntent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -649,6 +825,91 @@ export interface paths {
          *     moment the patient taps submit, not at the moment the network returns.
          */
         post: operations["createConsultation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List consultation modes, prices, and active hospitals or clinics */
+        get: operations["getConsultationOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{consultation_id}/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read participant-scoped WebRTC signalling and ICE configuration */
+        get: operations["getConsultationCall"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{consultation_id}/call/offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assigned doctor starts a WebRTC call using a client-generated retry UUID */
+        post: operations["offerConsultationCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{consultation_id}/call/{call_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer the other participant's call */
+        post: operations["answerConsultationCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{consultation_id}/call/{call_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End the call and clear its SDP */
+        post: operations["endConsultationCall"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2078,9 +2339,9 @@ export interface paths {
         put?: never;
         /**
          * Open a discussion
-         * @description Verified clinicians only. A case discussion must reference a care
-         *     thread, and the platform de-identifies it on the way in — the point is
-         *     the clinical question, not the patient's identity.
+         * @description Active, verified group members only. Case discussions require an assigned care
+         *     thread. The thread reference is never returned to group members. Clinicians
+         *     must omit patient identifiers from free text; there is no automatic text redaction.
          */
         post: operations["createDiscussion"];
         delete?: never;
@@ -2098,9 +2359,9 @@ export interface paths {
         };
         /**
          * Get a discussion with its replies
-         * @description Never joins patient identity, even for a case discussion — what is
-         *     shared is the clinical question, de-identified on the way in; this
-         *     endpoint has no path back to who the patient is.
+         * @description Requires active verified membership. Patient identity and care-thread references
+         *     are never joined into group responses. Returns the first 50 chronological replies
+         *     and replies_meta for pagination. Authors are responsible for de-identifying free text.
          */
         get: operations["getDiscussion"];
         put?: never;
@@ -2118,10 +2379,94 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Read paginated replies in a joined professional group */
+        get: operations["listDiscussionReplies"];
         put?: never;
         /** Reply to a discussion */
         post: operations["replyToDiscussion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/communities/{community_id}/membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                community_id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Join a group or set its notification preference
+         * @description Requires an active verified clinician. Replies mode notifies the discussion author and clinicians who have replied; all includes new posts and replies; muted suppresses new notifications.
+         */
+        put: operations["joinCommunity"];
+        post?: never;
+        /** Leave a group and remove its notifications */
+        delete: operations["leaveCommunity"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read own professional group notifications */
+        get: operations["listNetworkNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/network/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark own notification as read */
+        post: operations["readNetworkNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referrals/{referral_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a patient-authorized clinician handoff
+         * @description Referring and eligible destination clinicians only. Requires active exact-thread facility consent. Draft, cancelled and expired referrals are inaccessible; completed and declined conversations are read-only.
+         */
+        get: operations["listReferralMessages"];
+        put?: never;
+        /**
+         * Send a secure referral handoff message
+         * @description Checks current authorization on every retry. Requires an open submitted referral; client_message_id deduplicates a sender's retries, and reusing it for different text conflicts. Audit records omit message bodies.
+         */
+        post: operations["createReferralMessage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2854,6 +3199,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/surveillance/regional-insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health & Regional Insights
+         * @description Active platform administrators only. Immutable monthly aggregates with a minimum of 10 distinct patients per base cell. Parent totals sum published cells only. No patient identities or household coordinates.
+         */
+        get: operations["getRegionalInsights"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/surveillance/regional-insights/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish an authorized completed UTC month
+         * @description Active platform administrator only. Idempotent and immutable; later clinical edits or geography imports do not rewrite a release. Audited.
+         */
+        post: operations["publishRegionalInsightMonth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/surveillance/reporting-areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List recorded administrative geography
+         * @description Authenticated catalogue lookup with no clinical data. Supports patient profile address entry.
+         */
+        get: operations["listReportingAreas"];
+        put?: never;
+        /**
+         * Import an authorized administrative geography catalogue
+         * @description Active platform administrator only. Append-only metadata; every non-country needs a parent at the preceding level. Coordinates must be administrative centroids, never household locations. Existing unknown geography remains blank.
+         */
+        post: operations["importReportingAreas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/surveillance/conditions": {
         parameters: {
             query?: never;
@@ -2863,13 +3272,9 @@ export interface paths {
         };
         /**
          * Leading diagnosed conditions by geography
-         * @description Aggregated and de-identified. Available at ward, district, region,
-         *     national and — as the platform expands — continental level, starting
-         *     in Tanzania.
-         *
-         *     This is the standing evidence base for government engagement: instead
-         *     of arguing for support in the abstract, showing in near real time where
-         *     the gaps actually are.
+         * @description Authorized clinicians and administrators read immutable completed-month releases.
+         *     Only base cells with at least 10 distinct patients contribute; totals exclude
+         *     withheld cells. Dates select whole UTC months. Missing areas remain unknown.
          */
         get: operations["getSurveillanceConditions"];
         put?: never;
@@ -2888,10 +3293,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Trend and outbreak signal for one condition
-         * @description Time series with a modelled expected range. A district's malaria count
-         *     rising above its expected band is the signal that lets a health
-         *     authority act before a local rise becomes an outbreak.
+         * Published monthly diagnosis-case trends
+         * @description Uses the same protected releases as regional insights. Missing months have null
+         *     counts, never zero. Expected bounds and model version are null; no outbreak
+         *     forecast is produced. Dates select whole UTC months.
          */
         get: operations["getSurveillanceTrends"];
         put?: never;
@@ -5380,7 +5785,7 @@ export interface components {
          *     breaking and requires a new API version.
          * @enum {string}
          */
-        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "FRONT_DESK_DISABLED" | "FRONT_DESK_URGENT_REVIEW" | "FRONT_DESK_VISIT_EXISTS" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "REFERRAL_ALREADY_EXISTS" | "REFERRAL_CONSENT_REQUIRED" | "REFERRAL_DESTINATION_INELIGIBLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "PRESCRIPTION_EXPIRED" | "PRESCRIPTION_NOT_FINALIZED" | "PRESCRIBER_NOT_AUTHORIZED" | "PHARMACY_MEMBERSHIP_REQUIRED" | "HANDOFF_REFERENCE_INVALID" | "HANDOFF_REFERENCE_REVOKED" | "HANDOFF_REFERENCE_EXPIRED" | "PRESCRIPTION_ALREADY_FULFILLED" | "IDEMPOTENCY_KEY_REUSED" | "DISPENSING_ALREADY_RECORDED" | "QUANTITY_EXCEEDS_REMAINING" | "INVENTORY_AMBIGUOUS" | "INVENTORY_UNAVAILABLE" | "INSUFFICIENT_INVENTORY" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
+        ErrorCode: "VALIDATION_FAILED" | "UNAUTHENTICATED" | "TOKEN_EXPIRED" | "TOKEN_INVALID" | "TOKEN_REUSE_DETECTED" | "OTP_INVALID" | "OTP_EXPIRED" | "OTP_ATTEMPTS_EXCEEDED" | "FORBIDDEN" | "ROLE_NOT_PERMITTED" | "NOT_RESOURCE_OWNER" | "NOT_FOUND" | "IDEMPOTENCY_KEY_CONFLICT" | "FRONT_DESK_DISABLED" | "FRONT_DESK_URGENT_REVIEW" | "FRONT_DESK_VISIT_EXISTS" | "VERSION_CONFLICT" | "STATE_TRANSITION_INVALID" | "CLINICIAN_NOT_VERIFIED" | "CLINICIAN_ASSIGNMENT_INVALID" | "CLINICIAN_UNAVAILABLE" | "FACILITY_MEMBERSHIP_REQUIRED" | "GROUP_MEMBERSHIP_REQUIRED" | "REFERRAL_COMMUNICATION_UNAVAILABLE" | "REFERRAL_CLOSED" | "COLLABORATOR_NOT_ELIGIBLE" | "PATIENT_CONSENT_REQUIRED" | "COLLABORATION_ALREADY_EXISTS" | "COLLABORATION_EXPIRED" | "COLLABORATION_NOT_ACTIVE" | "REFERRAL_ALREADY_EXISTS" | "REFERRAL_CONSENT_REQUIRED" | "REFERRAL_DESTINATION_INELIGIBLE" | "CONSULTATION_ALREADY_ASSIGNED" | "CARE_THREAD_CLOSED" | "SLOT_UNAVAILABLE" | "SLOT_IN_PAST" | "APPOINTMENT_NOT_YET_STARTABLE" | "APPOINTMENT_ALREADY_STARTED" | "CHECK_IN_ALREADY_ANSWERED" | "FOLLOW_UP_CYCLE_CLOSED" | "PRESCRIPTION_NOT_ACTIVE" | "CONSENT_REQUIRED" | "DEVICE_REVOKED" | "DISPENSE_CODE_INVALID" | "DISPENSE_CODE_EXPIRED" | "PRESCRIPTION_EXPIRED" | "PRESCRIPTION_NOT_FINALIZED" | "PRESCRIBER_NOT_AUTHORIZED" | "PHARMACY_MEMBERSHIP_REQUIRED" | "HANDOFF_REFERENCE_INVALID" | "HANDOFF_REFERENCE_REVOKED" | "HANDOFF_REFERENCE_EXPIRED" | "PRESCRIPTION_ALREADY_FULFILLED" | "IDEMPOTENCY_KEY_REUSED" | "DISPENSING_ALREADY_RECORDED" | "QUANTITY_EXCEEDS_REMAINING" | "INVENTORY_AMBIGUOUS" | "INVENTORY_UNAVAILABLE" | "INSUFFICIENT_INVENTORY" | "RESULT_ALREADY_ACKNOWLEDGED" | "ETHICS_APPROVAL_REQUIRED" | "AGGREGATE_TOO_SMALL" | "FACILITY_NOT_INTEGRATED" | "ALREADY_RATED" | "PAYMENT_METHOD_UNAVAILABLE" | "PAYMENT_ALREADY_SETTLED" | "REFUND_EXCEEDS_PAYMENT" | "PAYER_PHONE_REQUIRED" | "DUPLICATE_RESOURCE" | "RATE_LIMITED" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
         PageMeta: {
             page: number;
             page_size: number;
@@ -5428,13 +5833,40 @@ export interface components {
         CareThreadStatus: "open" | "closed";
         /** @enum {string} */
         AppointmentStatus: "booked" | "started" | "completed" | "cancelled" | "no_show";
+        ConsultationCallState: {
+            available: boolean;
+            relay_configured: boolean;
+            /** @description True only for the assigned verified doctor. Patients wait for and answer the doctor's offer. */
+            can_start: boolean;
+            ice_servers: {
+                urls: string[];
+                username?: string;
+                /** @description Temporary relay credential; never log or persist. */
+                credential?: string;
+            }[];
+            call: {
+                /** Format: uuid */
+                id: string;
+                is_caller: boolean;
+                offer: string;
+                answer: string | null;
+                /** Format: date-time */
+                expires_at: string;
+            } | null;
+        };
         /**
-         * @description `async` is store-and-forward — the clinician answers when able, without
-         *     both parties being online. It is the default for low-bandwidth areas and
-         *     the only modality guaranteed to work over SMS and USSD.
+         * @description Hospital consultations have no consultation fee. Remote consultations cost TZS 5000 for general practice or TZS 8000 for a specialist.
+         * @default remote
          * @enum {string}
          */
-        ConsultationModality: "chat" | "voice" | "video" | "async";
+        ConsultationMode: "hospital" | "remote";
+        /**
+         * @description Hospital mode uses `in_person`. Explicit remote requests select `chat`,
+         *     `voice`, or `video`; an omitted modality defaults to `chat`.
+         *     `async` is retained for legacy store-and-forward workflows.
+         * @enum {string}
+         */
+        ConsultationModality: "chat" | "voice" | "video" | "async" | "in_person";
         /** @enum {string} */
         AdherenceStatus: "taken" | "missed" | "delayed" | "unreported";
         /** @enum {string} */
@@ -5468,6 +5900,28 @@ export interface components {
             delivery_status?: "accepted" | "simulated";
             /** @enum {string} */
             delivery_environment?: "simulated" | "sandbox" | "live";
+        };
+        PatientRegistrationSession: {
+            /** @enum {boolean} */
+            registration_required: true;
+            /** @description Opaque expiring capability; never a normal API JWT. */
+            registration_token: string;
+            registration: {
+                [key: string]: unknown;
+            };
+        };
+        PatientRegistrationProfile: {
+            full_name: string;
+            /** Format: date */
+            date_of_birth: string;
+            /** @enum {string} */
+            sex: "female" | "male" | "other";
+            residence: string;
+            next_of_kin_name: string;
+            /** @description E.164 number distinct from the verified patient phone. */
+            next_of_kin_phone: string;
+            /** @enum {string} */
+            consent_version: "patient-registration-2026-10-v1";
         };
         TokenPair: {
             access_token: string;
@@ -5519,6 +5973,8 @@ export interface components {
             default_location?: components["schemas"]["GeoPoint"];
             /** @description Used for de-identified aggregation. Never returned in analytics views alongside an id. */
             region_code?: string;
+            /** @description Linked administrative area, if recorded. */
+            reporting_area_code?: string | null;
             version: number;
             /** Format: date-time */
             updated_at: string;
@@ -5630,6 +6086,16 @@ export interface components {
             patient_profile_id: string;
             /** Format: uuid */
             assigned_clinician_id?: string | null;
+            consultation_mode?: components["schemas"]["ConsultationMode"];
+            /** Format: uuid */
+            facility_id?: string | null;
+            facility_name?: string | null;
+            /** @description Zero for hospital; remote quote may be null until a doctor is assigned. */
+            consultation_fee_amount?: number | null;
+            /** @enum {string} */
+            consultation_fee_currency?: "TZS";
+            consultation_fee_required?: boolean;
+            consultation_fee_policy?: string | null;
             /** Format: uuid */
             referred_from_consultation_id?: string | null;
             /**
@@ -6581,12 +7047,42 @@ export interface components {
             resulted_at?: string | null;
             version: number;
         };
+        DigitalReferralMessage: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            referral_id: string;
+            /** Format: uuid */
+            author_clinician_id: string;
+            author_name: string | null;
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ProfessionalNotification: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            kind?: "new_post" | "reply";
+            /** Format: uuid */
+            discussion_id?: string;
+            title?: string;
+            group_name?: string;
+            href?: string;
+            /** Format: date-time */
+            read_at?: string | null;
+            /** Format: date-time */
+            created_at?: string;
+        };
         Community: {
             /** Format: uuid */
             id: string;
             name: string;
             specialty: components["schemas"]["Specialty"];
             member_count?: number;
+            is_member?: boolean;
+            /** @enum {string|null} */
+            notification_mode?: "all" | "replies" | "muted" | null;
             description?: string | null;
         };
         Discussion: {
@@ -6598,10 +7094,11 @@ export interface components {
             body?: string;
             /** Format: uuid */
             author_clinician_id: string;
+            author_name?: string;
             is_case_discussion?: boolean;
             /**
              * Format: uuid
-             * @description Present for case discussions. De-identified on the way in.
+             * @description Always null in group responses. Assigned care-thread references are stored privately and never exposed to group members.
              */
             care_thread_id?: string | null;
             reply_count?: number;
@@ -6614,6 +7111,9 @@ export interface components {
             id: string;
             /** Format: uuid */
             discussion_id: string;
+            /** Format: uuid */
+            parent_reply_id?: string | null;
+            author_name?: string;
             body: string;
             /** Format: uuid */
             author_clinician_id: string;
@@ -6769,6 +7269,11 @@ export interface components {
         DigitalReferral: {
             /** Format: uuid */
             id: string;
+            /**
+             * Format: uuid
+             * @description Patient profile reference; null when clinician authorization is unavailable.
+             */
+            patient_reference?: string | null;
             status: components["schemas"]["DigitalReferralStatus"];
             priority: components["schemas"]["DigitalReferralPriority"];
             purpose: string;
@@ -6964,7 +7469,97 @@ export interface components {
             completed_at?: string | null;
         };
         /** @enum {string} */
-        GeoLevel: "ward" | "district" | "region" | "national" | "continental";
+        ReportingLevel: "country" | "region" | "district" | "ward" | "village";
+        ReportingArea: {
+            code: string;
+            name: string;
+            level: components["schemas"]["ReportingLevel"];
+            parentCode: string | null;
+            latitude: number | null;
+            longitude: number | null;
+        };
+        ReportingAreaImport: {
+            source: string;
+            /** @constant */
+            administrative_centroids_confirmed: true;
+            areas: {
+                code: string;
+                name: string;
+                level: components["schemas"]["ReportingLevel"];
+                parent_code: string | null;
+                latitude?: number | null;
+                longitude?: number | null;
+            }[];
+        };
+        /** @description Sum of published base cells only. Null includes absent and suppressed data, never interpreted as zero. */
+        PublishedCaseCount: number | null;
+        RegionalInsightReport: {
+            source: string;
+            privacy: {
+                /** @constant */
+                minimumParticipants: 10;
+                rule: string;
+            };
+            areas: components["schemas"]["ReportingArea"][];
+            conditions: string[];
+            conditionLabels: {
+                [key: string]: string;
+            };
+            filters: {
+                from?: string;
+                to?: string;
+                area?: string;
+                condition?: string;
+                level?: components["schemas"]["ReportingLevel"];
+            };
+            availablePeriods: string[];
+            releases: {
+                period: string;
+                /** Format: date-time */
+                publishedAt: string;
+            }[];
+            totalCases: components["schemas"]["PublishedCaseCount"];
+            unlocatedCases: components["schemas"]["PublishedCaseCount"];
+            distribution: (components["schemas"]["ReportingArea"] & {
+                cases: components["schemas"]["PublishedCaseCount"];
+                leadingDisease: null | {
+                    code: string;
+                    name: string;
+                    cases: components["schemas"]["PublishedCaseCount"];
+                };
+            })[];
+            diseaseComparison: {
+                latestPeriod: string | null;
+                /** @description The calendar month immediately before latestPeriod, even if unpublished. */
+                previousPeriod: string | null;
+            };
+            diseases: {
+                code: string;
+                name: string;
+                cases: components["schemas"]["PublishedCaseCount"];
+                latestCases: components["schemas"]["PublishedCaseCount"];
+                previousCases: components["schemas"]["PublishedCaseCount"];
+                changeCases: number | null;
+                /** @description Rounded to one decimal; unavailable unless both consecutive months have published counts. */
+                changePercent: number | null;
+                /** @enum {string} */
+                direction: "rising" | "falling" | "stable" | "unavailable";
+                series: {
+                    period: string;
+                    cases: components["schemas"]["PublishedCaseCount"];
+                }[];
+            }[];
+            trend: {
+                period: string;
+                cases: components["schemas"]["PublishedCaseCount"];
+                areas: {
+                    code: string;
+                    cases: components["schemas"]["PublishedCaseCount"];
+                }[];
+            }[];
+        };
+        /** @enum {string} */
+        GeoLevel: "village" | "ward" | "district" | "region" | "country" | "national";
         ConditionCount: {
             condition_code: string;
             condition_name: string;
@@ -6976,10 +7571,10 @@ export interface components {
         TrendPoint: {
             /** Format: date */
             period: string;
-            count: number;
+            count: number | null;
             expected_low?: number | null;
             expected_high?: number | null;
-            /** @description The outbreak signal — a count outside its modelled band. */
+            /** @description Always false; monthly releases do not provide outbreak forecasts. */
             above_expected?: boolean;
         };
         TrendSeries: {
@@ -6987,7 +7582,7 @@ export interface components {
             level: components["schemas"]["GeoLevel"];
             area_code?: string | null;
             points: components["schemas"]["TrendPoint"][];
-            model_version?: string;
+            model_version?: string | null;
         };
         InsuranceCoverage: {
             /** Format: uuid */
@@ -7071,7 +7666,7 @@ export interface components {
         /** @enum {string} */
         PaymentProvider: "mpesa" | "tigo_pesa" | "airtel_money" | "card_gateway" | "manual";
         /** @enum {string} */
-        PaymentPurpose: "consultation_fee" | "pharmacy_purchase" | "insurance_copay" | "subscription" | "other";
+        PaymentPurpose: "registration_fee" | "consultation_fee" | "pharmacy_purchase" | "insurance_copay" | "subscription" | "other";
         /** @enum {string} */
         PaymentStatus: "pending" | "requires_action" | "processing" | "succeeded" | "failed" | "cancelled" | "refunded" | "partially_refunded";
         PaymentIntent: {
@@ -7389,6 +7984,9 @@ export interface components {
             expires_at: string;
             /** Format: date-time */
             paid_at?: string | null;
+            /** @description False for free consultations and bills that are no longer due or have expired. Returned by the bill list. */
+            payable?: boolean;
+            payment_block_reason?: string | null;
         };
         PaymentOptions: {
             /** @enum {string} */
@@ -8434,11 +9032,337 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenPair"];
+                    "application/json": components["schemas"]["TokenPair"] | components["schemas"]["PatientRegistrationSession"];
                 };
             };
             401: components["responses"]["Unauthenticated"];
             429: components["responses"]["RateLimited"];
+        };
+    };
+    getPatientRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved registration status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+        };
+    };
+    searchRegistrationResidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    q: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Place suggestions and source attribution */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        places: {
+                            name: string;
+                            context: string;
+                            label: string;
+                        }[];
+                        attribution: {
+                            name: string;
+                            /** Format: uri */
+                            url: string;
+                        };
+                    };
+                };
+            };
+            /** @description Registration token expired or invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid search query */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Search budget exceeded; wait before retrying */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Provider unavailable; manual residence entry is still allowed */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    savePatientRegistrationProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatientRegistrationProfile"];
+            };
+        };
+        responses: {
+            /** @description Saved profile and registration status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+        };
+    };
+    completePatientRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    password: string;
+                    device_id?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Activated patient session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description Registration incomplete or payment not verified */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    loginPatientPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    phone_number: string;
+                    password: string;
+                    device_id?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Patient session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description Too many failed password attempts */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    downloadRegistrationReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF attachment; Cache-Control no-store */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Invalid or expired enrollment token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No confirmed payment exists yet */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    downloadBillReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF attachment; Cache-Control no-store */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Account inactive or role not permitted */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bill not found or not owned by caller */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No confirmed payment exists yet */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getRegistrationPaymentOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Processor, environment, carrier options and required payer fields */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+        };
+    };
+    createRegistrationPaymentIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    provider: "mpesa" | "tigo_pesa" | "airtel_money";
+                    payer_phone: string;
+                    /** Format: email */
+                    payer_email?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Pending payment intent, not proof of settlement */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
         };
     };
     login: {
@@ -8644,6 +9568,8 @@ export interface operations {
                     preferred_language?: components["schemas"]["LanguageCode"];
                     default_location?: components["schemas"]["GeoPoint"];
                     region_code?: string;
+                    /** @description Existing administrative catalogue code; null clears the link. Unknown geography is never inferred. */
+                    reporting_area_code?: string | null;
                 };
             };
         };
@@ -9372,6 +10298,13 @@ export interface operations {
                      * @description Optional verified clinician to target using the existing consultation matching rules.
                      */
                     clinician_id?: string;
+                    consultation_mode?: components["schemas"]["ConsultationMode"];
+                    modality?: components["schemas"]["ConsultationModality"];
+                    /**
+                     * Format: uuid
+                     * @description Required for hospital mode; forbidden for remote mode. Hospital modality is in_person; explicit remote requests select video, voice, or chat.
+                     */
+                    facility_id?: string;
                     channel: components["schemas"]["Channel"];
                     symptom_text?: string;
                     /** @description Coded symptom entries consumed by the triage engine. */
@@ -9399,6 +10332,154 @@ export interface operations {
             };
             422: components["responses"]["UnprocessableEntity"];
             429: components["responses"]["RateLimited"];
+        };
+    };
+    getConsultationOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request form options */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        modes: components["schemas"]["ConsultationMode"][];
+                        remote_modalities: ("video" | "voice" | "chat")[];
+                        remote_fees: {
+                            /** @constant */
+                            general_practice?: 5000;
+                            /** @constant */
+                            specialist?: 8000;
+                            /** @constant */
+                            currency?: "TZS";
+                        };
+                        facilities: {
+                            /** Format: uuid */
+                            id?: string;
+                            name?: string;
+                            region_code?: string | null;
+                        }[];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getConsultationCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                consultation_id: components["parameters"]["ConsultationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current call; requires an accepted remote audio/video consultation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationCallState"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    offerConsultationCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                consultation_id: components["parameters"]["ConsultationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    call_id: string;
+                    sdp: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Offered call; one active call per consultation */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationCallState"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    answerConsultationCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                consultation_id: components["parameters"]["ConsultationId"];
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    sdp: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Answered call */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationCallState"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    endConsultationCall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                consultation_id: components["parameters"]["ConsultationId"];
+                call_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Call ended */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ended: boolean;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
         };
     };
     getConsultation: {
@@ -11710,12 +12791,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Discussion"] & {
+                        community_name?: string;
+                        replies_meta?: components["schemas"]["CursorMeta"];
                         replies?: components["schemas"]["DiscussionReply"][];
                     };
                 };
             };
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listDiscussionReplies: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                discussion_id: components["parameters"]["DiscussionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Replies in chronological order, including parent reply references */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["DiscussionReply"][];
+                        meta?: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
         };
     };
     replyToDiscussion: {
@@ -11738,6 +12851,11 @@ export interface operations {
             content: {
                 "application/json": {
                     body: string;
+                    /**
+                     * Format: uuid
+                     * @description Optional parent in this same discussion. Omit for a group-wide reply to the discussion. Maximum eight nesting levels.
+                     */
+                    parent_reply_id?: string;
                 };
             };
         };
@@ -11751,6 +12869,165 @@ export interface operations {
                     "application/json": components["schemas"]["DiscussionReply"];
                 };
             };
+        };
+    };
+    joinCommunity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                community_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @default replies
+                     * @enum {string}
+                     */
+                    notification_mode?: "all" | "replies" | "muted";
+                };
+            };
+        };
+        responses: {
+            /** @description Membership and notification preference saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    leaveCommunity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                community_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membership removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listNetworkNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest 50 notifications and total unread count in active joined groups */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        unread_count?: number;
+                        data?: components["schemas"]["ProfessionalNotification"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    readNetworkNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notification marked read */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listReferralMessages: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page's `meta.next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated handoff messages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["DigitalReferralMessage"][];
+                        meta?: components["schemas"]["CursorMeta"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createReferralMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referral_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                    /** Format: uuid */
+                    client_message_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Message saved or prior message returned on retry */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigitalReferralMessage"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
     listSecondOpinions: {
@@ -13061,6 +14338,126 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getRegionalInsights: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                area?: string;
+                condition?: string;
+                level?: components["schemas"]["ReportingLevel"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Protected aggregate report; unavailable values are null, not zero. Response uses Cache-Control no-store. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionalInsightReport"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    publishRegionalInsightMonth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Completed month from 2020 onwards. */
+                    period: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Published or existing release */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        period: string;
+                        /** Format: date-time */
+                        publishedAt: string;
+                        alreadyPublished: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listReportingAreas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded areas only */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ReportingArea"][];
+                    };
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    importReportingAreas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportingAreaImport"];
+            };
+        };
+        responses: {
+            /** @description Areas imported */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        added: number;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
     getSurveillanceConditions: {

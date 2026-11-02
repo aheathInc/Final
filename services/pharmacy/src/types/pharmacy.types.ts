@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const listPharmaciesQuery = z.object({
-  lat: z.coerce.number().optional(),
-  lng: z.coerce.number().optional(),
-  radius_km: z.coerce.number().optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radius_km: z.coerce.number().min(0.1).max(100).optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -12,7 +12,7 @@ export const searchMedicationQuery = z.object({
   medication_name: z.string().min(1),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
-  radius_km: z.coerce.number().optional(),
+  radius_km: z.coerce.number().min(0.1).max(100).optional(),
   required_quantity: z.coerce.number().int().min(1).max(100000).optional(),
 }).refine((value) => (value.lat === undefined) === (value.lng === undefined), 'lat and lng must be supplied together');
 

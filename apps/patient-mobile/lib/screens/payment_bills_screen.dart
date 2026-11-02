@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import '../core/phone.dart';
 import '../core/session.dart';
 import '../widgets/common.dart';
 import '../widgets/premium.dart';
+import '../widgets/receipt_download.dart';
 
 class PaymentBillsScreen extends StatefulWidget {
   const PaymentBillsScreen({super.key, this.repository});
@@ -95,7 +97,7 @@ class _PaymentBillsScreenState extends State<PaymentBillsScreen>
     });
     try {
       if (!await Session.authenticated)
-        throw const FormatException('Sign in first');
+        throw FormatException(L.tr('Sign in first'));
       final results = await Future.wait<Object?>(
           [repository.bills(), repository.options(), Session.user()]);
       if (!current(epoch)) return;
@@ -109,8 +111,8 @@ class _PaymentBillsScreenState extends State<PaymentBillsScreen>
     } catch (_) {
       if (current(epoch))
         setState(() {
-          error =
-              'Bili hazikupatikana. Hakuna malipo yaliyothibitishwa. Ingia na ujaribu tena.';
+          error = L.tr(
+              'Bili hazikupatikana. Hakuna malipo yaliyothibitishwa. Ingia na ujaribu tena.');
         });
     } finally {
       if (current(epoch)) {
@@ -145,8 +147,8 @@ class _PaymentBillsScreenState extends State<PaymentBillsScreen>
         });
     } catch (_) {
       if (current(epoch))
-        setState(() => error =
-            'Hali haikuthibitishwa. Usilipe tena kabla ya kuhakiki ombi hili.');
+        setState(() => error = L.tr(
+            'Hali haikuthibitishwa. Usilipe tena kabla ya kuhakiki ombi hili.'));
     } finally {
       if (current(epoch)) {
         setState(() => querying = false);
@@ -156,15 +158,17 @@ class _PaymentBillsScreenState extends State<PaymentBillsScreen>
   }
 
   Future<void> pay() async {
-    if (selected == null || busy || pending) return;
+    if (selected == null || selected!['payable'] == false || busy || pending)
+      return;
     final number = toE164(phone.text);
     if (number == null || !RegExp(r'^\+255\d{9}$').hasMatch(number)) {
-      setState(() => error = 'Weka namba sahihi ya wallet ya Tanzania.');
+      setState(() => error = L.tr('Weka namba sahihi ya wallet ya Tanzania.'));
       return;
     }
     if (options?['requires_email'] == true &&
         !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email.text.trim())) {
-      setState(() => error = 'Provider anahitaji email halali ya mlipaji.');
+      setState(
+          () => error = L.tr('Provider anahitaji email halali ya mlipaji.'));
       return;
     }
     final epoch = generation;
@@ -175,16 +179,25 @@ class _PaymentBillsScreenState extends State<PaymentBillsScreen>
         builder: (context) {
           paymentDialogContext = context;
           return AlertDialog(
-              title: const Text('Thibitisha ombi la malipo'),
-              content: Text(
-                  '${bill['title']}\n${bill['amount']} ${bill['currency']}\nWallet: $number\n\n${environment == 'live' ? 'Fedha halisi zinaweza kukatwa baada ya kuidhinisha kwa provider.' : 'MAZINGIRA YA MAJARIBIO: si malipo ya live.'}\nUsiweke PIN ya wallet kwenye A-Health.'),
+              title: Text(L.tr('Thibitisha ombi la malipo')),
+              content: Text(L.tr(
+                  "{0}\n{1} {2}\nWallet: {3}\n\n{4}\nUsiweke PIN ya wallet kwenye A-Health.",
+                  [
+                    bill['title'],
+                    bill['amount'],
+                    bill['currency'],
+                    number,
+                    environment == 'live'
+                        ? 'Fedha halisi zinaweza kukatwa baada ya kuidhinisha kwa provider.'
+                        : 'MAZINGIRA YA MAJARIBIO: si malipo ya live.'
+                  ])),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Rudi')),
+                    child: Text(L.tr('Rudi'))),
                 FilledButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Omba malipo'))
+                    child: Text(L.tr('Omba malipo')))
               ]);
         });
     paymentDialogContext = null;
@@ -212,8 +225,8 @@ class _PaymentBillsScreenState extends State<PaymentBillsScreen>
         });
     } catch (_) {
       if (current(epoch))
-        setState(() => error =
-            'Jibu halijapatikana. Usifanye malipo tofauti; retry itatumia ombi lilelile.');
+        setState(() => error = L.tr(
+            'Jibu halijapatikana. Usifanye malipo tofauti; retry itatumia ombi lilelile.'));
     } finally {
       if (current(epoch)) {
         setState(() => busy = false);
@@ -223,147 +236,162 @@ class _PaymentBillsScreenState extends State<PaymentBillsScreen>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Bili zangu')),
-        body: RefreshIndicator(
-            onRefresh: load,
-            child: ListView(padding: const EdgeInsets.all(20), children: [
-              PremiumAuroraHero(
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Bili na risiti'))),
+      body: RefreshIndicator(
+          onRefresh: load,
+          child: ListView(padding: const EdgeInsets.all(20), children: [
+            PremiumAuroraHero(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(L.tr('Lipia huduma yako'),
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(color: Colors.white)),
+                  const SizedBox(height: 8),
+                  Text(
+                      L.tr(
+                          'Bili kutoka kwa mtoa huduma. Kiasi hakiwekwi na mgonjwa. Risiti hutolewa baada ya uthibitisho.'),
+                      style: TextStyle(color: Colors.white)),
+                ])),
+            const SizedBox(height: 16),
+            if (options != null && options!['environment'] != 'live')
+              Notice(
+                  L.tr(
+                      "MAJARIBIO ({0}): rekodi hizi si uthibitisho wa fedha halisi.",
+                      [options!['environment']]),
+                  tone: NoticeTone.attention),
+            if (error != null) Notice(error!),
+            if (loading)
+              const Center(child: CircularProgressIndicator())
+            else if (bills.isEmpty && error == null)
+              Empty(L.tr(
+                  'Hakuna bili iliyotolewa. Bili huandaliwa na staff mwenye ruhusa.'))
+            else
+              ...bills.map((b) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: PremiumCard(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text(b['title'] as String,
+                            style: Theme.of(context).textTheme.titleMedium),
+                        Text('${b['amount']} ${b['currency']}',
+                            style: Theme.of(context).textTheme.headlineSmall),
+                        Text('${b['reference']} · ${b['status']}'),
+                        if (['paid', 'refunded'].contains(b['status']))
+                          ReceiptDownload(billId: b['id'] as String),
+                        if (b['payment_block_reason'] != null)
+                          Text(b['payment_block_reason'] as String),
+                        if (b['status'] == 'due' &&
+                            b['payable'] != false &&
+                            DateTime.tryParse(b['expires_at'] as String? ?? '')
+                                    ?.isAfter(DateTime.now()) ==
+                                true)
+                          OutlinedButton(
+                              onPressed: busy || pending || querying
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        selected = b;
+                                        intent = null;
+                                        requestBody = null;
+                                        requestKey = null;
+                                        error = null;
+                                      });
+                                    },
+                              child: Text(L.tr('Chagua bili'))),
+                      ])))),
+            if (selected != null && options != null && intent == null) ...[
+              SectionTitle(L.tr('Njia ya malipo')),
+              Text(selected!['title'] as String),
+              ...{
+                'mpesa': 'M-Pesa',
+                'tigo_pesa': 'Mixx by Yas (Tigo Pesa)',
+                'airtel_money': 'Airtel Money'
+              }
+                  .entries
+                  .where((e) => (options!['providers'] as List).contains(e.key))
+                  .map((e) => RadioListTile<String>(
+                      title: Text(e.value),
+                      value: e.key,
+                      groupValue: provider,
+                      onChanged: busy
+                          ? null
+                          : (value) => setState(() => provider = value!))),
+              TextField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  enabled: !busy,
+                  decoration:
+                      InputDecoration(labelText: L.tr('Namba ya wallet'))),
+              if (options!['requires_email'] == true) ...[
+                const SizedBox(height: 12),
+                TextField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !busy,
+                    decoration: InputDecoration(
+                        labelText: L.tr('Email inayotakiwa na provider')))
+              ],
+              const SizedBox(height: 12),
+              Text(L.tr(
+                  'Hakuna PIN ya M-Pesa, Mixx au Airtel inayohitajika ndani ya A-Health.')),
+              FilledButton(
+                  onPressed: busy ? null : pay,
+                  child: Text(busy
+                      ? L.tr('Inaomba malipo…')
+                      : L.tr('Kagua na omba malipo'))),
+            ],
+            if (intent != null)
+              PremiumCard(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Text('Lipia huduma yako',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(color: Colors.white)),
-                    const SizedBox(height: 8),
-                    const Text(
-                        'Bili kutoka kwa mtoa huduma. Kiasi hakiwekwi na mgonjwa. Risiti hutolewa baada ya uthibitisho.',
-                        style: TextStyle(color: Colors.white)),
+                    Text(
+                        intent!['status'] == 'succeeded'
+                            ? (intent!['environment'] == 'live'
+                                ? L.tr('Malipo yamethibitishwa')
+                                : L.tr(
+                                    'Majaribio yamethibitishwa — si fedha halisi'))
+                            : L.tr("Hali ya ombi: {0}", [intent!['status']]),
+                        style: Theme.of(context).textTheme.titleLarge),
+                    Text(L
+                        .tr("Reference: {0}", [intent!['provider_reference']])),
+                    Text(L.tr("Kiasi: {0} {1}",
+                        [intent!['amount'], intent!['currency']])),
+                    if (intent!['payment_id'] != null)
+                      Text(L.tr("Risiti: {0}", [intent!['payment_id']])),
+                    if (intent!['payment_id'] != null &&
+                        selected?['id'] is String)
+                      ReceiptDownload(billId: selected!['id'] as String),
+                    if (intent!['client_action'] is Map)
+                      Text((intent!['client_action'] as Map)['message']
+                              as String? ??
+                          ''),
+                    Text(L.tr(
+                        'Kuomba malipo hakumaanishi umelipa. Uthibitisho hutoka kwa provider, si kitufe kwenye app.')),
+                    OutlinedButton(
+                        onPressed: querying ? null : refreshIntent,
+                        child: Text(L.tr('Sasisha hali'))),
+                    if (!pending)
+                      TextButton(
+                          onPressed: () {
+                            setState(() {
+                              intent = null;
+                              selected = null;
+                              requestBody = null;
+                              requestKey = null;
+                            });
+                            load();
+                          },
+                          child: Text(L.tr('Rudi kwenye bili'))),
                   ])),
-              const SizedBox(height: 16),
-              if (options != null && options!['environment'] != 'live')
-                Notice(
-                    'MAJARIBIO (${options!['environment']}): rekodi hizi si uthibitisho wa fedha halisi.',
-                    tone: NoticeTone.attention),
-              if (error != null) Notice(error!),
-              if (loading)
-                const Center(child: CircularProgressIndicator())
-              else if (bills.isEmpty && error == null)
-                const Empty(
-                    'Hakuna bili iliyotolewa. Bili huandaliwa na staff mwenye ruhusa.')
-              else
-                ...bills.map((b) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: PremiumCard(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                          Text(b['title'] as String,
-                              style: Theme.of(context).textTheme.titleMedium),
-                          Text('${b['amount']} ${b['currency']}',
-                              style: Theme.of(context).textTheme.headlineSmall),
-                          Text('${b['reference']} · ${b['status']}'),
-                          if (b['status'] == 'due' &&
-                              DateTime.tryParse(
-                                          b['expires_at'] as String? ?? '')
-                                      ?.isAfter(DateTime.now()) ==
-                                  true)
-                            OutlinedButton(
-                                onPressed: busy || pending || querying
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          selected = b;
-                                          intent = null;
-                                          requestBody = null;
-                                          requestKey = null;
-                                          error = null;
-                                        });
-                                      },
-                                child: const Text('Chagua bili')),
-                        ])))),
-              if (selected != null && options != null && intent == null) ...[
-                const SectionTitle('Njia ya malipo'),
-                Text(selected!['title'] as String),
-                ...{
-                  'mpesa': 'M-Pesa',
-                  'tigo_pesa': 'Mixx by Yas (Tigo Pesa)',
-                  'airtel_money': 'Airtel Money'
-                }
-                    .entries
-                    .where(
-                        (e) => (options!['providers'] as List).contains(e.key))
-                    .map((e) => RadioListTile<String>(
-                        title: Text(e.value),
-                        value: e.key,
-                        groupValue: provider,
-                        onChanged: busy
-                            ? null
-                            : (value) => setState(() => provider = value!))),
-                TextField(
-                    controller: phone,
-                    keyboardType: TextInputType.phone,
-                    enabled: !busy,
-                    decoration:
-                        const InputDecoration(labelText: 'Namba ya wallet')),
-                if (options!['requires_email'] == true) ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                      controller: email,
-                      keyboardType: TextInputType.emailAddress,
-                      enabled: !busy,
-                      decoration: const InputDecoration(
-                          labelText: 'Email inayotakiwa na provider'))
-                ],
-                const SizedBox(height: 12),
-                const Text(
-                    'Hakuna PIN ya M-Pesa, Mixx au Airtel inayohitajika ndani ya A-Health.'),
-                FilledButton(
-                    onPressed: busy ? null : pay,
-                    child: Text(
-                        busy ? 'Inaomba malipo…' : 'Kagua na omba malipo')),
-              ],
-              if (intent != null)
-                PremiumCard(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text(
-                          intent!['status'] == 'succeeded'
-                              ? (intent!['environment'] == 'live'
-                                  ? 'Malipo yamethibitishwa'
-                                  : 'Majaribio yamethibitishwa — si fedha halisi')
-                              : 'Hali ya ombi: ${intent!['status']}',
-                          style: Theme.of(context).textTheme.titleLarge),
-                      Text('Reference: ${intent!['provider_reference']}'),
-                      Text(
-                          'Kiasi: ${intent!['amount']} ${intent!['currency']}'),
-                      if (intent!['payment_id'] != null)
-                        Text('Risiti: ${intent!['payment_id']}'),
-                      if (intent!['client_action'] is Map)
-                        Text((intent!['client_action'] as Map)['message']
-                                as String? ??
-                            ''),
-                      const Text(
-                          'Kuomba malipo hakumaanishi umelipa. Uthibitisho hutoka kwa provider, si kitufe kwenye app.'),
-                      OutlinedButton(
-                          onPressed: querying ? null : refreshIntent,
-                          child: const Text('Sasisha hali')),
-                      if (!pending)
-                        TextButton(
-                            onPressed: () {
-                              setState(() {
-                                intent = null;
-                                selected = null;
-                                requestBody = null;
-                                requestKey = null;
-                              });
-                              load();
-                            },
-                            child: const Text('Rudi kwenye bili')),
-                    ])),
-            ])),
-      );
+          ])),
+    );
+  }
 }

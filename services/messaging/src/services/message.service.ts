@@ -1,6 +1,6 @@
 import { prisma } from '@a-health/database';
 import {
-  conflict, cursorArgs, forbidden, notFound, toCursorPage,
+  appendAudit, conflict, cursorArgs, forbidden, notFound, toCursorPage,
   type DomainEvent, type EventBus,
 } from '@a-health/http';
 
@@ -66,10 +66,9 @@ async function participantsOf(careThreadId: string) {
 
 async function assertParticipant(careThreadId: string, caller: Caller) {
   const p = await participantsOf(careThreadId);
-  const allowed =
-    caller.role === 'platform_admin' ||
-    p.patientUserIds.has(caller.sub) ||
-    p.clinicianUserIds.has(caller.sub);
+  const active = await prisma.user.findFirst({where:{id:caller.sub,status:'active',role:caller.role as never}});
+  const verified = caller.role === 'clinician' && !!await prisma.clinicianProfile.findFirst({where:{userId:caller.sub,verificationStatus:'verified'}});
+  const allowed = active && ((caller.role === 'patient' && p.patientUserIds.has(caller.sub)) || (verified && p.clinicianUserIds.has(caller.sub)));
   if (!allowed) throw forbidden('NOT_RESOURCE_OWNER', 'You are not part of this conversation');
   return p;
 }
@@ -101,7 +100,7 @@ export async function listMessages(
  * opening a new case, and that is what "follow-up till cure" means in
  * practice.
  */
-export async function createMessage(
+async function createMessageUnlocked(
   careThreadId: string,
   caller: Caller,
   input: {
@@ -114,6 +113,8 @@ export async function createMessage(
   meta: Meta,
 ) {
   const { thread, patientUserIds, clinicianUserIds } = await assertParticipant(careThreadId, caller);
+  const consent=await prisma.careChatConsent.findUnique({where:{careThreadId}});
+  if(!consent?.accepted || consent.version!=='care-chat-v1') throw forbidden('CONSENT_REQUIRED','The patient or guardian must allow care chat before messages can be sent.');
 
   if (thread.status === 'closed') {
     throw conflict('CARE_THREAD_CLOSED', 'This care thread is closed. Raise a new consultation.');
@@ -168,7 +169,7 @@ export async function createMessage(
     version: message.version,
     careThreadId,
     audienceUserIds: recipients,
-    data: { sender_user_id: caller.sub, preview: (input.body ?? '[attachment]').slice(0, 120) },
+    data: { sender_user_id: caller.sub },
   };
   await bus.publish(event);
 
@@ -204,4 +205,30 @@ export async function markRead(
   });
 
   return { marked_read: result.count };
+}
+
+export async function chatConsent(careThreadId:string,caller:Caller,accepted?:boolean) {
+  const p=await assertParticipant(careThreadId,caller);
+  if(accepted!==undefined) {
+    if(!p.patientUserIds.has(caller.sub)) throw forbidden('NOT_RESOURCE_OWNER','Only the patient or guardian may change communication consent.');
+    await prisma.$transaction(async tx=>{
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${careThreadId}))`;
+      await tx.careChatConsent.upsert({where:{careThreadId},create:{careThreadId,actorUserId:caller.sub,version:'care-chat-v1',accepted},update:{actorUserId:caller.sub,version:'care-chat-v1',accepted}});
+      await appendAudit({actorUserId:caller.sub,action:'care_chat.consent_updated',entityType:'care_threads',entityId:careThreadId,metadata:{accepted}},tx);
+    });
+  }
+  const row=await prisma.careChatConsent.findUnique({where:{careThreadId}});
+  return {accepted:row?.accepted===true && row.version==='care-chat-v1',version:'care-chat-v1'};
+}
+
+export async function authorizeMessage(careThreadId:string,caller:Caller) {
+  await assertParticipant(careThreadId,caller);
+  const consent=await prisma.careChatConsent.findUnique({where:{careThreadId}});
+  if(!consent?.accepted || consent.version!=='care-chat-v1') throw forbidden('CONSENT_REQUIRED','The patient or guardian must allow care chat before messages can be sent.');
+}
+export async function createMessage(...args:Parameters<typeof createMessageUnlocked>) {
+  return prisma.$transaction(async tx=>{
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${args[0]}))`;
+    return createMessageUnlocked(...args);
+  },{timeout:15000});
 }

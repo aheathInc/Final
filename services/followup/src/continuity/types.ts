@@ -22,3 +22,7 @@ export const worklistQuerySchema = z.object({ cursor: z.string().uuid().optional
 
 export const medicationQuerySchema = z.object({ cursor: z.string().uuid().optional(), limit: z.coerce.number().int().min(1).max(50).default(20) });
 export const resourceIdSchema = z.string().uuid();
+export const medicationSummaryQuery = z.object({patient_profile_id:z.string().uuid().optional(),days:z.coerce.number().pipe(z.union([z.literal(7),z.literal(30)])).default(7)});
+export const medicationSnoozeSchema = z.object({base_version:z.number().int().positive(),minutes:z.union([z.literal(5),z.literal(10),z.literal(15),z.literal(30)])}).strict();
+const stockAmount=z.number().finite().min(0).max(1000000).multipleOf(0.001);
+export const medicationSupplySchema=z.object({base_version:z.number().int().min(0),quantity:stockAmount,units_per_dose:stockAmount.positive().max(100000).optional(),unit_label:z.string().trim().min(1).max(30),low_stock_threshold:stockAmount}).strict();

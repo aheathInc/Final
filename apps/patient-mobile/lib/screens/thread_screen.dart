@@ -1,3 +1,5 @@
+import '../core/l10n.dart';
+import 'patient_community_screen.dart' show emergency;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import '../core/patient_care.dart';
 import '../core/session.dart';
 import '../core/strings.dart';
 import '../core/theme.dart';
+import '../core/thread_realtime.dart';
 import '../widgets/common.dart';
 
 class ThreadScreen extends StatefulWidget {
@@ -33,13 +36,36 @@ class _ThreadScreenState extends State<ThreadScreen> {
   String? _error;
   bool _sending = false;
   bool _canSend = false;
+  bool _chatConsent = false;
   String? _pendingOpId;
+  ThreadRealtime? _realtime;
+  bool _live = false;
+  late final int _identity;
 
   @override
   void initState() {
     super.initState();
+    _identity = Session.identityChanges.value;
+    Session.identityChanges.addListener(_identityChanged);
     _init();
+    _realtime = ThreadRealtime(widget.careThreadId, () {
+      if (mounted) _load();
+    }, (live) {
+      if (mounted) setState(() => _live = live);
+    })
+      ..start();
     _poll = Timer.periodic(const Duration(seconds: 8), (_) => _load());
+  }
+
+  void _identityChanged() {
+    if (!mounted) return;
+    setState(() {
+      _messages = [];
+      _draft.clear();
+      _canSend = false;
+      _chatConsent = false;
+      _error = L.tr('Account imebadilika. Fungua tena mazungumzo yako.');
+    });
   }
 
   Future<void> _init() async {
@@ -47,28 +73,58 @@ class _ThreadScreenState extends State<ThreadScreen> {
     _meId = user?['id'] as String?;
     try {
       final thread = await _care.careThread(widget.careThreadId);
-      if (mounted) setState(() => _canSend = thread['status'] != 'closed');
+      final consent = await Api.get(
+          '/care-threads/${widget.careThreadId}/communication-consent');
+      if (mounted && _identity == Session.identityChanges.value) {
+        setState(() {
+          _chatConsent = consent['accepted'] == true;
+          _canSend = thread['status'] != 'closed';
+        });
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted && _identity == Session.identityChanges.value) {
         setState(
-          () => _error =
-              'Mazungumzo hayakuweza kuthibitishwa. Unaweza kusoma ujumbe uliopo.',
+          () => _error = L.tr(
+              'Mazungumzo hayakuweza kuthibitishwa. Unaweza kusoma ujumbe uliopo.'),
         );
+      }
     }
     await _load();
   }
 
   Future<void> _load() async {
+    if (_identity != Session.identityChanges.value) return;
     try {
       final messages = await _care.threadMessages(widget.careThreadId);
-      if (!mounted) return;
+      if (!mounted || _identity != Session.identityChanges.value) return;
       setState(() {
         _messages = messages;
         _error = null;
       });
       _scrollToEnd();
+      final owner = await Session.userId();
+      final lifecycle = WidgetsBinding.instance.lifecycleState;
+      if (mounted &&
+          _identity == Session.identityChanges.value &&
+          !Session.locked.value &&
+          ModalRoute.of(context)?.isCurrent == true &&
+          _meId != null &&
+          owner == _meId &&
+          (lifecycle == null || lifecycle == AppLifecycleState.resumed)) {
+        final incoming = messages
+            .where((m) => m['sender_user_id'] != _meId && m['read_at'] == null)
+            .toList();
+        if (incoming.isNotEmpty) {
+          try {
+            await Api.post('/care-threads/${widget.careThreadId}/messages/read',
+                {'up_to_message_id': incoming.last['id']});
+          } catch (_) {/* A failed acknowledgement must remain unread. */}
+        }
+      }
     } catch (_) {
-      if (mounted) setState(() => _error = S.errorOffline);
+      if (mounted && _identity == Session.identityChanges.value) {
+        setState(() => _error = S.errorOffline);
+      }
     }
   }
 
@@ -81,8 +137,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
   }
 
   Future<void> _send() async {
+    if (_identity != Session.identityChanges.value) return;
     final body = _draft.text.trim();
-    if (body.isEmpty || !_canSend) return;
+    if (body.isEmpty || !_canSend || !_chatConsent) return;
     final opId = _pendingOpId ??= newOpId();
     setState(() => _sending = true);
 
@@ -114,7 +171,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   @override
   void dispose() {
+    Session.identityChanges.removeListener(_identityChanged);
     _poll?.cancel();
+    _realtime?.close();
     _draft.dispose();
     _scroll.dispose();
     super.dispose();
@@ -122,13 +181,77 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(L.tr(widget.title),
+            maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
       body: SafeArea(
         child: Column(
           children: [
+            Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Wrap(spacing: 8, children: [
+                  TextButton(
+                      onPressed: _sending
+                          ? null
+                          : () async {
+                              final accepted = await showDialog<bool>(
+                                  context: context,
+                                  builder: (c) => AlertDialog(
+                                          title: Text(_chatConsent
+                                              ? L.tr('Simamisha chat?')
+                                              : L.tr('Ruhusu care chat?')),
+                                          content: Text(L.tr(
+                                              'Ujumbe utahifadhiwa kwenye rekodi ya huduma na kuonekana kwa timu ya matibabu inayohusika na kesi hii. Hii si huduma ya dharura. Unaweza kusimamisha ujumbe mpya wakati wowote; rekodi zilizopo zitabaki.')),
+                                          actions: [
+                                            TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(c),
+                                                child: Text(L.tr('Ghairi'))),
+                                            FilledButton(
+                                                style: FilledButton.styleFrom(
+                                                    minimumSize:
+                                                        const Size(0, 52)),
+                                                onPressed: () => Navigator.pop(
+                                                    c, !_chatConsent),
+                                                child: Text(_chatConsent
+                                                    ? L.tr('Simamisha')
+                                                    : L.tr('Nakubali')))
+                                          ]));
+                              if (accepted == null) return;
+                              try {
+                                await Api.post(
+                                    '/care-threads/${widget.careThreadId}/communication-consent',
+                                    {
+                                      'accepted': accepted,
+                                      'version': 'care-chat-v1'
+                                    });
+                                if (mounted) {
+                                  setState(() => _chatConsent = accepted);
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  setState(() => _error = e.toString());
+                                }
+                              }
+                            },
+                      child: Text(_chatConsent
+                          ? L.tr('Consent ya chat')
+                          : L.tr('Ruhusu chat ili kutuma ujumbe'))),
+                  TextButton(
+                      onPressed: () => emergency(context),
+                      child: Text(L.tr('Msaada wa dharura')))
+                ])),
+            Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                    _live
+                        ? L.tr('Live chat imeunganishwa')
+                        : L.tr(
+                            'Inaunganisha live chat. Ujumbe unasasishwa kiotomatiki.'),
+                    style: const TextStyle(color: AppColors.inkSoft))),
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.all(12),
@@ -136,7 +259,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
               ),
             Expanded(
               child: _messages.isEmpty
-                  ? const Empty('Bado hamjaanza kuzungumza.')
+                  ? Empty(L.tr('Bado hamjaanza kuzungumza.'))
                   : ListView.builder(
                       controller: _scroll,
                       padding: const EdgeInsets.all(16),
@@ -199,25 +322,28 @@ class _ThreadScreenState extends State<ThreadScreen> {
                   Expanded(
                     child: TextField(
                       controller: _draft,
-                      readOnly: _sending || !_canSend,
+                      readOnly: _sending || !_canSend || !_chatConsent,
                       decoration: InputDecoration(
                         hintText: _canSend
-                            ? 'Andika ujumbe...'
-                            : 'Mazungumzo haya yamefungwa au hayajapakiwa.',
+                            ? L.tr('Andika ujumbe...')
+                            : L.tr(
+                                'Mazungumzo haya yamefungwa au hayajapakiwa.'),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
-                    onPressed:
-                        _sending || !_canSend || _draft.text.trim().isEmpty
-                            ? null
-                            : _send,
+                    onPressed: _sending ||
+                            !_canSend ||
+                            !_chatConsent ||
+                            _draft.text.trim().isEmpty
+                        ? null
+                        : _send,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(80, 52),
                     ),
-                    child: const Text(S.send),
+                    child: Text(S.send),
                   ),
                 ],
               ),

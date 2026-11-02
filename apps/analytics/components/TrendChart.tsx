@@ -4,7 +4,7 @@ import type { TrendSeries } from '@/lib/api';
 
 /**
  * Drawn with plain SVG rather than a chart library: the series is a handful of
- * daily counts, and a dependency that ships a whole rendering engine for a
+ * monthly counts, and a dependency that ships a whole rendering engine for a
  * polyline is weight this audience — often on a slow connection — pays for
  * nothing.
  *
@@ -15,21 +15,21 @@ import type { TrendSeries } from '@/lib/api';
  */
 export function TrendChart({ series }: { series: TrendSeries }) {
   const points = series.points;
-  if (points.length === 0) {
+  if (points.length === 0 || points.every(p => p.count === null)) {
     return <p className="mt-8 text-ink-soft">Hakuna mwelekeo wa kuonyesha kwa ugonjwa huu.</p>;
   }
 
   const w = 720;
   const h = 220;
   const pad = { top: 16, right: 16, bottom: 32, left: 44 };
-  const max = Math.max(...points.map((p) => p.count), 1);
+  const max = Math.max(...points.map((p) => p.count ?? 0), 1);
   const innerW = w - pad.left - pad.right;
   const innerH = h - pad.top - pad.bottom;
 
   const x = (i: number) => pad.left + (points.length === 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
   const y = (v: number) => pad.top + innerH - (v / max) * innerH;
 
-  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(p.count)}`).join(' ');
+  const path = points.map((p, i) => p.count === null ? '' : `${i === 0 || points[i-1].count === null ? 'M' : 'L'} ${x(i)} ${y(p.count)}`).join(' ');
   const ticks = [0, Math.round(max / 2), max];
 
   return (
@@ -39,7 +39,7 @@ export function TrendChart({ series }: { series: TrendSeries }) {
       </h2>
 
       <svg viewBox={`0 0 ${w} ${h}`} role="img"
-        aria-label={`Mwelekeo wa ${series.condition_code}, siku ${points.length}`}
+        aria-label={`Mwelekeo wa ${series.condition_code}, miezi ${points.length}`}
         className="mt-3 w-full border border-line bg-white">
         {ticks.map((t) => (
           <g key={t}>
@@ -48,7 +48,7 @@ export function TrendChart({ series }: { series: TrendSeries }) {
           </g>
         ))}
         <path d={path} fill="none" stroke="#0F4C43" strokeWidth={2} />
-        {points.map((p, i) => (
+        {points.map((p, i) => p.count !== null && (
           <circle key={p.period} cx={x(i)} cy={y(p.count)} r={3}
             fill={p.above_expected ? '#A63D2F' : '#0F4C43'} />
         ))}

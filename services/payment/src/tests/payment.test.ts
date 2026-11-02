@@ -23,7 +23,7 @@ async function fixture() {
   const staff=await prisma.user.create({data:{phoneNumber:phone(),role:'clinician',status:'active',fullName:'Synthetic Billing Clinician'}});
   const doctor=await prisma.clinicianProfile.create({data:{userId:staff.id,licenseNumber:`TEST-${randomUUID()}`,specialty:'general_practice',verificationStatus:'verified'}});
   const thread=await prisma.careThread.create({data:{patientProfileId:profile.id}});
-  const visit=await prisma.consultationRequest.create({data:{careThreadId:thread.id,patientProfileId:profile.id,assignedClinicianId:doctor.id,channel:'app',urgencyLevel:'routine',triageRuleVersion:'test-billing',status:'in_progress',slaDeadlineAt:new Date(Date.now()+3600000)}});
+  const visit=await prisma.consultationRequest.create({data:{careThreadId:thread.id,patientProfileId:profile.id,assignedClinicianId:doctor.id,channel:'app',consultationMode:'remote',consultationFeeAmount:15000,urgencyLevel:'routine',triageRuleVersion:'test-billing',status:'in_progress',slaDeadlineAt:new Date(Date.now()+3600000)}});
   const caller={sub:p.id,role:'patient'},clinician={sub:staff.id,role:'clinician'};
   const input={consultation_id:visit.id,amount:15000,currency:'TZS',title:'Consultation'};
   const bill=await issueBill(clinician,input);
@@ -51,4 +51,23 @@ describe('server-issued consultation billing',()=>{
  it('live callback cannot settle simulated intent',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);assert.equal((await settleVerifiedCharge(charge,'flutterwave','live')).handled,false);});
  it('late success after failed state is blocked for manual reconciliation',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);await settleVerifiedCharge({...charge,status:'failed'},'console','simulated');await assert.rejects(()=>settleVerifiedCharge(charge,'console','simulated'));});
  it('real-provider refund is refused rather than falsely recorded',async()=>{const f=await fixture(),{charge}=await checkedCharge(f);await settleVerifiedCharge(charge,'console','simulated');const p=await prisma.payment.findUniqueOrThrow({where:{paymentIntentId:charge.reference}});await prisma.payment.update({where:{id:p.id},data:{processor:'flutterwave',environment:'test'}});await assert.rejects(()=>refundPayment(p.id,{sub:f.clinician.sub,role:'platform_admin'},{reason:'Synthetic test'},{}));assert.equal(await prisma.paymentRefund.count({where:{paymentId:p.id}}),0);});
+});
+
+it('never charges hospital or explicitly zero-fee consultations, including a legacy bill',async()=>{
+ for(const mode of ['hospital','remote'] as const){
+  const f=await fixture();
+  await prisma.consultationRequest.update({where:{id:f.visit.id},data:{consultationMode:mode,consultationFeeAmount:0,...(mode==='hospital'?{modality:'in_person',facilityId:(await prisma.facility.create({data:{name:'Synthetic free consultation facility',type:'hospital'}})).id}:{})}});
+  await assert.rejects(()=>issueBill(f.clinician,f.input),{code:'CONSULTATION_FEE_NOT_APPLICABLE'});
+  await assert.rejects(()=>createPaymentIntent(f.caller,f.checkout,f.adapters),{code:'CONSULTATION_FEE_NOT_APPLICABLE'});
+  assert.equal(await prisma.paymentIntent.count({where:{billId:f.bill.id}}),0);
+  const bill=(await listBills(f.caller)).data.find(b=>b.id===f.bill.id)!;
+  assert.equal(bill.payable,false);assert.ok(bill.payment_block_reason);assert.equal(bill.status,'due');
+ }
+});
+
+it('rejects an orphaned consultation fee bill before contacting a provider',async()=>{
+ const f=await fixture();
+ await prisma.careBill.update({where:{id:f.bill.id},data:{consultationId:null}});
+ await assert.rejects(()=>createPaymentIntent(f.caller,f.checkout,f.adapters),{code:'CONSULTATION_FEE_NOT_APPLICABLE'});
+ assert.equal(await prisma.paymentIntent.count({where:{billId:f.bill.id}}),0);
 });

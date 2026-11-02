@@ -6,6 +6,7 @@ const PUBLIC = ['/login', '/api/auth'];
 
 function homeFor(role?: string) {
   if (role === 'clinician') return '/doctor/queue';
+  if (role === 'lab_technician') return '/lab';
   if (role === 'pharmacist') return '/pharmacy';
   if (role === 'platform_admin') return '/admin/dashboard';
   if (role === 'dispatcher') return '/admin/emergency';
@@ -30,6 +31,7 @@ function allowedAdmin(path: string, role?: string) {
 }
 
 function allowed(path: string, role?: string) {
+  if (within(path, '/lab')) return role === 'lab_technician';
   if (path.startsWith('/pharmacy')) return role === 'pharmacist';
   if (path.startsWith('/doctor')) return role === 'clinician';
   if (path === '/admin' || path.startsWith('/admin/')) return allowedAdmin(path, role);

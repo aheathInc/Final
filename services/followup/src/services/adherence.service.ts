@@ -11,6 +11,7 @@ function serialise(a: {
   medicationName: string; dosage: string; scheduledAt: Date; reportedStatus: string;
   reportedAt: Date | null; note: string | null; channel: string | null;
   version: number; updatedAt: Date;
+  skipReason?: string | null; snoozedUntil?: Date | null; snoozeCount?: number;
 }) {
   return {
     id: a.id,
@@ -26,6 +27,9 @@ function serialise(a: {
     channel: a.channel,
     version: a.version,
     updated_at: a.updatedAt.toISOString(),
+    skip_reason: a.skipReason ?? null,
+    snoozed_until: a.snoozedUntil?.toISOString() ?? null,
+    snooze_count: a.snoozeCount ?? 0,
   };
 }
 
@@ -88,10 +92,11 @@ export async function listAdherence(
 /** Patient-reported adherence. Silence is never converted to missed. */
 export async function confirmDose(
   adherenceLogId: string, caller: Caller,
-  input: { reported_status: string; channel?: string; note?: string; client_created_at?: string; base_version?: number },
+  input: { reported_status: string; channel?: string; note?: string; client_created_at?: string; base_version?: number; skip_reason?: string },
   missThreshold: number, meta: Meta,
 ) {
   if (!['taken', 'missed', 'delayed'].includes(input.reported_status)) throw unprocessable('Choose a supported dose report.');
+  if (input.skip_reason && input.reported_status !== 'missed') throw unprocessable('A skip reason requires an explicit skipped dose.');
   let reportedAt: Date;
   try { reportedAt = safeReportTime(input.client_created_at); }
   catch (error) { if (error instanceof ScheduleError) throw unprocessable(error.message); throw error; }
@@ -108,15 +113,16 @@ export async function confirmDose(
     if ((!owns || caller.role !== 'patient') && caller.role !== 'platform_admin') throw forbidden('NOT_RESOURCE_OWNER', 'This dose record is not yours.');
     if (row.supersededAt || row.prescription.status === 'discontinued') throw conflict('STATE_TRANSITION_INVALID', 'This dose schedule is no longer active. Reload your care plan.');
     // A byte-equivalent retry returns the recorded result, without new writes.
-    if (row.reportedStatus === input.reported_status && row.note === (input.note ?? null) && row.reportedAt) return row;
+    if (row.reportedStatus === input.reported_status && row.note === (input.note ?? null) && row.skipReason === (input.skip_reason ?? null) && row.reportedAt) return row;
     if (input.base_version !== undefined && input.base_version !== row.version) throw conflict('VERSION_CONFLICT', 'This report changed. Reload before continuing.');
     if (!['unreported', 'delayed'].includes(row.reportedStatus)) throw conflict('STATE_TRANSITION_INVALID', 'This dose already has a final report. Contact your clinician to correct it.');
     const claim = await tx.adherenceLog.updateMany({ where: { id: row.id, version: row.version, supersededAt: null },
       data: { reportedStatus: input.reported_status as never, reportedAt, note: input.note ?? null,
+        skipReason: input.skip_reason ?? null, snoozedUntil: null,
         channel: (input.channel ?? 'app') as never, version: { increment: 1 } } });
     if (!claim.count) throw conflict('VERSION_CONFLICT', 'This dose changed. Reload before continuing.');
     await appendAudit({ actorUserId: caller.sub, action: 'adherence.reported', entityType: 'adherence_logs', entityId: row.id,
-      metadata: { status: input.reported_status }, ipAddress: meta.ip, requestId: meta.requestId }, tx);
+      metadata: { status: input.reported_status, skipReason: input.skip_reason ?? null }, ipAddress: meta.ip, requestId: meta.requestId }, tx);
     if (input.reported_status === 'missed') {
       const recent = await tx.adherenceLog.findMany({ where: { prescriptionItemId: row.prescriptionItemId,
         supersededAt: null, scheduledAt: { lte: row.scheduledAt } }, orderBy: [{ scheduledAt: 'desc' }, { id: 'desc' }], take: missThreshold });

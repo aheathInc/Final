@@ -3,6 +3,7 @@ import { StaffShell } from '@/components/premium/StaffShell';
 import { DisplayProvider } from '@/components/premium/DisplayPreferences';
 import { Providers } from '@/components/Providers';
 import './globals.css';
+import 'leaflet/dist/leaflet.css';
 import './care-continuity.css';
 import './premium-clinical.css';
 import './research-portal.css';
@@ -14,7 +15,7 @@ import './research-portal.css';
  * cases where the digits are the content, not decoration.
  */
 export const metadata: Metadata = {
-  title: 'A-health',
+  title: 'A-Health',
   description: 'Clinician care, health operations and research intelligence.',
 };
 

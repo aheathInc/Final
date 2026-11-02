@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/strings.dart';
@@ -12,7 +13,7 @@ String facilityLocationLabel(Map<String, dynamic> facility) {
     final lat = location['lat'];
     final lng = location['lng'];
     if (lat != null && lng != null) {
-      return 'Lat $lat, Lng $lng';
+      return L.tr("Lat {0}, Lng {1}", [lat, lng]);
     }
   }
 
@@ -20,7 +21,7 @@ String facilityLocationLabel(Map<String, dynamic> facility) {
     return location;
   }
 
-  return 'Eneo halijulikani';
+  return L.tr('Eneo halijulikani');
 }
 
 class FacilityBrowserScreen extends StatefulWidget {
@@ -46,18 +47,24 @@ class _FacilityBrowserScreenState extends State<FacilityBrowserScreen> {
       final data = await Api.get('/facilities');
       if (!mounted) return;
       setState(() {
-        _facilities = ((data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
+        _facilities =
+            ((data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
         _loading = false;
       });
     } catch (e) {
-      if (mounted) setState(() { _error = S.errorGeneric; _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = S.errorGeneric;
+          _loading = false;
+        });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Tafuta Kituo')),
+      appBar: AppBar(title: Text(L.tr('Tafuta Kituo'))),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -70,7 +77,8 @@ class _FacilityBrowserScreenState extends State<FacilityBrowserScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Panel(
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        onTap: () =>
+                            Navigator.of(context).push(MaterialPageRoute(
                           builder: (_) => DoctorDirectoryScreen(
                             facilityId: f['id'] as String,
                             facilityName: f['name'] as String,
@@ -80,10 +88,12 @@ class _FacilityBrowserScreenState extends State<FacilityBrowserScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(f['name'] as String,
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
                             Text(facilityLocationLabel(f),
-                                style: const TextStyle(color: AppColors.inkSoft)),
+                                style:
+                                    const TextStyle(color: AppColors.inkSoft)),
                           ],
                         ),
                       ),

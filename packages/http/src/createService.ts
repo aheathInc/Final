@@ -110,8 +110,9 @@ export function createService(options: ServiceOptions): Service {
     app,
     logger,
     start(): Server {
-      const server = app.listen(options.port, options.host ?? '0.0.0.0', () => {
-        logger.info('listening', { host: options.host ?? '0.0.0.0', port: options.port });
+      const host = options.host ?? (development ? '127.0.0.1' : '0.0.0.0');
+      const server = app.listen(options.port, host, () => {
+        logger.info('listening', { host, port: options.port });
       });
 
       // Drain in-flight requests before exiting. Cutting a consultation write

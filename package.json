@@ -9,6 +9,8 @@
     "dev:local:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-local.ps1 -Status",
     "dev:local:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-local.ps1 -Stop",
     "seed:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/seed-local.ps1",
+    "seed:local:lab": "node --env-file=.env --import tsx services/auth/scripts/seed-local-laboratory.ts",
+    "seed:local:network": "node --env-file=.env scripts/seed-local-professional-network.cjs",
     "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",

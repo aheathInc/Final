@@ -5,8 +5,10 @@
   "type": "module",
   "main": "./src/client.ts",
   "exports": {
+    "./enrollment": "./src/enrollment.ts",
     ".": "./src/client.ts",
-    "./test-safety": "./src/test-safety.ts"
+    "./test-safety": "./src/test-safety.ts",
+    "./consultation-billing": "./src/consultation-billing.ts"
   },
   "scripts": {
     "generate": "prisma generate",

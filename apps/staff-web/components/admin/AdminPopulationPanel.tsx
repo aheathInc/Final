@@ -42,7 +42,7 @@ export function AdminPopulationPanel({ data }: { data: AdminAnalyticsReport }) {
   const stamp = new Date(data.generatedAt);
   return <section className={styles.section} aria-labelledby="population-heading">
     <div className={styles.heading}>
-      <div><span className={styles.eyebrow}>Population intelligence · Protected aggregates</span><h2 id="population-heading">Health & regional insights</h2><p>A-Health records only. Demographics cover all registered profiles; clinical activity follows the selected period.</p></div>
+      <div><h2 id="population-heading">Health & Regional Insights</h2><p>A-Health records only. Demographics cover all registered profiles; clinical activity follows the selected period.</p></div>
       <div className={styles.freshness}><span className={styles.liveDot} />Updated {Number.isNaN(stamp.getTime()) ? 'unavailable' : stamp.toLocaleString('en-TZ', { timeZone: 'Africa/Dar_es_Salaam', dateStyle: 'medium', timeStyle: 'short' })}</div>
     </div>
     <div className={styles.metrics}>

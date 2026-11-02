@@ -1,4 +1,5 @@
 node_modules/
+.pnpm-store/
 venv/
 .venv/
 dist/
@@ -34,6 +35,7 @@ build/
 coverage/
 .local/
 test-results/
+apps/*/artifacts/
 playwright-report/
 .playwright/
 playwright/.auth/

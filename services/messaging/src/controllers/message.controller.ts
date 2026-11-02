@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { NextFunction, Request, Response } from 'express';
 import { pathParam, type EventBus } from '@a-health/http';
 import * as messages from '../services/message.service.js';
@@ -23,6 +24,9 @@ const handle =
 
 export function buildControllers(bus: EventBus) {
   return {
+    authorize: async(req:Request,_res:Response,next:NextFunction)=>{try{await messages.authorizeMessage(pathParam(req,'care_thread_id'),caller(req));next();}catch(e){next(e);}},
+    chatConsent: handle(req=>messages.chatConsent(pathParam(req,"care_thread_id"),caller(req))),
+    setChatConsent: handle(req=>messages.chatConsent(pathParam(req,"care_thread_id"),caller(req),z.object({accepted:z.boolean(),version:z.literal("care-chat-v1")}).parse(req.body).accepted)),
     list: handle((req) =>
       messages.listMessages(pathParam(req, 'care_thread_id'), caller(req), listMessagesQuery.parse(req.query))),
 

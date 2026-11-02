@@ -37,3 +37,5 @@ export const publishArticle = handle((req, res) => {
   const query = publishArticleQuery.parse(req.query);
   return education.publishArticle(pathParam(req, 'slug'), query.language, caller(req), meta(req, res));
 });
+
+export const listDrafts=handle(req=>education.listDrafts(caller(req)));

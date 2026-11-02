@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api, errorMessage, idem, type DigitalReferral, type Page,
   type ReferralAuthorization, type ReferralCase } from '@/lib/api';
 import { Badge, Button, Card, Empty, Field, Notice, PageHeader, PageShell, areaClass, inputClass } from './ui';
 import { dateTime } from '@/lib/format';
 import { Icon } from './premium/Icon';
+import { ReferralConversation } from './ReferralConversation';
 
 const statusLabels: Record<DigitalReferral['status'], string> = {
   draft: 'Draft', submitted: 'Submitted — awaiting facility receipt', received: 'Received — awaiting clinician decision',
@@ -27,7 +28,33 @@ export function DigitalReferralWorkspace() {
   const [authorizations, setAuthorizations] = useState<ReferralAuthorization[]>([]);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedCase, setSelectedCase] = useState('');
-  const [consentId, setConsentId] = useState('');
+  const [facilityId, setFacilityId] = useState('');
+  const [facilities, setFacilities] = useState<Array<{id:string;name:string;type:string}>>([]);
+  const [facilitySearch, setFacilitySearch] = useState('');
+  const [facilitiesLoading, setFacilitiesLoading] = useState(true);
+  const [facilitiesError, setFacilitiesError] = useState<string|null>(null);
+  const [consentLoading, setConsentLoading] = useState(false);
+  const [consentError, setConsentError] = useState<string|null>(null);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [departmentsError, setDepartmentsError] = useState<string|null>(null);
+  const consentRequest = useRef(0), departmentRequest = useRef(0);
+  const loadFacilities = useCallback(async () => {
+    setFacilitiesLoading(true); setFacilitiesError(null);
+    try {
+      const lists = await Promise.all(['hospital','clinic'].map(async type => {
+        const result: Array<{id:string;name:string;type:string}> = [];
+        let cursor: string|undefined;
+        do {
+          const response = await api.get<Page<{id:string;name:string;type:string}>>('/facilities', {params:{type,limit:100,...(cursor?{cursor}:{})}});
+          result.push(...response.data.data); cursor=response.data.meta?.next_cursor??undefined;
+        } while(cursor);
+        return result;
+      }));
+      setFacilities(lists.flat().sort((a,b)=>a.name.localeCompare(b.name)));
+    } catch(cause) { setFacilitiesError(errorMessage(cause,'Hospitals could not be loaded. Try again.')); }
+    finally { setFacilitiesLoading(false); }
+  },[]);
+  useEffect(()=>{void loadFacilities();},[loadFacilities]);
   const [departmentId, setDepartmentId] = useState('');
   const [purpose, setPurpose] = useState('');
   const [summary, setSummary] = useState('');
@@ -62,53 +89,52 @@ export function DigitalReferralWorkspace() {
 
   useEffect(() => { void load(); }, [load]);
 
-  async function chooseCase(consultationId: string) {
-    setSelectedCase(consultationId);
-    setConsentId('');
-    setDepartmentId('');
-    setDepartments([]);
-    const item = cases.find((value) => value.consultation_id === consultationId);
-    setSummary(item?.clinical_summary ?? '');
-    setError(null);
-    if (!consultationId) { setAuthorizations([]); return; }
+  async function refreshAuthorizations(consultationId: string) {
+    const request = ++consentRequest.current;
+    setAuthorizations([]); setConsentError(null); setConsentLoading(Boolean(consultationId));
+    if (!consultationId) return;
     try {
-      const response = await api.get<Page<ReferralAuthorization>>('/referrals/authorizations', { params: { consultation_id: consultationId } });
-      setAuthorizations(response.data.data);
-    } catch (cause) {
-      setAuthorizations([]);
-      setError(errorMessage(cause, 'No active facility authorization could be verified.'));
-    }
+      const response = await api.get<Page<ReferralAuthorization>>('/referrals/authorizations', {params:{consultation_id:consultationId}});
+      if(request===consentRequest.current)setAuthorizations(response.data.data);
+    } catch(cause) {
+      if(request===consentRequest.current)setConsentError(errorMessage(cause,'Patient consent could not be checked. Try again.'));
+    } finally { if(request===consentRequest.current)setConsentLoading(false); }
   }
 
-  const selectedAuthorization = authorizations.find((item) => item.consent_id === consentId);
+  function chooseCase(consultationId: string) {
+    setSelectedCase(consultationId);
+    setSummary(cases.find(item=>item.consultation_id===consultationId)?.clinical_summary??'');
+    void refreshAuthorizations(consultationId);
+  }
 
-  async function selectAuthorization(id: string) {
-    setConsentId(id);
-    setDepartmentId('');
-    if (!id) { setDepartments([]); return; }
-    const authorization = authorizations.find((item) => item.consent_id === id);
-    if (!authorization) return;
+  const selectedFacility = facilities.find(item=>item.id===facilityId);
+  const selectedAuthorization = authorizations.find(item=>item.facility_id===facilityId && (!item.expires_at || Date.parse(item.expires_at)>Date.now()));
+  const visibleFacilities = facilities.filter(item=>item.id===facilityId || item.name.toLocaleLowerCase().includes(facilitySearch.trim().toLocaleLowerCase()));
+
+  async function selectFacility(id: string) {
+    const request=++departmentRequest.current;
+    setFacilityId(id); setDepartmentId(''); setDepartments([]); setDepartmentsError(null); setDepartmentsLoading(Boolean(id));
+    if(!id)return;
     try {
-      const response = await api.get<{ data: Array<{ id: string; name: string }> }>(`/facilities/${authorization.facility_id}/departments`);
-      setDepartments(response.data.data);
-    } catch (cause) {
-      setDepartments([]);
-      setError(errorMessage(cause, 'Departments could not be loaded.'));
-    }
+      const response=await api.get<{data:Array<{id:string;name:string}>}>(`/facilities/${id}/departments`);
+      if(request===departmentRequest.current)setDepartments(response.data.data);
+    } catch(cause) {
+      if(request===departmentRequest.current)setDepartmentsError(errorMessage(cause,'Departments could not be loaded. Try again.'));
+    } finally { if(request===departmentRequest.current)setDepartmentsLoading(false); }
   }
 
   async function submitNewReferral(event: FormEvent) {
     event.preventDefault();
-    if (!selectedCase || !selectedAuthorization) return;
+    if (!selectedCase || !selectedFacility || !selectedAuthorization || consentLoading || facilitiesLoading || facilitiesError) return;
     setBusyId('create');
     setError(null);
     setNotice(null);
     try {
       const created = await api.post<DigitalReferral>('/referrals', {
         consultation_id: selectedCase,
-        destination_facility_id: selectedAuthorization.facility_id,
+        destination_facility_id: selectedFacility.id,
         ...(departmentId ? { destination_department_id: departmentId } : {}),
-        patient_consent_id: consentId,
+        patient_consent_id: selectedAuthorization.consent_id,
         purpose: purpose.trim(),
         clinical_summary: summary.trim(),
         priority,
@@ -157,14 +183,22 @@ export function DigitalReferralWorkspace() {
         </div>
         <p className="text-sm">{referral.purpose}</p>
         {referral.clinical_summary && <p className="whitespace-pre-wrap rounded bg-paper-sunk p-3 text-sm">{referral.clinical_summary}</p>}
-        <dl className="grid gap-1 text-xs text-ink-soft sm:grid-cols-2">
+        <dl className="grid gap-1 text-xs text-ink-soft sm:grid-cols-2 break-words">
+          <div>Patient reference: <code>{referral.patient_reference ?? 'Unavailable'}</code></div>
+          <div>Referring clinician: {referral.source.clinician?.full_name ?? 'Clinician'}</div>
+          <div>From: {referral.source.facility.name}{referral.source.department ? ` / ${referral.source.department.name}` : ''}</div>
           <div>Referral ID: <code>{referral.id}</code></div>
           <div>Consultation: <code>{referral.consultation_id}</code></div>
           <div>Created: {dateTime(referral.created_at)}</div>
+          <div>Submitted: {dateTime(referral.submitted_at)}</div>
+          <div>Updated: {dateTime(referral.updated_at)}</div>
+          <div>Expires: {dateTime(referral.expires_at)}</div>
           <div>Received: {dateTime(referral.received_at)}</div>
           <div>Accepted: {dateTime(referral.accepted_at)}</div>
           <div>Care started: {dateTime(referral.care_started_at)}</div>
           <div>Completed: {dateTime(referral.completed_at)}</div>
+          <div>Declined: {dateTime(referral.declined_at)}</div>
+          <div>Cancelled: {dateTime(referral.cancelled_at)}</div>
         </dl>
         {referral.decline_reason && <p className="text-sm text-clay">Decline reason: {referral.decline_reason}</p>}
         {referral.outcome && (
@@ -175,6 +209,7 @@ export function DigitalReferralWorkspace() {
             {referral.outcome.patient_instructions && <p>Patient instructions: {referral.outcome.patient_instructions}</p>}
           </div>
         )}
+        <ReferralConversation referral={referral} />
         <div className="flex flex-wrap gap-2">
           {mode === 'source' && referral.status === 'draft' && <Button disabled={busy} onClick={() => void act(referral, 'submit')}>Submit referral</Button>}
           {mode === 'inbox' && referral.status === 'submitted' && <Button disabled={busy} onClick={() => void act(referral, 'receive')}>Acknowledge receipt</Button>}
@@ -211,7 +246,7 @@ export function DigitalReferralWorkspace() {
 
   return (
     <PageShell>
-      <PageHeader title="Create a referral" lede="Send a secure, patient-authorized handoff with the clinical context the receiving team needs." action={<Button variant="quiet" onClick={() => void load()}>Refresh</Button>} />
+      <PageHeader title="Create a referral" lede="Send a secure, patient-authorized handoff with the clinical context the receiving team needs." action={<Button variant="quiet" disabled={loading || facilitiesLoading || busyId==='create'} onClick={() => { void load(); void loadFacilities(); void refreshAuthorizations(selectedCase); }}>Refresh</Button>} />
       <div className="mt-5 space-y-4">
         {error && <Notice>{error}</Notice>}
         {notice && <p role="status" className="rounded border border-teal/30 bg-teal/5 p-3 text-sm">{notice}</p>}
@@ -222,24 +257,34 @@ export function DigitalReferralWorkspace() {
         <form className="ahp-referral-form" onSubmit={submitNewReferral}>
           <h3 className="ahp-form-section-line"><span className="ahp-step-number">1</span>Case & destination</h3>
           <Field label="Case" htmlFor="referral-case-select">
-            <select id="referral-case-select" className={inputClass} value={selectedCase} onChange={(event) => void chooseCase(event.target.value)} required>
+            <select id="referral-case-select" className={inputClass} value={selectedCase} disabled={busyId==='create'} onChange={(event) => void chooseCase(event.target.value)} required>
               <option value="">Select a case</option>
               {cases.map((item) => <option key={item.consultation_id} value={item.consultation_id}>{item.consultation_id} · {item.status} · {item.clinical_summary?.slice(0, 80) ?? 'Case'}</option>)}
             </select>
           </Field>
-          <Field label="Patient-authorized destination facility" htmlFor="referral-destination-consent">
-            <select id="referral-destination-consent" className={inputClass} value={consentId} onChange={(event) => void selectAuthorization(event.target.value)} required>
-              <option value="">Select an active consent</option>
-              {authorizations.map((item) => <option key={item.consent_id} value={item.consent_id}>{item.facility_name}{item.expires_at ? ` · expires ${dateTime(item.expires_at)}` : ''}</option>)}
+          <div className="ahp-full">
+            <Field label="Destination hospital / facility" htmlFor="referral-destination-facility" hint="Choose the hospital or clinic that will receive this referral.">
+              <label htmlFor="referral-facility-search" className="mt-2 block text-sm">Search hospitals and clinics</label>
+              <input id="referral-facility-search" type="search" className={inputClass} placeholder="Type a hospital name" value={facilitySearch} onChange={event=>setFacilitySearch(event.target.value)} disabled={facilitiesLoading || busyId==='create'} />
+              <select id="referral-destination-facility" className={inputClass+' mt-2'} value={facilityId} onChange={event=>void selectFacility(event.target.value)} required disabled={facilitiesLoading || !!facilitiesError || busyId==='create'}>
+                <option value="">{facilitiesLoading?'Loading hospitals...':'Select destination hospital / facility'}</option>
+                {visibleFacilities.map(item=><option key={item.id} value={item.id}>{item.name} ({item.type})</option>)}
+              </select>
+              {facilitiesError?<div className="mt-2"><Notice>{facilitiesError}</Notice><Button type="button" variant="quiet" onClick={()=>void loadFacilities()}>Retry hospital list</Button></div>:!facilitiesLoading&&!facilities.length?<p className="mt-2 text-sm text-ink-soft">No active hospitals or clinics are registered. Ask the facility administrator to register the destination.</p>:!facilitiesLoading&&!visibleFacilities.length?<p className="mt-2 text-sm text-ink-soft">No hospitals match this search. Try another name.</p>:null}
+            </Field>
+          </div>
+          <Field label="Destination department (optional)" htmlFor="referral-department-select">
+            <select id="referral-department-select" className={inputClass} value={departmentId} onChange={event=>setDepartmentId(event.target.value)} disabled={!facilityId || departmentsLoading || busyId==='create'}>
+              <option value="">{!facilityId?'Choose a destination hospital first':departmentsLoading?'Loading departments...':'Any eligible department at this facility'}</option>
+              {departments.map(department=><option key={department.id} value={department.id}>{department.name}</option>)}
             </select>
-            {selectedCase && authorizations.length === 0 && <p className="mt-1 text-xs text-amber">No exact-thread facility consent is available. Ask the patient to authorize the intended facility in Privacy & Consent.</p>}
+            {departmentsError&&<div className="mt-2"><Notice>{departmentsError}</Notice><Button type="button" variant="quiet" onClick={()=>void selectFacility(facilityId)}>Retry departments</Button></div>}
           </Field>
-          {departments.length > 0 && <Field label="Destination department (optional)" htmlFor="referral-department-select">
-            <select id="referral-department-select" className={inputClass} value={departmentId} onChange={(event) => setDepartmentId(event.target.value)}>
-              <option value="">Any eligible department at this facility</option>
-              {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-            </select>
-          </Field>}
+          <div className="ahp-full rounded-md bg-paper-sunk p-3 text-sm" aria-live="polite">
+            <strong>Patient consent for the destination</strong>
+            <p className="mt-1">{!facilityId?'Choose the destination hospital to check patient consent.':!selectedCase?'Select a case to check consent for this hospital.':consentLoading?'Checking patient consent...':consentError?consentError:selectedAuthorization?`Patient has authorized ${selectedFacility?.name??'this hospital'} for this case.`:`Patient consent is required for ${selectedFacility?.name??'this hospital'}. Ask the patient to authorize this hospital for this case in Privacy & Consent, then refresh the consent check.`}</p>
+            {facilityId&&selectedCase&&<Button type="button" variant="quiet" className="mt-2" disabled={consentLoading || busyId==='create'} onClick={()=>void refreshAuthorizations(selectedCase)}>Refresh patient consent</Button>}
+          </div>
           <h3 className="ahp-form-section-line"><span className="ahp-step-number">2</span>Clinical context</h3>
           <div className="ahp-full"><Field label="Referral purpose" htmlFor="referral-purpose"><textarea id="referral-purpose" className={areaClass} value={purpose} minLength={5} maxLength={1000} required rows={2} onChange={(event) => setPurpose(event.target.value)} /></Field></div>
           <div className="ahp-full"><Field label="Minimum necessary summary — review and edit before sending" htmlFor="referral-summary"><textarea id="referral-summary" className={areaClass} value={summary} minLength={5} maxLength={4000} required rows={3} onChange={(event) => setSummary(event.target.value)} /></Field></div>
@@ -248,10 +293,10 @@ export function DigitalReferralWorkspace() {
               <option value="routine">Routine</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option>
             </select>
           </Field>
-          <div className="ahp-form-actions"><Button disabled={loading || busyId === 'create' || !selectedAuthorization}>{busyId === 'create' ? 'Saving…' : 'Confirm and submit referral'}</Button></div>
+          <div className="ahp-form-actions"><Button disabled={loading || facilitiesLoading || !!facilitiesError || consentLoading || busyId === 'create' || !selectedFacility || !selectedAuthorization}>{busyId === 'create' ? 'Saving…' : 'Confirm and submit referral'}</Button></div>
         </form>
       </Card>
-      <aside className="ahp-context"><Icon name="shield" size={27}/><h2>Patient consent sets the boundary.</h2><p>Only your assigned cases and active, exact-thread facility consents are available.</p><hr/><strong>Share the minimum necessary</strong><p>Review the summary before sending. A referral never grants unrestricted access to a patient’s record.</p><hr/><strong>Keep each stage clear</strong><p>Submitted, accepted and care started are separate states.</p></aside>
+      <aside className="ahp-context"><Icon name="shield" size={27}/><h2>Patient consent sets the boundary.</h2><p>Choose a registered destination hospital or clinic. Sending requires patient consent for that facility and this case.</p><hr/><strong>Share the minimum necessary</strong><p>Review the summary before sending. A referral never grants unrestricted access to a patient’s record.</p><hr/><strong>Keep each stage clear</strong><p>Submitted, accepted and care started are separate states.</p></aside>
       </div>
       <div className="ahp-referral-lists">
       <section className="ahp-card space-y-3">

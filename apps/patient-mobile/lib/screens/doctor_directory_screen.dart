@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import '../core/api.dart';
 import '../core/strings.dart';
@@ -6,7 +7,8 @@ import '../widgets/common.dart';
 import 'new_consultation_screen.dart';
 
 class DoctorDirectoryScreen extends StatefulWidget {
-  const DoctorDirectoryScreen({super.key, required this.facilityId, required this.facilityName});
+  const DoctorDirectoryScreen(
+      {super.key, required this.facilityId, required this.facilityName});
   final String facilityId;
   final String facilityName;
 
@@ -27,19 +29,25 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
 
   Future<void> _load() async {
     try {
-      final data = await Api.get('/clinicians', query: {'facility_id': widget.facilityId});
+      final data = await Api.get('/clinicians',
+          query: {'facility_id': widget.facilityId});
       if (!mounted) return;
       setState(() {
         _doctors = ((data['data'] as List?) ?? []).cast<Map<String, dynamic>>();
         _loading = false;
       });
     } catch (e) {
-      if (mounted) setState(() { _error = S.errorGeneric; _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = S.errorGeneric;
+          _loading = false;
+        });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     return Scaffold(
       appBar: AppBar(title: Text(widget.facilityName)),
       body: _loading
@@ -47,15 +55,16 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
           : _error != null
               ? Center(child: Notice(_error!))
               : _doctors.isEmpty
-                  ? const Empty('Hakuna madaktari waliopo kwa sasa.')
+                  ? Empty(L.tr('Hakuna madaktari waliopo kwa sasa.'))
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _doctors.length,
                       itemBuilder: (context, i) {
                         final d = _doctors[i];
                         final status = d['status'] ?? 'off_duty';
-                        final queueCount = (d['queue_count'] as num?)?.toInt() ?? 0;
-                        
+                        final queueCount =
+                            (d['queue_count'] as num?)?.toInt() ?? 0;
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Panel(
@@ -63,16 +72,24 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: Navigator.canPop(context) ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
+                                  mainAxisAlignment: Navigator.canPop(context)
+                                      ? MainAxisAlignment.spaceBetween
+                                      : MainAxisAlignment.start,
                                   children: [
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(d['full_name'] as String,
-                                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                                          Text(d['specialty'] ?? 'Daktari wa kawaida',
-                                              style: const TextStyle(color: AppColors.inkSoft)),
+                                              style: const TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.bold)),
+                                          Text(
+                                              d['specialty'] ??
+                                                  L.tr('Daktari wa kawaida'),
+                                              style: const TextStyle(
+                                                  color: AppColors.inkSoft)),
                                         ],
                                       ),
                                     ),
@@ -82,22 +99,32 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
                                 const SizedBox(height: 12),
                                 Row(
                                   children: [
-                                    Icon(Icons.people_outline, size: 18, color: Colors.grey.shade600),
+                                    Icon(Icons.people_outline,
+                                        size: 18, color: Colors.grey.shade600),
                                     const SizedBox(width: 6),
-                                    Text('Foleni: $queueCount wagonjwa',
-                                        style: TextStyle(color: Colors.grey.shade700)),
+                                    Text(
+                                        L.tr("Foleni: {0} wagonjwa",
+                                            [queueCount]),
+                                        style: TextStyle(
+                                            color: Colors.grey.shade700)),
                                   ],
                                 ),
                                 if (status != 'off_duty') ...[
                                   const SizedBox(height: 16),
                                   FilledButton(
-                                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                                    onPressed: () => Navigator.of(context)
+                                        .push(MaterialPageRoute(
                                       builder: (_) => NewConsultationScreen(
                                         clinicianId: d['id'] as String,
-                                        clinicianName: d['full_name'] as String?,
+                                        clinicianName:
+                                            d['full_name'] as String?,
+                                        clinicianSpecialty:
+                                            d['specialty'] as String?,
+                                        facilityId: widget.facilityId,
+                                        facilityName: widget.facilityName,
                                       ),
                                     )),
-                                    child: const Text('Jiunge kwenye Foleni'),
+                                    child: Text(L.tr('Jiunge kwenye Foleni')),
                                   ),
                                 ],
                               ],
@@ -115,15 +142,15 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
     switch (status) {
       case 'available':
         color = Colors.green;
-        label = 'Yupo';
+        label = L.tr('Yupo');
         break;
       case 'busy':
         color = Colors.orange;
-        label = 'Ana mgonjwa';
+        label = L.tr('Ana mgonjwa');
         break;
       default:
         color = Colors.grey;
-        label = 'Hayupo';
+        label = L.tr('Hayupo');
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -132,7 +159,9 @@ class _DoctorDirectoryScreenState extends State<DoctorDirectoryScreen> {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+      child: Text(L.tr(label),
+          style: TextStyle(
+              color: color, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 }

@@ -1,3 +1,4 @@
+import {EducationDrafts} from '@/components/EducationDrafts';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -24,6 +25,7 @@ export default async function EducationPage() {
       />
 
       <NewArticle topics={topics?.data ?? []} />
+      <EducationDrafts/>
 
       <h2 className="mt-10 text-sm font-semibold uppercase tracking-wide text-ink-soft">
         Yaliyochapishwa

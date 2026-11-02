@@ -10,6 +10,7 @@ paymentRouter.post('/payments/provider/flutterwave',c.flutterwaveWebhook);
 paymentRouter.post('/payments/webhooks/:provider',c.webhook);
 paymentRouter.get('/payments/options',requireAuth,c.options);
 paymentRouter.get('/payments/bills',requireAuth,c.listBills);
+paymentRouter.get('/payments/bills/:bill_id/receipt',requireAuth,c.downloadBillReceipt);
 paymentRouter.post('/payments/bills',requireAuth,idempotency,c.issueBill);
 paymentRouter.post('/payments/intents',requireAuth,idempotency,c.createIntent);
 paymentRouter.get('/payments/intents/:payment_intent_id',requireAuth,c.getIntent);

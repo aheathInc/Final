@@ -70,8 +70,8 @@ export function SurveillanceView() {
 
       {loading ? <Loading /> : conditions.length === 0 ? (
         <Empty>
-          Hakuna data ya eneo hili. Hesabu hutokana na vipimo vya madaktari, kwa hiyo eneo
-          lisilo na matibabu yaliyoandikwa halitakuwa na chochote.
+          Hakuna hesabu iliyochapishwa kwa eneo hili. Data inaweza kuwa haijachapishwa,
+          haijarekodiwa au imefichwa kwa faragha. Hii haimaanishi cases ni sifuri.
         </Empty>
       ) : (
         <table className="mt-6 w-full border border-line bg-white text-sm">

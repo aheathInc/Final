@@ -4,6 +4,7 @@ import {
 } from '@a-health/http';
 import { computeFlag, isCriticalFlag } from '../engine/resultFlag.js';
 import type { CreateOrderInput, FileResultInput } from '../types/diagnostics.types.js';
+import { laboratoryScope } from './laboratory.service.js';
 
 export interface Caller { sub: string; role: string; ppid?: string; cpid?: string }
 export interface Meta { ip?: string | null; requestId?: string | null }
@@ -15,12 +16,16 @@ function serialiseOrder(o: {
   attachmentKey: string | null; isCritical: boolean; acknowledgedById: string | null;
   acknowledgedAt: Date | null; orderedAt: Date; resultedAt: Date | null; version: number;
   values?: { analyte: string; value: string; unit: string | null; referenceLow: unknown; referenceHigh: unknown; flag: string }[];
+  patient?: { fullName: string };
+  facility?: { name: string } | null;
 }, caller: Caller) {
   return {
     id: o.id,
     care_thread_id: o.careThreadId,
     consultation_id: o.consultationId,
     patient_profile_id: o.patientProfileId,
+    patient_name: o.patient?.fullName,
+    facility_name: o.facility?.name ?? null,
     ordered_by_id: o.orderedById,
     facility_id: o.facilityId,
     investigation_code: o.investigationCode,
@@ -49,9 +54,13 @@ function serialiseOrder(o: {
   };
 }
 
-async function assertVisible(order: { patientProfileId: string; orderedById: string }, caller: Caller) {
+async function assertVisible(order: { id: string; patientProfileId: string; orderedById: string }, caller: Caller) {
   if (caller.role === 'platform_admin') return;
-  if (caller.cpid && order.orderedById === caller.cpid) return;
+  if (caller.role === 'lab_technician') {
+    if (await prisma.investigationOrder.count({ where: { id: order.id, ...laboratoryScope(caller.sub) } })) return;
+    throw forbidden('NOT_RESOURCE_OWNER', 'This order is not assigned to your active laboratory');
+  }
+  if (caller.role === 'clinician' && caller.cpid && order.orderedById === caller.cpid) return;
   const patient = await prisma.patientProfile.findUnique({ where: { id: order.patientProfileId } });
   const owns = patient && (patient.userId === caller.sub || patient.guardianUserId === caller.sub);
   if (!owns) throw forbidden('NOT_RESOURCE_OWNER', 'This investigation order is not yours');
@@ -62,10 +71,13 @@ async function assertVisible(order: { patientProfileId: string; orderedById: str
  * not something a patient or an unrelated party can initiate.
  */
 export async function createOrder(caller: Caller, input: CreateOrderInput, meta: Meta) {
-  if (!caller.cpid) throw forbidden('ROLE_NOT_PERMITTED', 'Clinician profile required to order an investigation');
+  if (caller.role !== 'clinician' || !caller.cpid) throw forbidden('ROLE_NOT_PERMITTED', 'Clinician profile required to order an investigation');
 
   const thread = await prisma.careThread.findUnique({ where: { id: input.care_thread_id } });
   if (!thread) throw notFound('Care thread not found');
+  if (input.facility_id && !await prisma.facility.count({ where: { id: input.facility_id, isActive: true } })) {
+    throw notFound('Active destination facility not found');
+  }
 
   const order = await prisma.investigationOrder.create({
     data: {
@@ -94,7 +106,7 @@ export async function createOrder(caller: Caller, input: CreateOrderInput, meta:
 export async function getOrder(orderId: string, caller: Caller) {
   const order = await prisma.investigationOrder.findUnique({
     where: { id: orderId },
-    include: { values: true },
+    include: { values: true, patient: { select: { fullName: true } }, facility: { select: { name: true } } },
   });
   if (!order) throw notFound('Investigation order not found');
   await assertVisible(order, caller);
@@ -108,7 +120,9 @@ export async function listOrders(
   const scope =
     caller.role === 'platform_admin'
       ? {}
-      : caller.cpid
+      : caller.role === 'lab_technician'
+        ? laboratoryScope(caller.sub)
+      : caller.role === 'clinician' && caller.cpid
         ? { orderedById: caller.cpid }
         : { patient: { OR: [{ userId: caller.sub }, { guardianUserId: caller.sub }] } };
 
@@ -118,7 +132,8 @@ export async function listOrders(
       ...(query.care_thread_id ? { careThreadId: query.care_thread_id } : {}),
       ...(query.status ? { status: query.status as never } : {}),
     },
-    orderBy: [{ isCritical: 'desc' }, { orderedAt: 'desc' }],
+    include: { patient: { select: { fullName: true } }, facility: { select: { name: true } } },
+    orderBy: [{ isCritical: 'desc' }, { orderedAt: 'desc' }, { id: 'desc' }],
     ...cursorArgs(query.cursor, query.limit),
   });
   return toCursorPage(rows, query.limit, (row) => serialiseOrder(row, caller));
@@ -134,7 +149,12 @@ export async function listOrders(
 export async function fileResult(orderId: string, caller: Caller, input: FileResultInput, meta: Meta) {
   const order = await prisma.investigationOrder.findUnique({ where: { id: orderId } });
   if (!order) throw notFound('Investigation order not found');
-  if (caller.role !== 'platform_admin' && (
+  if (caller.role === 'lab_technician') {
+    await assertVisible(order, caller);
+    if (input.base_version === undefined || order.status !== 'collected') {
+      throw conflict('STATE_TRANSITION_INVALID', 'Confirm sample receipt and reload the order before submitting results');
+    }
+  } else if (caller.role !== 'platform_admin' && (
     caller.role !== 'clinician' || !caller.cpid || order.orderedById !== caller.cpid
   )) {
     throw forbidden('ROLE_NOT_PERMITTED', 'Only the ordering clinician may file this result');
@@ -164,6 +184,14 @@ export async function fileResult(orderId: string, caller: Caller, input: FileRes
   const isCritical = flaggedValues.some((v) => isCriticalFlag(v.flag as never));
 
   const updated = await prisma.$transaction(async (tx) => {
+    const changed = await tx.investigationOrder.updateMany({
+      where: { id: orderId, version: input.base_version ?? order.version,
+        status: { in: caller.role === 'lab_technician' ? ['collected'] : ['ordered', 'scheduled', 'collected'] },
+        ...(caller.role === 'lab_technician' ? laboratoryScope(caller.sub) : {}) },
+      data: { status: 'resulted', narrative: input.narrative ?? null,
+        attachmentKey: input.attachment_key ?? null, isCritical, resultedAt: new Date(), version: { increment: 1 } },
+    });
+    if (changed.count !== 1) throw conflict('STATE_TRANSITION_INVALID', 'Order changed or access was revoked. Reload before retrying.');
     await tx.investigationValue.createMany({
       data: flaggedValues.map((v) => ({
         orderId,
@@ -176,26 +204,15 @@ export async function fileResult(orderId: string, caller: Caller, input: FileRes
       })),
     });
 
-    return tx.investigationOrder.update({
-      where: { id: orderId },
-      data: {
-        status: 'resulted',
-        narrative: input.narrative ?? null,
-        attachmentKey: input.attachment_key ?? null,
-        isCritical,
-        resultedAt: new Date(),
-        version: { increment: 1 },
-      },
-      include: { values: true },
-    });
-  });
-
-  await appendAudit({
-    actorUserId: caller.sub,
-    action: isCritical ? 'investigation.critical_result_filed' : 'investigation.result_filed',
-    entityType: 'investigation_orders', entityId: orderId,
-    metadata: { isCritical, analytes: flaggedValues.map((v) => v.analyte) },
-    ipAddress: meta.ip, requestId: meta.requestId,
+    await appendAudit({
+      actorUserId: caller.sub,
+      action: isCritical ? 'investigation.critical_result_filed' : 'investigation.result_filed',
+      entityType: 'investigation_orders', entityId: orderId,
+      metadata: { isCritical, analytes: flaggedValues.map((v) => v.analyte) },
+      ipAddress: meta.ip, requestId: meta.requestId,
+    }, tx);
+    return tx.investigationOrder.findUniqueOrThrow({ where: { id: orderId },
+      include: { values: true, patient: { select: { fullName: true } }, facility: { select: { name: true } } } });
   });
 
   return serialiseOrder(updated, caller);
@@ -206,10 +223,11 @@ export async function fileResult(orderId: string, caller: Caller, input: FileRes
  * finding is not treated as received — silence is never treated as receipt.
  */
 export async function acknowledgeResult(orderId: string, caller: Caller, meta: Meta) {
-  if (!caller.cpid) throw forbidden('ROLE_NOT_PERMITTED', 'Clinician profile required to acknowledge a result');
+  if (caller.role !== 'clinician' || !caller.cpid) throw forbidden('ROLE_NOT_PERMITTED', 'Clinician profile required to acknowledge a result');
 
   const order = await prisma.investigationOrder.findUnique({ where: { id: orderId } });
   if (!order) throw notFound('Investigation order not found');
+  if (order.orderedById !== caller.cpid) throw forbidden('NOT_RESOURCE_OWNER', 'Only the ordering clinician may acknowledge this result');
   if (order.status === 'acknowledged') {
     throw conflict('RESULT_ALREADY_ACKNOWLEDGED', 'This result has already been acknowledged');
   }
@@ -217,22 +235,40 @@ export async function acknowledgeResult(orderId: string, caller: Caller, meta: M
     throw conflict('STATE_TRANSITION_INVALID', 'No result has been filed for this order yet');
   }
 
-  const updated = await prisma.investigationOrder.update({
-    where: { id: orderId },
-    data: {
-      status: 'acknowledged',
-      acknowledgedById: caller.cpid,
-      acknowledgedAt: new Date(),
-      version: { increment: 1 },
-    },
-    include: { values: true },
-  });
-
-  await appendAudit({
-    actorUserId: caller.sub, action: 'investigation.acknowledged',
-    entityType: 'investigation_orders', entityId: orderId,
-    ipAddress: meta.ip, requestId: meta.requestId,
+  const updated = await prisma.$transaction(async tx => {
+    const changed = await tx.investigationOrder.updateMany({
+      where: { id: orderId, version: order.version, status: 'resulted' },
+      data: {
+        status: 'acknowledged',
+        acknowledgedById: caller.cpid,
+        acknowledgedAt: new Date(),
+        version: { increment: 1 },
+      },
+    });
+    if (changed.count !== 1) throw conflict('RESULT_ALREADY_ACKNOWLEDGED', 'This result changed. Reload the order.');
+    await appendAudit({
+      actorUserId: caller.sub, action: 'investigation.acknowledged',
+      entityType: 'investigation_orders', entityId: orderId,
+      ipAddress: meta.ip, requestId: meta.requestId,
+    }, tx);
+    return tx.investigationOrder.findUniqueOrThrow({ where: { id: orderId }, include: { values: true } });
   });
 
   return serialiseOrder(updated, caller);
+}
+
+export async function collectSample(orderId: string, caller: Caller, version: number, meta: Meta) {
+  if (caller.role !== 'lab_technician') throw forbidden('ROLE_NOT_PERMITTED', 'Lab technician required');
+  return prisma.$transaction(async tx => {
+    const changed = await tx.investigationOrder.updateMany({
+      where: { id: orderId, version, status: { in: ['ordered', 'scheduled'] }, ...laboratoryScope(caller.sub) },
+      data: { status: 'collected', version: { increment: 1 } },
+    });
+    if (changed.count !== 1) throw conflict('STATE_TRANSITION_INVALID', 'Order is unavailable, changed, or not assigned to your laboratory');
+    await appendAudit({ actorUserId: caller.sub, action: 'investigation.sample_received',
+      entityType: 'investigation_orders', entityId: orderId, ipAddress: meta.ip, requestId: meta.requestId }, tx);
+    const order = await tx.investigationOrder.findUniqueOrThrow({ where: { id: orderId },
+      include: { values: true, patient: { select: { fullName: true } }, facility: { select: { name: true } } } });
+    return serialiseOrder(order, caller);
+  });
 }

@@ -45,6 +45,12 @@ export interface Consultation {
   symptom_text: string | null;
   channel: string;
   modality: string;
+  consultation_mode: 'hospital' | 'remote';
+  facility_id: string | null;
+  facility_name: string | null;
+  consultation_fee_amount: number | null;
+  consultation_fee_currency: string;
+  consultation_fee_policy: string | null;
   status: string;
   sla_deadline_at: string;
   created_at: string;
@@ -89,6 +95,11 @@ export interface InvestigationOrder {
   id: string;
   care_thread_id: string;
   patient_profile_id: string;
+  patient_name?: string;
+  facility_id?: string | null;
+  facility_name?: string | null;
+  clinical_notes?: string | null;
+  version: number;
   investigation_code: string;
   investigation_type: string;
   urgency: string;
@@ -113,6 +124,7 @@ export interface Discussion {
   title: string;
   body: string;
   author_clinician_id: string;
+  author_name?: string;
   is_case_discussion: boolean;
   reply_count: number;
   created_at: string;
@@ -292,6 +304,7 @@ export type DigitalReferralStatus =
 
 export interface DigitalReferral {
   id: string;
+  patient_reference: string | null;
   status: DigitalReferralStatus;
   priority: Urgency;
   purpose: string;
@@ -371,7 +384,7 @@ export interface ConditionCount {
 
 export interface TrendPoint {
   period: string;
-  count: number;
+  count: number | null;
   expected_low: number | null;
   expected_high: number | null;
   above_expected: boolean;

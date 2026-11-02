@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 
@@ -10,16 +11,16 @@ class Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final palette = AppPalette.of(context);
-    final colour =
-        tone == NoticeTone.problem ? palette.clay : palette.amber;
+    final colour = tone == NoticeTone.problem ? palette.clay : palette.amber;
     final icon = tone == NoticeTone.problem
         ? Icons.error_outline_rounded
         : Icons.info_outline_rounded;
     return Semantics(
       container: true,
       liveRegion: true,
-      label: text,
+      label: L.tr(text),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
@@ -35,7 +36,7 @@ class Notice extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                text,
+                L.tr(text),
                 style: TextStyle(color: palette.ink, fontSize: 15),
               ),
             ),
@@ -53,13 +54,16 @@ class SectionTitle extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-      );
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        L.tr(text),
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+    );
+  }
 }
 
 class Panel extends StatelessWidget {
@@ -70,6 +74,7 @@ class Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final palette = AppPalette.of(context);
     final content = Container(
       width: double.infinity,
@@ -101,12 +106,15 @@ class Empty extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppPalette.of(context).inkSoft, fontSize: 16),
-        ),
-      );
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Text(
+        L.tr(text),
+        textAlign: TextAlign.center,
+        style: TextStyle(color: AppPalette.of(context).inkSoft, fontSize: 16),
+      ),
+    );
+  }
 }

@@ -27,6 +27,7 @@ export const updateProfileSchema = z.object({
   emergency_contact: z.string().max(100).nullable().optional(),
   default_location: geoPoint.optional(),
   region_code: z.string().max(20).optional(),
+  reporting_area_code: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/).nullable().optional(),
 });
 
 export const grantConsentSchema = z.object({

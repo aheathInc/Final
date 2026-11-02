@@ -24,7 +24,7 @@ export default async function OrderPage({ params }: { params: { order_id: string
 
   return (
     <div className="staff-page ahp-page">
-      <Link href="/doctor/" className="text-sm text-petrol underline underline-offset-4">
+      <Link href="/doctor/diagnostics" className="text-sm text-petrol underline underline-offset-4">
         Rudi kwenye vipimo
       </Link>
       <div className="mt-4">

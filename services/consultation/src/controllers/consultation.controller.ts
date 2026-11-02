@@ -4,6 +4,8 @@ import * as threads from '../services/careThread.service.js';
 import * as consultations from '../services/consultation.service.js';
 import * as queue from '../services/queue.service.js';
 import * as rulesets from '../services/ruleset.service.js';
+import { consultationOptions } from '../services/options.service.js';
+import * as calls from '../services/call.service.js';
 import {
   closeThreadSchema, completeSchema, createConsultationSchema,
   declineSchema, listQuery, queueQuery, referSchema,
@@ -46,6 +48,11 @@ export const createConsultation = handle(
   (req, res) => consultations.createConsultation(caller(req), createConsultationSchema.parse(req.body), meta(req, res)),
   201,
 );
+export const getConsultationOptions = handle(() => consultationOptions());
+export const getCall = handle(req => calls.getCall(pathParam(req, 'consultation_id'), caller(req)));
+export const offerCall = handle(req => calls.offerCall(pathParam(req, 'consultation_id'), caller(req), calls.callOfferSchema.parse(req.body)), 201);
+export const answerCall = handle(req => calls.answerCall(pathParam(req, 'consultation_id'), pathParam(req, 'call_id'), caller(req), calls.callAnswerSchema.parse(req.body).sdp));
+export const endCall = handle(req => calls.endCall(pathParam(req, 'consultation_id'), pathParam(req, 'call_id'), caller(req)));
 
 export const acceptConsultation = handle((req, res) =>
   consultations.acceptConsultation(pathParam(req, 'consultation_id'), caller(req), meta(req, res)));

@@ -33,7 +33,12 @@ async function registerAndVerify(phone: string) {
     meta,
   );
   const code = codeOf(challenge);
-  return auth.verifyOtp(challenge.challenge_id, code, 'test-device', meta);
+  // Fixture for grandfathered patients: these session tests are independent of
+  // paid first registration, covered in enrollment.test.ts.
+  await prisma.user.update({where:{phoneNumber:phone},data:{status:'active',onboardingRequired:false}});
+  const session=await auth.verifyOtp(challenge.challenge_id, code, 'test-device', meta);
+  assert.ok('access_token' in session);
+  return session;
 }
 
 describe('registration', () => {
@@ -71,7 +76,7 @@ describe('registration', () => {
 });
 
 describe('otp verification', () => {
-  it('activates the account and returns a token pair', async () => {
+  it('returns a token pair for an existing active patient', async () => {
     const phone = track(testPhone());
     const session = await registerAndVerify(phone);
 
@@ -97,11 +102,9 @@ describe('otp verification', () => {
       (error: AppError) => error.code === 'OTP_INVALID',
     );
     const session = await auth.verifyOtp(challenge.challenge_id, issuedCode, 'test-device', meta);
-    assert.ok(session.access_token);
-    assert.ok(session.refresh_token);
-    assert.ok(session.user);
-    assert.equal(session.user.phone_number, phone);
-    assert.ok(session.user.full_name);
+    assert.ok('registration_token' in session);
+    assert.equal(session.registration.phone_number, phone);
+    assert.equal('access_token' in session, false);
   });
 
   it('rejects a wrong code and counts the attempt', async () => {
@@ -173,6 +176,23 @@ describe('otp verification', () => {
       (e: AppError) => e.code === 'OTP_INVALID',
     );
   });
+
+  it('consumes a challenge at most once under concurrent verification', async () => {
+    const phone = track(testPhone());
+    const challenge = await auth.registerPatient(
+      { phone_number: phone, preferred_language: 'sw' },
+      meta,
+    );
+    const results = await Promise.allSettled([
+      auth.verifyOtp(challenge.challenge_id, codeOf(challenge), 'test-device-a', meta),
+      auth.verifyOtp(challenge.challenge_id, codeOf(challenge), 'test-device-b', meta),
+    ]);
+    assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+    assert.equal(results.filter((result) => result.status === 'rejected').length, 1);
+    const user = await prisma.user.findUniqueOrThrow({ where: { phoneNumber: phone } });
+    assert.equal(await prisma.refreshToken.count({ where: { userId: user.id } }), 0);
+    assert.ok((await prisma.otpChallenge.findUniqueOrThrow({ where: { id: challenge.challenge_id } })).consumedAt);
+  });
 });
 
 describe('refresh token rotation', () => {
@@ -215,6 +235,18 @@ describe('OTP request rate limiting', () => {
       () => auth.requestOtp(phone, 'sms'),
       (error: AppError) => error.code === 'RATE_LIMITED',
     );
+  });
+
+  it('enforces the rolling limit under concurrent requests', async () => {
+    const phone = track(testPhone());
+    const results = await Promise.allSettled(
+      Array.from({ length: env.OTP_REQUESTS_PER_HOUR + 3 }, () => auth.requestOtp(phone, 'sms')),
+    );
+    assert.equal(results.filter((result) => result.status === 'fulfilled').length, env.OTP_REQUESTS_PER_HOUR);
+    const rejected = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+    assert.equal(rejected.length, 3);
+    assert.ok(rejected.every((result) => result.reason instanceof AppError && result.reason.code === 'RATE_LIMITED'));
+    assert.equal(await prisma.otpChallenge.count({ where: { phoneNumber: phone } }), env.OTP_REQUESTS_PER_HOUR);
   });
 });
 

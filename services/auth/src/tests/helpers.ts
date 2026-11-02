@@ -50,6 +50,7 @@ export async function cleanupPhone(phone: string): Promise<void> {
   });
   await prisma.otpChallenge.deleteMany({ where: { phoneNumber: phone } });
   if (!user) return;
+  await prisma.patientEnrollment.deleteMany({where:{userId:user.id}});
   await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
   await prisma.idempotencyRecord.deleteMany({ where: { userId: user.id } });
   if (user.patientProfile) {

@@ -5,7 +5,9 @@ export const createConsultationSchema = z.object({
   patient_profile_id: z.string().uuid().optional(),
   clinician_id: z.string().uuid().optional(),
   channel: z.enum(['app', 'sms', 'ussd', 'voice', 'web']),
-  modality: z.enum(['chat', 'voice', 'video', 'async']).optional(),
+  consultation_mode: z.enum(['hospital', 'remote']).optional(),
+  facility_id: z.string().uuid().optional(),
+  modality: z.enum(['chat', 'voice', 'video', 'async', 'in_person']).optional(),
   symptom_text: z.string().max(4000).optional(),
   structured_symptoms: z
     .array(
@@ -20,6 +22,14 @@ export const createConsultationSchema = z.object({
   voice_note_key: z.string().optional(),
   location: z.object({ lat: z.number(), lng: z.number() }).optional(),
   client_created_at: z.string().datetime().optional(),
+}).superRefine((input, ctx) => {
+  if (input.consultation_mode === 'hospital') {
+    if (!input.facility_id) ctx.addIssue({ code: 'custom', path: ['facility_id'], message: 'Choose the hospital you will attend.' });
+    if (input.modality && input.modality !== 'in_person') ctx.addIssue({ code: 'custom', path: ['modality'], message: 'Hospital consultations must be attended in person.' });
+  } else {
+    if (input.facility_id) ctx.addIssue({ code: 'custom', path: ['facility_id'], message: 'A visit destination applies only to hospital consultations.' });
+    if (input.modality === 'in_person' || (input.consultation_mode === 'remote' && input.modality === 'async')) ctx.addIssue({ code: 'custom', path: ['modality'], message: 'Choose chat, voice or video for a remote consultation.' });
+  }
 });
 
 export const declineSchema = z.object({
@@ -40,6 +50,8 @@ export const completeSchema = z.object({
         .array(
           z.object({
             medication_name: z.string().min(1).max(150),
+            medication_image_url: z.string().url().max(1000).refine(url => url.startsWith('https://')).optional(),
+            medication_education: z.string().trim().max(3000).optional(),
             dosage: z.string().min(1).max(50),
             frequency_per_day: z.number().int().min(1).max(12),
             duration_days: z.number().int().min(1).max(365),

@@ -20,6 +20,13 @@ consultationRouter.post('/care-threads/:care_thread_id/close', requireAuth, requ
 
 consultationRouter.post('/consultations', requireAuth, idempotency, c.createConsultation);
 consultationRouter.get('/consultations', requireAuth, c.listConsultations);
+consultationRouter.get('/consultations/options', requireAuth, c.getConsultationOptions);
+// Call signalling is ephemeral, has its own retry IDs and rechecks participants.
+// Do not cache SDP in the general idempotency-response store.
+consultationRouter.get('/consultations/:consultation_id/call', requireAuth, c.getCall);
+consultationRouter.post('/consultations/:consultation_id/call/offer', requireAuth, c.offerCall);
+consultationRouter.post('/consultations/:consultation_id/call/:call_id/answer', requireAuth, c.answerCall);
+consultationRouter.post('/consultations/:consultation_id/call/:call_id/end', requireAuth, c.endCall);
 consultationRouter.get('/consultations/:consultation_id/queue-status', requireAuth, c.getQueueStatus);
 
 // Every clinical transition is guarded on verification, not merely on role.

@@ -5,6 +5,7 @@ import { clinicalArtwork } from '@/lib/premium/artwork';
 import { signIn } from 'next-auth/react';
 import { DisplayPreferences } from '@/components/premium/DisplayPreferences';
 import { Icon } from '@/components/premium/Icon';
+import { BrandMark } from '@/components/premium/BrandMark';
 import { Button, Field, Notice, inputClass } from '@/components/ui';
 
 export default function Login() {
@@ -33,7 +34,7 @@ export default function Login() {
 
   return (
     <div className="ahp-login">
-      <section className="ahp-login-story"><div className="ahp-brand"><span className="ahp-brand-mark"><Icon name="heart" size={23}/></span>A-Health</div>
+      <section className="ahp-login-story"><div className="ahp-brand"><span className="ahp-brand-mark"><BrandMark/></span>A-Health</div>
         <div className="ahp-login-intro"><p>One connected care workspace</p><h1>Care, clearly connected.</h1><p>A calm, secure space for your clinical teams. Put people first, coordinate with confidence, and keep care moving.</p></div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="ahp-login-art" src={clinicalArtwork.overview.src} alt="" width="440" height="240"/>

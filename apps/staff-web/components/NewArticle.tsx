@@ -20,6 +20,10 @@ export function NewArticle({ topics }: { topics: Topic[] }) {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [body, setBody] = useState('');
+  const [guide,setGuide]=useState(false);
+  const [sections,setSections]=useState<Record<string,string>>({});
+  const [sourceUrl,setSourceUrl]=useState(''),[sourceTitle,setSourceTitle]=useState('');
+  const guideLabels:Record<string,string>={causes:'Sababu',symptoms:'Dalili',prevention:'Kinga',diagnosis:'Uchunguzi',treatment:'Chaguo za matibabu',warning_signs:'Dalili za hatari'};
   const [language, setLanguage] = useState('sw');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +42,7 @@ export function NewArticle({ topics }: { topics: Topic[] }) {
     setBusy(true); setError(null);
     try {
       await api.post('/education/articles',
-        { topic_slug: topicSlug, slug, title, summary, body, language }, idem());
+        { topic_slug: topicSlug, slug, title, summary, body, language, ...(guide?{disease_guide:sections,sources:[{title:sourceTitle,url:sourceUrl}]}:{}) }, idem());
       setDraftSlug(slug);
     } catch (e) {
       setError(errorMessage(e, 'Rasimu haikuhifadhiwa.'));
@@ -60,7 +64,7 @@ export function NewArticle({ topics }: { topics: Topic[] }) {
 
   return (
     <form onSubmit={saveDraft} className="mt-4 flex flex-col gap-3 border border-line bg-white p-4">
-      <div className="flex flex-wrap gap-3">
+      <fieldset disabled={!!draftSlug||busy} className="contents"><div className="flex flex-wrap gap-3">
         <Field label="Mada" htmlFor="tp">
           <select id="tp" value={topicSlug} onChange={(e) => setTopicSlug(e.target.value)} className={inputClass}>
             {topics.map((t) => <option key={t.slug} value={t.slug}>{t.name}</option>)}
@@ -88,6 +92,9 @@ export function NewArticle({ topics }: { topics: Topic[] }) {
         <textarea id="bo" rows={6} value={body} onChange={(e) => setBody(e.target.value)} className={areaClass} />
       </Field>
 
+      </fieldset><label className="flex gap-3"><input type="checkbox" disabled={!!draftSlug} checked={guide} onChange={e=>setGuide(e.target.checked)}/> Mwongozo wa ugonjwa wenye sehemu sita</label>
+      {guide&&<>{Object.entries(guideLabels).map(([key,label])=><Field key={key} label={label} htmlFor={'guide-'+key}><textarea id={'guide-'+key} required disabled={!!draftSlug} rows={3} maxLength={6000} className={areaClass} value={sections[key]??''} onChange={e=>setSections({...sections,[key]:e.target.value})}/></Field>)}<Field label="Chanzo cha kitabibu" htmlFor="guide-source"><input id="guide-source" required disabled={!!draftSlug} className={inputClass} value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)}/></Field><Field label="Kiungo cha chanzo (HTTPS)" htmlFor="guide-url"><input id="guide-url" type="url" pattern="https://.*" required disabled={!!draftSlug} className={inputClass} value={sourceUrl} onChange={e=>setSourceUrl(e.target.value)}/></Field></>}
+      {draftSlug&&<p>Ukichapisha, unathibitisha kuwa umepitia usahihi wa kitabibu, lugha rahisi na vyanzo vya rasimu iliyohifadhiwa.</p>}
       {error && <Notice>{error}</Notice>}
 
       {!draftSlug ? (

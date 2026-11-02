@@ -65,6 +65,10 @@ test('allows bounded documented public-schema options', () => {
   const env = valid(); env.DATABASE_URL += '&connection_limit=3&connect_timeout=5&pool_timeout=10';
   assert.equal(parse(env).port, 55439);
 });
+test('allows an explicitly named owned test schema in the isolated test database', () => {
+  const env = valid(); env.DATABASE_URL = env.DATABASE_URL.replace('schema=public', 'schema=ahp_test_front_desk_acceptance');
+  assert.deepEqual(parse(env), { host: '127.0.0.1', port: 55439, database: 'ahealth_test', schema: 'ahp_test_front_desk_acceptance' });
+});
 test('accepts matching server identity', () => identity(parse(valid()), row()));
 test('accepts mapped loopback address', () => identity(parse(valid()), { ...row(), server_address: '::ffff:127.0.0.1/32' }));
 for (const [name, change] of [

@@ -395,7 +395,10 @@ export async function startVisit(caller: Caller, id: string, baseVersion: number
     const thread = await tx.careThread.create({ data: { patientProfileId: visit.patientProfileId, primaryClinicianId: profile.id, reasonSummary: visit.purpose.slice(0, 300), openConsultationCount: 1 } });
     const consultation = await tx.consultationRequest.create({ data: {
       careThreadId: thread.id, patientProfileId: visit.patientProfileId, assignedClinicianId: profile.id,
-      channel: 'app', modality: 'chat', symptomText: visit.purpose, structuredSymptoms: [],
+        channel: 'app', consultationMode: 'hospital', modality: 'in_person',
+        consultationFeeAmount: 0,
+        facilityId: visit.facilityId, facilityName: (await tx.facility.findUniqueOrThrow({ where: { id: visit.facilityId } })).name,
+        symptomText: visit.purpose, structuredSymptoms: [],
       urgencyLevel: 'routine', triageRuleVersion: 'front-desk-human-clearance-v1', status: 'in_progress',
       slaDeadlineAt: new Date(now.getTime() + env.SLA_ROUTINE_SECONDS * 1000), acceptedAt: now,
     } });

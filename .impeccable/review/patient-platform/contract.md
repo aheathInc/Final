@@ -1,0 +1,13 @@
+﻿# Patient platform review contract
+
+Ordinary extension of the incumbent A-Health visual system. No new visual world, reference comp, PRODUCT.md or DESIGN.md is introduced. Preserve the staff shell, existing teal/petrol palette and clinical navigation. Web uses existing PageHeader/Button/Field and CSS theme variables; native uses the existing Material 3 themes. The inherited hero artwork/eyebrow belongs to the incumbent shell, not this extension.
+
+User brief: patient–doctor realtime chat and eligible peer chat; moderated doctor/patient communities; complaints/suggestions with status tracking and escalation; simple-language disease search with six educational sections; nearby pharmacy map and trustworthy stock. Consent, privacy, moderation and emergency escalation must remain explicit. Confirmed peer rule: adults 18+, peer opt-in, shared community and mutually accepted invitation.
+
+First viewport: clear purpose, consent/status and the primary action. Web moderation uses queue plus detail at desktop, stacks on compact screens. Clinician community separates communities from the selected discussion, preserves reply context and pending moderation. Native uses system navigation, 48 dp minimum targets, scalable text, dark theme, and explicit location consent. Signature behavior is consent-gated participation: private messaging cannot begin before both parties accept, and health content is reviewed before publication.
+
+Captured web evidence is synthetic via Playwright on current running code at 1440×1000 and 390×844. Captured native evidence is synthetic on Android emulator via Flutter integration screenshots. Native captures are not browser renders. Web detector ran once on changed component targets and returned []. No detector runs on native code.
+
+Implementation scope is local development. Real-time server event delivery and access boundaries have separate isolated DB tests. No capture represents real patient information or proves clinical accuracy. The two WHO-derived education drafts remain unpublished until actual clinician review. Hardware installation is conditional on the user's USB device being visible; emulator evidence must not be presented as physical-device evidence.
+
+Review the provided screenshots and primary component files; do not render, start servers, edit or inspect unrelated earlier tasks. Native primary files: patient_community_screen.dart, feedback_tracking_screen.dart, education_screen.dart, pharmacy_map_screen.dart. Web primary files: PatientModeration.tsx, PatientCommunity.tsx, patient-platform.module.css. The documentation handoff must preserve incumbent design files and report scope, not invent a new global design system.

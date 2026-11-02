@@ -24,7 +24,7 @@ async function clinician(caller: Caller, db: Prisma.TransactionClient = prisma) 
   if (!row) throw forbidden('CLINICIAN_NOT_VERIFIED', 'Verified active clinician required.');
   return row.id;
 }
-async function patient(patientId: string | undefined, caller: Caller, db: Prisma.TransactionClient = prisma) {
+export async function patient(patientId: string | undefined, caller: Caller, db: Prisma.TransactionClient = prisma) {
   if (caller.role !== 'patient') throw forbidden('ROLE_NOT_PERMITTED', 'Patient account required.');
   const rows = await db.patientProfile.findMany({ where: own(caller.sub),
     select: { id: true, fullName: true, userId: true, guardianUserId: true }, orderBy: { id: 'asc' } });
@@ -147,6 +147,7 @@ export async function patientOverview(caller: Caller, query: { patient_profile_i
       medication_name: d.medicationName, dosage: d.dosage, scheduled_at: iso(d.scheduledAt),
       reported_status: d.reportedStatus, reported_at: iso(d.reportedAt), state: doseState(d.reportedStatus, d.scheduledAt, now),
       version: d.version, schedule_status: d.reminderPlan?.status ?? 'timing_not_confirmed',
+      skip_reason: d.skipReason, snoozed_until: iso(d.snoozedUntil), snooze_count: d.snoozeCount,
       timezone: d.reminderPlan?.timezone ?? null })),
     meta: { has_more: doses.length > query.limit, next_cursor: doses.length > query.limit ? data.at(-1)?.id ?? null : null },
     preference: { sms_enabled: preferences?.smsEnabled ?? false, version: preferences?.version ?? 0 },

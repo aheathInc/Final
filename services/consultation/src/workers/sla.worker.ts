@@ -16,6 +16,7 @@ const logger = createLogger('consultation.sla');
  * is eligible.
  */
 export async function tick(now = new Date()): Promise<{ lapsed: number; escalated: number }> {
+  await prisma.consultationCall.updateMany({ where: { expiresAt: { lte: now }, OR: [{ offer: { not: null } }, { answer: { not: null } }] }, data: { offer: null, answer: null, endedAt: now } });
   const expiring = await prisma.consultationOffer.findMany({
     where: { status: 'offered', expiresAt: { lt: now } },
     distinct: ['consultationId'],

@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -123,25 +124,27 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                     : r,
               )
               .toList();
-          _message = 'Pending sync: jibu bado halijathibitishwa na seva.';
+          _message = L.tr('Pending sync: jibu bado halijathibitishwa na seva.');
         });
       }
     } on ApiException catch (e) {
       if (mounted) setState(() => _message = e.message);
     } catch (_) {
-      if (mounted) setState(() => _message = 'Jibu la dawa halijahifadhiwa.');
+      if (mounted)
+        setState(() => _message = L.tr('Jibu la dawa halijahifadhiwa.'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final due =
         _rows.where((r) => r['reported_status'] == 'unreported').toList();
     final done =
         _rows.where((r) => r['reported_status'] != 'unreported').toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text(S.medications)),
+      appBar: AppBar(title: Text(S.medications)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -152,8 +155,14 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                   if (!_online) ...[
                     Notice(
                       _lastSyncedAt == null
-                          ? 'Hakuna mtandao. Hakuna ratiba iliyosawazishwa kwenye kifaa hiki.'
-                          : 'Cached data: ratiba ya dawa ilisawazishwa ${DateFormat('d MMM y, HH:mm').format(_lastSyncedAt!.toLocal())}.',
+                          ? L.tr(
+                              'Hakuna mtandao. Hakuna ratiba iliyosawazishwa kwenye kifaa hiki.')
+                          : L.tr(
+                              "Cached data: ratiba ya dawa ilisawazishwa {0}.",
+                              [
+                                  DateFormat('d MMM y, HH:mm')
+                                      .format(_lastSyncedAt!.toLocal())
+                                ]),
                       tone: NoticeTone.attention,
                     ),
                     const SizedBox(height: 16),
@@ -162,14 +171,14 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                     Notice(_message!, tone: NoticeTone.attention),
                     const SizedBox(height: 12),
                   ],
-                  const SectionTitle('Zinazosubiri jibu'),
+                  SectionTitle(L.tr('Zinazosubiri jibu')),
                   if (due.isEmpty)
-                    const Empty('Huna dawa inayosubiri jibu kwa sasa.')
+                    Empty(L.tr('Huna dawa inayosubiri jibu kwa sasa.'))
                   else
                     ...due.map(_dueCard),
                   if (done.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    const SectionTitle('Ulizojibu'),
+                    SectionTitle(L.tr('Ulizojibu')),
                     ...done.map(_doneRow),
                   ],
                 ],
@@ -202,7 +211,7 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                 Expanded(
                   child: FilledButton(
                     onPressed: () => _report(r['id'] as String, 'taken'),
-                    child: const Text(S.taken),
+                    child: Text(S.taken),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -214,7 +223,7 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                       shape: const RoundedRectangleBorder(),
                       side: const BorderSide(color: AppColors.line),
                     ),
-                    child: const Text(S.missed, style: TextStyle(fontSize: 16)),
+                    child: Text(S.missed, style: TextStyle(fontSize: 16)),
                   ),
                 ),
               ],
@@ -246,13 +255,13 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
             ),
           ),
           if (syncStatus == 'queued')
-            const Text(
-              'Pending sync — haijathibitishwa',
+            Text(
+              L.tr('Pending sync — haijathibitishwa'),
               style: TextStyle(fontSize: 12, color: AppColors.amber),
             ),
           if (syncStatus == 'failed')
-            const Text(
-              'Inahitaji kuangaliwa mtandaoni',
+            Text(
+              L.tr('Inahitaji kuangaliwa mtandaoni'),
               style: TextStyle(fontSize: 12, color: AppColors.clay),
             ),
         ],

@@ -29,7 +29,7 @@ export function parseSafetyTestTarget(env: Record<string, string | undefined>): 
   const schemaOptions = url.searchParams.getAll('schema');
   const schema = schemaOptions[0] ?? '';
   const testSchema = schema === 'ahp_test' || /^ahp_test_[a-z0-9_]+$/.test(schema);
-  const isolatedTarget = (database === 'ahealth_test' && schema === 'public') ||
+  const isolatedTarget = (database === 'ahealth_test' && (schema === 'public' || testSchema)) ||
     (database === 'ahealth_dev' && testSchema);
   if (!['postgresql:', 'postgres:'].includes(url.protocol) ||
       !['localhost', '127.0.0.1', '::1'].includes(host) ||
@@ -57,7 +57,7 @@ export function selectDedicatedTestSchema(
 ): SafetyTestTarget {
   const base = parseSafetyTestTarget(env);
   const schema = env[schemaEnvironmentVariable] ?? '';
-  if (base.database !== 'ahealth_dev' || !schema.startsWith(expectedPrefix) ||
+  if (!['ahealth_dev', 'ahealth_test'].includes(base.database) || !schema.startsWith(expectedPrefix) ||
       !/^ahp_test_(front_desk|thread_integrity)_[a-z0-9_]+$/.test(schema)) {
     throw new Error('An operator-created isolated suite schema is required for this retained-fixture test.');
   }

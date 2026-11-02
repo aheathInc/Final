@@ -1,0 +1,30 @@
+﻿[
+  {
+    "slug":"malaria-mwongozo",
+    "title":"Malaria",
+    "summary":"Ugonjwa unaoenezwa zaidi na mbu wenye vimelea. Uchunguzi na matibabu ya mapema ni muhimu.",
+    "disease_guide":{
+      "causes":"Vimelea vya malaria huingia mwilini mara nyingi kupitia kuumwa na mbu wa Anopheles aliyeambukizwa.",
+      "symptoms":"Homa, kutetemeka kwa baridi na maumivu ya kichwa ni dalili za kawaida. Dalili zinaweza kufanana na magonjwa mengine.",
+      "prevention":"Lala chini ya chandarua chenye dawa. Punguza kuumwa na mbu kwa kutumia mavazi yanayofunika ngozi, vyandarua vya madirishani na kinga inayofaa. Ongea na mtaalamu kuhusu kinga maalumu kwa watoto, wajawazito au safari.",
+      "diagnosis":"Mtoa huduma hutathmini dalili na kufanya kipimo cha malaria, kwa mfano kipimo cha haraka au uchunguzi wa damu kwa hadubini. Usihitimishe kuwa kila homa ni malaria.",
+      "treatment":"Dawa za malaria huchaguliwa kulingana na aina ya vimelea, ukali wa ugonjwa, umri na ujauzito. Malaria kali huhitaji huduma hospitalini haraka. Fuata matibabu uliyoandikiwa na mtaalamu.",
+      "warning_signs":"Pata huduma ya dharura mara moja ikiwa kuna kupoteza fahamu, degedege, shida ya kupumua, udhaifu mkubwa, mkojo mweusi au wenye damu, macho ya njano au kutokwa damu kusiko kawaida. Usisubiri jibu la chat."
+    },
+    "sources":[{"title":"WHO: Malaria (4 December 2025)","url":"https://www.who.int/news-room/fact-sheets/detail/malaria"}]
+  },
+  {
+    "slug":"shinikizo-la-damu-mwongozo",
+    "title":"Shinikizo la damu (Hypertension / presha)",
+    "summary":"Shinikizo la damu linaweza kuwa kubwa bila dalili. Kulipima ndiyo njia ya kuligundua.",
+    "disease_guide":{
+      "causes":"Hatari huongezeka kutokana na historia ya familia, umri, uzito mkubwa, kutofanya mazoezi, chumvi nyingi na pombe nyingi. Magonjwa mengine pia yanaweza kuchangia.",
+      "symptoms":"Watu wengi hawana dalili. Shinikizo kubwa sana linaweza kuleta maumivu ya kichwa, kuona ukungu, maumivu ya kifua au shida ya kupumua.",
+      "prevention":"Punguza chumvi, kula matunda na mboga, fanya shughuli za mwili zinazokufaa, epuka tumbaku na punguza pombe. Pima shinikizo la damu na fuata miadi ya huduma.",
+      "diagnosis":"Mtaalamu hupima shinikizo na kutathmini hali yako. Kwa kawaida utambuzi hutegemea vipimo vya siku tofauti; usijitambulishe kwa kutegemea dalili pekee.",
+      "treatment":"Mabadiliko ya maisha na dawa zilizoandikwa na mtaalamu vinaweza kuhitajika. Chaguo la dawa na lengo la shinikizo hutegemea hali na magonjwa mengine. Usikose au kushirikiana dawa na mtu mwingine.",
+      "warning_signs":"Maumivu ya kifua, shida ya kupumua, kuchanganyikiwa, maumivu makali ya kichwa au mabadiliko ya kuona, hasa pamoja na shinikizo kubwa, yanahitaji huduma ya haraka. Usisubiri jibu la community au chat."
+    },
+    "sources":[{"title":"WHO: Hypertension (25 September 2025)","url":"https://www.who.int/news-room/fact-sheets/detail/hypertension"}]
+  }
+]

@@ -134,6 +134,13 @@ export async function getQueueStatus(consultationId: string, caller: Caller) {
   return {
     consultation_id: consultation.id,
     status: consultation.status,
+    consultation_mode: consultation.consultationMode,
+    modality: consultation.modality,
+    facility_id: consultation.facilityId,
+    facility_name: consultation.facilityName,
+    consultation_fee_required: consultation.consultationMode === 'remote',
+    consultation_fee_amount: consultation.consultationMode === 'hospital' ? 0 : consultation.consultationFeeAmount,
+    consultation_fee_currency: 'TZS',
     urgency_level: consultation.urgencyLevel,
     queue_position: position,
     ahead_of_you: position === null ? null : position - 1,

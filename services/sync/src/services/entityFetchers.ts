@@ -29,6 +29,10 @@ export const ENTITY_FETCHERS: Partial<Record<string, EntityFetcher>> = {
       id: row.id, care_thread_id: row.careThreadId, patient_profile_id: row.patientProfileId,
       assigned_clinician_id: row.assignedClinicianId, status: row.status,
       urgency_level: row.urgencyLevel, channel: row.channel, modality: row.modality,
+      consultation_mode: row.consultationMode, facility_id: row.facilityId, facility_name: row.facilityName,
+      consultation_fee_required: row.consultationMode === 'remote',
+      consultation_fee_amount: row.consultationMode === 'hospital' ? 0 : row.consultationFeeAmount,
+      consultation_fee_currency: 'TZS',
       sla_deadline_at: row.slaDeadlineAt.toISOString(),
     };
   },

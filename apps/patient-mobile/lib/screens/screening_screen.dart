@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -85,8 +86,8 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
     } catch (_) {
       if (mounted)
         setState(
-          () => _error =
-              'Jibu halijathibitishwa. Unganisha intaneti na ujaribu tena.',
+          () => _error = L.tr(
+              'Jibu halijathibitishwa. Unganisha intaneti na ujaribu tena.'),
         );
       return;
     }
@@ -95,10 +96,10 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
 
   Future<void> _decline(String id) async {
     final reasons = [
-      'Ni mbali sana kufika',
-      'Sina muda kwa sasa',
-      'Sina uhakika ni kwa nini ninahitajika',
-      'Sitaki kwa sasa',
+      L.tr('Ni mbali sana kufika'),
+      L.tr('Sina muda kwa sasa'),
+      L.tr('Sina uhakika ni kwa nini ninahitajika'),
+      L.tr('Sitaki kwa sasa'),
     ];
     final chosen = await showModalBottomSheet<String>(
       context: context,
@@ -106,13 +107,13 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(16),
               // The reason is what tells the programme whether uptake is
               // limited by distance, cost, fear, or simply not knowing what
               // the test is for. Without it a decline teaches nobody anything.
               child: Text(
-                'Kwa nini huwezi kwenda?',
+                L.tr('Kwa nini huwezi kwenda?'),
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
               ),
             ),
@@ -131,8 +132,9 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     return Scaffold(
-      appBar: AppBar(title: const Text(S.screening)),
+      appBar: AppBar(title: Text(S.screening)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -144,9 +146,9 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
                     Notice(_error!),
                     const SizedBox(height: 16),
                   ],
-                  const SectionTitle('Mialiko ya uchunguzi'),
+                  SectionTitle(L.tr('Mialiko ya uchunguzi')),
                   if (_invitations.isEmpty)
-                    const Empty('Huna mwaliko wa uchunguzi kwa sasa.')
+                    Empty(L.tr('Huna mwaliko wa uchunguzi kwa sasa.'))
                   else
                     ..._invitations.map(
                       (i) => Padding(
@@ -159,23 +161,25 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
                               Text(
                                 _programmes[i['programme_id']]?['name']
                                         as String? ??
-                                    'Uchunguzi',
+                                    L.tr('Uchunguzi'),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               Text(
-                                'Hali: ${i['status']}',
+                                L.tr("Hali: {0}", [i['status']]),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              Text('Ulipokea: ${_date(i['invited_at'])}'),
+                              Text(L.tr(
+                                  "Ulipokea: {0}", [_date(i['invited_at'])])),
                               if (i['responded_at'] != null)
-                                Text('Ulijibu: ${_date(i['responded_at'])}'),
+                                Text(L.tr("Ulijibu: {0}",
+                                    [_date(i['responded_at'])])),
                               if (i['status'] == 'pending') ...[
                                 const SizedBox(height: 12),
                                 Wrap(
@@ -185,17 +189,17 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
                                     FilledButton(
                                       onPressed: () =>
                                           _respond(i['id'] as String, 'accept'),
-                                      child: const Text('Nitakwenda'),
+                                      child: Text(L.tr('Nitakwenda')),
                                     ),
                                     OutlinedButton(
                                       onPressed: () =>
                                           _respond(i['id'] as String, 'defer'),
-                                      child: const Text('Baadaye'),
+                                      child: Text(L.tr('Baadaye')),
                                     ),
                                     OutlinedButton(
                                       onPressed: () =>
                                           _decline(i['id'] as String),
-                                      child: const Text('Siwezi'),
+                                      child: Text(L.tr('Siwezi')),
                                     ),
                                   ],
                                 ),
@@ -206,10 +210,10 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
                       ),
                     ),
                   const SizedBox(height: 28),
-                  const SectionTitle('Alama za kinga zilizohesabiwa na huduma'),
-                  const Text('Alama hizi si utambuzi wa ugonjwa.'),
+                  SectionTitle(L.tr('Alama za kinga zilizohesabiwa na huduma')),
+                  Text(L.tr('Alama hizi si utambuzi wa ugonjwa.')),
                   if (_scores.isEmpty)
-                    const Empty('Bado hakuna alama za hatari zilizohesabiwa.')
+                    Empty(L.tr('Bado hakuna alama za hatari zilizohesabiwa.'))
                   else
                     ..._scores.map(_scoreCard),
                 ],
@@ -220,7 +224,7 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
 
   String _date(Object? raw) {
     final date = DateTime.tryParse(raw as String? ?? '');
-    if (date == null) return 'tarehe haijatajwa';
+    if (date == null) return L.tr('tarehe haijatajwa');
     final local = date.toLocal();
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
   }
@@ -239,13 +243,14 @@ class _ScreeningScreenState extends State<ScreeningScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Alama ya huduma: ${s['score']}  |  Kiwango: $band',
+              L.tr("Alama ya huduma: {0}  |  Kiwango: {1}", [s['score'], band]),
               style: const TextStyle(color: AppColors.inkSoft, fontSize: 15),
             ),
             if (s['model_version'] != null)
-              Text('Toleo la modeli: ${s['model_version']}'),
+              Text(L.tr("Toleo la modeli: {0}", [s['model_version']])),
             if (s['computed_at'] != null)
-              Text('Imekokotolewa na huduma: ${_date(s['computed_at'])}'),
+              Text(L.tr(
+                  "Imekokotolewa na huduma: {0}", [_date(s['computed_at'])])),
           ],
         ),
       ),

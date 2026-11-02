@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 const healthHistoryCategories = <String, String>{
   'all': 'Zote',
   'consultation': 'Mashauriano',
@@ -13,7 +15,7 @@ const healthHistoryCategories = <String, String>{
 
 List<Map<String, dynamic>> parseHealthHistoryResponse(dynamic response) {
   if (response is! Map || response['data'] is! List) {
-    throw const FormatException('Jibu la historia halijatambulika.');
+    throw FormatException(L.tr('Jibu la historia halijatambulika.'));
   }
   final rows = <Map<String, dynamic>>[];
   for (final raw in response['data'] as List) {

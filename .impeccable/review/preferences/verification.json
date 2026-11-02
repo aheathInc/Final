@@ -1,0 +1,11 @@
+{
+  "feature": "sw/en/fr and light/dark/system preferences",
+  "installed_build": 2011,
+  "physical_device": "Pixel 4 install-r succeeded and version confirmed before disconnect",
+  "mobile_regression": {"passed": 189, "skipped": 8},
+  "focused_tests": {"passed": 14},
+  "native_capture": "normal APK on Pixel 10 Pro XL Android 37 emulator; direct adb screencap; font_scale 1.3 capture restored to 1.0",
+  "finish_review": "ship after listed documentation fix scored resolved",
+  "documentation": ".impeccable/review/preferences/documentation.md",
+  "scope": "language and appearance only; later medication feature reviewed separately"
+}

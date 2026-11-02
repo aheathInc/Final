@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import 'payment_bills_screen.dart';
 
@@ -58,8 +59,9 @@ class _InsurancePaymentsScreenState extends State<InsurancePaymentsScreen> {
       _coverage = coverage is Map<String, dynamic> ? coverage : null;
       _claims = claims is List<Map<String, dynamic>> ? claims : [];
       _payments = payments is List<Map<String, dynamic>> ? payments : [];
-      _error =
-          failures.isEmpty ? null : 'Baadhi ya taarifa hazikuweza kusomwa.';
+      _error = failures.isEmpty
+          ? null
+          : L.tr('Baadhi ya taarifa hazikuweza kusomwa.');
       _loading = false;
     });
   }
@@ -72,63 +74,75 @@ class _InsurancePaymentsScreenState extends State<InsurancePaymentsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Bima na malipo')),
-        body: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Notice(
-                'Taarifa hizi zinasomwa kutoka rekodi za huduma. Hali ya payment record haithibitishi yenyewe kuwa pesa zimehamishwa au insurer amelipa.',
-                tone: NoticeTone.attention,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Notice(_error!)
-              ],
-              const SizedBox(height: 20),
-              FilledButton.icon(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PaymentBillsScreen())), icon: const Icon(Icons.receipt_long_outlined), label: const Text('Fungua bili na lipia huduma')),
-              const SizedBox(height: 16),
-              const SectionTitle('Bima yangu'),
-              if (_loading && _coverage == null)
-                const Center(child: CircularProgressIndicator())
-              else if (_coverage == null)
-                const Empty('Taarifa za bima hazipatikani sasa.')
-              else if ((_coverage!['schemes'] as List).isEmpty)
-                const Empty('Hakuna bima iliyohusishwa na wasifu huu.')
-              else
-                ...((_coverage!['schemes'] as List)
-                    .cast<Map<String, dynamic>>()
-                    .map(_coverageCard)),
-              const SizedBox(height: 20),
-              const SectionTitle('Madai ya bima'),
-              if (_loading && _claims.isEmpty)
-                const Center(child: CircularProgressIndicator())
-              else if (_claims.isEmpty)
-                const Empty('Hakuna dai lililorudishwa kwa wasifu huu.'),
-              ..._claims.map(_claimCard),
-              const Text(
-                'Kutuma dai kunafanywa na clinician aliyehudumia au Admin; huduma haijaidhinisha mgonjwa kuwasilisha dai.',
-              ),
-              const SizedBox(height: 20),
-              const SectionTitle('Rekodi za malipo'),
-              if (_loading && _payments.isEmpty)
-                const Center(child: CircularProgressIndicator())
-              else if (_payments.isEmpty)
-                const Empty('Hakuna rekodi ya malipo iliyopatikana.'),
-              ..._payments.map(_paymentCard),
-              const SizedBox(height: 8),
-              const Text(
-                'Tumia Bili Zangu kuomba malipo ya bili iliyotolewa na mtoa huduma. Kiasi huamuliwa na staff mwenye ruhusa.',
-              ),
-              const Text(
-                'Mtoa huduma wa maendeleo anaweza kuwa console/mock; status ya processing au succeeded si uthibitisho wa uhamisho wa fedha kwa nje.',
-              ),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Bima na malipo'))),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Notice(
+              L.tr(
+                  'Taarifa hizi zinasomwa kutoka rekodi za huduma. Hali ya payment record haithibitishi yenyewe kuwa pesa zimehamishwa au insurer amelipa.'),
+              tone: NoticeTone.attention,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Notice(_error!)
             ],
-          ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                        builder: (_) => const PaymentBillsScreen())),
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: Text(L.tr('Fungua bili na lipia huduma'))),
+            const SizedBox(height: 16),
+            SectionTitle(L.tr('Bima yangu')),
+            if (_loading && _coverage == null)
+              const Center(child: CircularProgressIndicator())
+            else if (_coverage == null)
+              Empty(L.tr('Taarifa za bima hazipatikani sasa.'))
+            else if ((_coverage!['schemes'] as List).isEmpty)
+              Empty(L.tr('Hakuna bima iliyohusishwa na wasifu huu.'))
+            else
+              ...((_coverage!['schemes'] as List)
+                  .cast<Map<String, dynamic>>()
+                  .map(_coverageCard)),
+            const SizedBox(height: 20),
+            SectionTitle(L.tr('Madai ya bima')),
+            if (_loading && _claims.isEmpty)
+              const Center(child: CircularProgressIndicator())
+            else if (_claims.isEmpty)
+              Empty(L.tr('Hakuna dai lililorudishwa kwa wasifu huu.')),
+            ..._claims.map(_claimCard),
+            Text(
+              L.tr(
+                  'Kutuma dai kunafanywa na clinician aliyehudumia au Admin; huduma haijaidhinisha mgonjwa kuwasilisha dai.'),
+            ),
+            const SizedBox(height: 20),
+            SectionTitle(L.tr('Rekodi za malipo')),
+            if (_loading && _payments.isEmpty)
+              const Center(child: CircularProgressIndicator())
+            else if (_payments.isEmpty)
+              Empty(L.tr('Hakuna rekodi ya malipo iliyopatikana.')),
+            ..._payments.map(_paymentCard),
+            const SizedBox(height: 8),
+            Text(
+              L.tr(
+                  'Tumia Bili Zangu kuomba malipo ya bili iliyotolewa na mtoa huduma. Kiasi huamuliwa na staff mwenye ruhusa.'),
+            ),
+            Text(
+              L.tr(
+                  'Mtoa huduma wa maendeleo anaweza kuwa console/mock; status ya processing au succeeded si uthibitisho wa uhamisho wa fedha kwa nje.'),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   Widget _coverageCard(Map<String, dynamic> scheme) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
@@ -140,15 +154,20 @@ class _InsurancePaymentsScreenState extends State<InsurancePaymentsScreen> {
                 scheme['scheme_name'] as String,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              Text('Hali: ${scheme['status']}'),
+              Text(L.tr("Hali: {0}", [scheme['status']])),
               if (scheme['membership_number'] != null)
-                Text('Namba ya mwanachama: ${scheme['membership_number']}'),
+                Text(L.tr(
+                    "Namba ya mwanachama: {0}", [scheme['membership_number']])),
               Text(
-                'Huduma zilizo kwenye rekodi: ${((scheme['covered_services'] as List?) ?? []).join(', ')}',
+                L.tr("Huduma zilizo kwenye rekodi: {0}",
+                    [((scheme['covered_services'] as List?) ?? []).join(', ')]),
               ),
-              Text('Inatumika hadi: ${scheme['valid_until'] ?? 'haijawekwa'}'),
+              Text(L.tr("Inatumika hadi: {0}",
+                  [scheme['valid_until'] ?? 'haijawekwa'])),
               Text(
-                'Kituo kinachokubali: ${scheme['accepted_at_facility'] ?? 'haijathibitishwa na huduma'}',
+                L.tr("Kituo kinachokubali: {0}", [
+                  scheme['accepted_at_facility'] ?? 'haijathibitishwa na huduma'
+                ]),
               ),
             ],
           ),
@@ -161,14 +180,15 @@ class _InsurancePaymentsScreenState extends State<InsurancePaymentsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Dai ${claim['id']}'),
-              Text('Hali: ${claim['status']}'),
-              Text('Ombi: ${claim['consultation_id']}'),
-              Text('Imetumwa: ${_date(claim['submitted_at'])}'),
+              Text(L.tr("Dai {0}", [claim['id']])),
+              Text(L.tr("Hali: {0}", [claim['status']])),
+              Text(L.tr("Ombi: {0}", [claim['consultation_id']])),
+              Text(L.tr("Imetumwa: {0}", [_date(claim['submitted_at'])])),
               if (claim['decided_at'] != null)
-                Text('Uamuzi: ${_date(claim['decided_at'])}'),
+                Text(L.tr("Uamuzi: {0}", [_date(claim['decided_at'])])),
               if (claim['rejection_reason'] != null)
-                Text('Sababu iliyorudishwa: ${claim['rejection_reason']}'),
+                Text(L.tr(
+                    "Sababu iliyorudishwa: {0}", [claim['rejection_reason']])),
             ],
           ),
         ),
@@ -187,14 +207,15 @@ class _InsurancePaymentsScreenState extends State<InsurancePaymentsScreen> {
                 '${payment['amount']} ${payment['currency']}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              Text('Hali: ${payment['status']}'),
-              Text(
-                  'Njia: ${payment['method']} · Madhumuni: ${payment['purpose']}'),
+              Text(L.tr("Hali: {0}", [payment['status']])),
+              Text(L.tr("Njia: {0} · Madhumuni: {1}",
+                  [payment['method'], payment['purpose']])),
               if (payment['provider'] != null)
-                Text('Provider: ${payment['provider']}'),
+                Text(L.tr("Provider: {0}", [payment['provider']])),
               if (payment['provider_reference'] != null)
-                Text('Rejea ya provider: ${payment['provider_reference']}'),
-              Text('Imerekodiwa: ${_date(payment['settled_at'])}'),
+                Text(L.tr(
+                    "Rejea ya provider: {0}", [payment['provider_reference']])),
+              Text(L.tr("Imerekodiwa: {0}", [_date(payment['settled_at'])])),
             ],
           ),
         ),

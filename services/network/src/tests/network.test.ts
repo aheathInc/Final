@@ -76,6 +76,7 @@ describe('discussions', () => {
   it('creates and reads a discussion with its replies', async () => {
     const clinician = await makeClinician();
     const community = await makeCommunity();
+    await discussions.joinCommunity(community.id, clinician);
 
     const discussion = await discussions.createDiscussion(
       clinician, { community_id: community.id, title: 'Test', body: 'A question about dosing.' }, meta,
@@ -84,7 +85,7 @@ describe('discussions', () => {
 
     await discussions.replyToDiscussion(discussion.id, clinician, 'Try this approach.', meta);
 
-    const fetched = await discussions.getDiscussion(discussion.id);
+    const fetched = await discussions.getDiscussion(discussion.id, clinician);
     assert.equal(fetched.reply_count, 1);
     assert.equal(fetched.replies.length, 1);
   });
@@ -92,6 +93,7 @@ describe('discussions', () => {
   it('requires a care_thread_id for a case discussion', async () => {
     const clinician = await makeClinician();
     const community = await makeCommunity();
+    await discussions.joinCommunity(community.id, clinician);
 
     await assert.rejects(
       () => discussions.createDiscussion(
@@ -103,7 +105,9 @@ describe('discussions', () => {
   it('never exposes patient identity through a case discussion', async () => {
     const clinician = await makeClinician();
     const community = await makeCommunity();
+    await discussions.joinCommunity(community.id, clinician);
     const thread = await makeThread();
+    await prisma.careThread.update({where:{id:thread.id},data:{primaryClinicianId:clinician.cpid}});
 
     const discussion = await discussions.createDiscussion(
       clinician,
@@ -197,4 +201,35 @@ describe('second opinions', () => {
       (e: AppError) => e.code === 'STATE_TRANSITION_INVALID',
     );
   });
+});
+
+it('threads replies within one group discussion and notifies only eligible recipients', async () => {
+ const author=await makeClinician(), responder=await makeClinician(), observer=await makeClinician(), muted=await makeClinician(), outsider=await makeClinician();
+ const group=await makeCommunity();
+ for(const c of [author,responder])await discussions.joinCommunity(group.id,c);
+ await discussions.joinCommunity(group.id,observer,'all');await discussions.joinCommunity(group.id,muted,'muted');
+ const d=await discussions.createDiscussion(author,{community_id:group.id,title:'Clinical discussion',body:'Synthetic question'},meta);discussionIds.push(d.id);
+ assert.equal((await discussions.listNotifications(observer)).unread_count,1);
+ assert.equal((await discussions.listNotifications(responder)).unread_count,0);
+ await assert.rejects(()=>discussions.getDiscussion(d.id,outsider));
+ await assert.rejects(()=>discussions.replyToDiscussion(d.id,outsider,'Denied',meta));
+ const first=await discussions.replyToDiscussion(d.id,responder,'First response',meta);
+ const nested=await discussions.replyToDiscussion(d.id,author,'Response to first',meta,first.id);
+ const root=await discussions.replyToDiscussion(d.id,observer,'Separate group-wide response',meta);
+ const fetched=await discussions.getDiscussion(d.id,author);
+ assert.equal(fetched.replies.find(r=>r.id===nested.id)?.parent_reply_id,first.id);
+ assert.equal(fetched.replies.find(r=>r.id===root.id)?.parent_reply_id,null);
+ assert.equal((await discussions.listNotifications(muted)).unread_count,0);
+ assert.equal((await discussions.listNotifications(outsider)).unread_count,0);
+ const notices=await discussions.listNotifications(author);assert.equal(notices.unread_count,2);
+ await assert.rejects(()=>discussions.markNotificationRead(notices.data[0]!.id,responder));
+ await discussions.markNotificationRead(notices.data[0]!.id,author);
+ assert.equal((await discussions.listNotifications(author)).unread_count,1);
+ const other=await discussions.createDiscussion(author,{community_id:group.id,title:'Separate discussion',body:'Separate'},meta);discussionIds.push(other.id);
+ await assert.rejects(()=>discussions.replyToDiscussion(other.id,author,'Wrong thread',meta,first.id));
+ await assert.rejects(()=>prisma.discussionReply.create({data:{discussionId:other.id,authorClinicianId:author.cpid,body:'Direct wrong parent',parentReplyId:first.id}}));
+ const page=await discussions.listReplies(d.id,author,{limit:1});assert.equal(page.data.length,1);assert.ok(page.meta.next_cursor);
+ const next=await discussions.listReplies(d.id,author,{limit:1,cursor:page.meta.next_cursor!});assert.notEqual(next.data[0]?.id,page.data[0]?.id);
+ await discussions.leaveCommunity(group.id,responder);await assert.rejects(()=>discussions.getDiscussion(d.id,responder));assert.equal((await discussions.listNotifications(responder)).unread_count,0);
+ await prisma.user.update({where:{id:author.sub},data:{status:'suspended'}});await assert.rejects(()=>discussions.listCommunities(author));await assert.rejects(()=>discussions.getDiscussion(d.id,author));
 });

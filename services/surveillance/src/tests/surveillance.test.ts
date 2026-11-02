@@ -129,7 +129,7 @@ describe('rollup worker', () => {
 });
 
 describe('reading', () => {
-  it('ranks conditions by count, most common first', async () => {
+  it('does not expose unpublished raw daily counts', async () => {
     const clinician = await makeClinician();
     await makeNotedConsultation(clinician.id, 'MWZ', 'TEST-MALARIA');
     await makeNotedConsultation(clinician.id, 'MWZ', 'TEST-MALARIA');
@@ -137,8 +137,7 @@ describe('reading', () => {
 
     const result = await surveillance.getConditions(admin, { level: 'region', area_code: 'MWZ' });
     const entry = result.data.find((d) => d.condition_code === 'TEST-MALARIA');
-    assert.ok(entry);
-    assert.equal(entry!.count, 2);
+    assert.equal(entry, undefined);
   });
 
   it('refuses a role with no privilege to view aggregate data', async () => {
@@ -154,8 +153,6 @@ describe('reading', () => {
     await computeRollups();
 
     const result = await surveillance.getTrends(admin, { condition_code: 'TEST-MALARIA', level: 'region', area_code: 'DOD' });
-    assert.ok(result.points.length > 0);
-    assert.equal(result.points[0]!.expected_low, null);
-    assert.equal(result.points[0]!.above_expected, false);
+    assert.equal(result.points.length, 0);
   });
 });

@@ -1,5 +1,7 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'medication_followup_screen.dart';
 
 import '../core/api.dart';
 import '../core/db.dart';
@@ -116,7 +118,7 @@ class _PatientCareMedicinesScreenState
         _clearOwnerData(null);
         _loading = false;
         _offline = true;
-        _error = 'Ingia tena ili kufungua taarifa zako zilizohifadhiwa.';
+        _error = L.tr('Ingia tena ili kufungua taarifa zako zilizohifadhiwa.');
       });
       return;
     }
@@ -177,7 +179,7 @@ class _PatientCareMedicinesScreenState
           fulfillmentErrors[prescriptionId] = e.message;
         } catch (_) {
           fulfillmentErrors[prescriptionId] =
-              'Hali ya utoaji haikupatikana. Jaribu tena.';
+              L.tr('Hali ya utoaji haikupatikana. Jaribu tena.');
         }
       }));
       if (!await _isCurrentLoad(loadGeneration, ownerGeneration, ownerId))
@@ -242,7 +244,7 @@ class _PatientCareMedicinesScreenState
         _lastSyncedAt = lastSyncedAt;
         _offline = true;
         _loading = false;
-        _error = 'Internet haipatikani. Unaona ratiba iliyohifadhiwa tu.';
+        _error = L.tr('Internet haipatikani. Unaona ratiba iliyohifadhiwa tu.');
       });
     }
   }
@@ -253,8 +255,8 @@ class _PatientCareMedicinesScreenState
     if (ownerId == null) return;
     if (_offline || !await Api.online) {
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId)) {
-        setState(() =>
-            _error = 'Reference salama inaweza kuombwa ukiwa mtandaoni tu.');
+        setState(() => _error =
+            L.tr('Reference salama inaweza kuombwa ukiwa mtandaoni tu.'));
       }
       return;
     }
@@ -278,8 +280,8 @@ class _PatientCareMedicinesScreenState
       }
     } catch (_) {
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId)) {
-        setState(() => _error =
-            'Reference haikuundwa. Hakuna taarifa iliyohifadhiwa offline.');
+        setState(() => _error = L.tr(
+            'Reference haikuundwa. Hakuna taarifa iliyohifadhiwa offline.'));
       }
     } finally {
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId)) {
@@ -310,8 +312,8 @@ class _PatientCareMedicinesScreenState
       }
     } catch (_) {
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId)) {
-        setState(() =>
-            _error = 'Reference haikufutwa. Jaribu tena ukiwa mtandaoni.');
+        setState(() => _error =
+            L.tr('Reference haikufutwa. Jaribu tena ukiwa mtandaoni.'));
       }
     } finally {
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId)) {
@@ -373,7 +375,7 @@ class _PatientCareMedicinesScreenState
       }
     } catch (_) {
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId)) {
-        setState(() => _error = 'Jibu la dozi halikuhifadhiwa.');
+        setState(() => _error = L.tr('Jibu la dozi halikuhifadhiwa.'));
       }
     }
   }
@@ -391,7 +393,8 @@ class _PatientCareMedicinesScreenState
         rawRequiredQuantity.isEmpty ? null : int.tryParse(rawRequiredQuantity);
     if (rawRequiredQuantity.isNotEmpty &&
         (requiredQuantity == null || requiredQuantity < 1)) {
-      setState(() => _error = 'Weka kiasi kizima kilicho zaidi ya sifuri.');
+      setState(
+          () => _error = L.tr('Weka kiasi kizima kilicho zaidi ya sifuri.'));
       return;
     }
     if (latitude == null ||
@@ -399,8 +402,8 @@ class _PatientCareMedicinesScreenState
         latitude.abs() > 90 ||
         longitude.abs() > 180) {
       setState(
-        () => _error =
-            'Weka latitudo (-90 hadi 90) na longitudo (-180 hadi 180) ili kutafuta eneo hilo.',
+        () => _error = L.tr(
+            'Weka latitudo (-90 hadi 90) na longitudo (-180 hadi 180) ili kutafuta eneo hilo.'),
       );
       return;
     }
@@ -414,8 +417,8 @@ class _PatientCareMedicinesScreenState
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId)) {
         setState(() {
           _searching = false;
-          _availabilityError =
-              'INTERNET REQUIRED. Upatikanaji wa dawa hauwezi kukaguliwa ukiwa offline.';
+          _availabilityError = L.tr(
+              'INTERNET REQUIRED. Upatikanaji wa dawa hauwezi kukaguliwa ukiwa offline.');
         });
       }
       return;
@@ -438,7 +441,7 @@ class _PatientCareMedicinesScreenState
       if (await _isCurrentOwnerRequest(ownerGeneration, ownerId))
         setState(() {
           _availabilityError =
-              e is ApiException ? e.message : 'Utafutaji haujafaulu.';
+              e is ApiException ? e.message : L.tr('Utafutaji haujafaulu.');
           _searching = false;
         });
     }
@@ -457,162 +460,178 @@ class _PatientCareMedicinesScreenState
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Dawa na maduka ya dawa')),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    if (_offline)
-                      Notice(
-                        _lastSyncedAt == null
-                            ? 'Cached data haipo. Ratiba ya dawa inahitaji intaneti ili kupakiwa.'
-                            : 'Cached data: ratiba ya dozi ilisawazishwa ${_date(_lastSyncedAt!.toIso8601String())}. Maagizo kamili na upatikanaji vinahitaji intaneti.',
-                        tone: NoticeTone.attention,
-                      ),
-                    if (_error != null) Notice(_error!),
-                    const SectionTitle('Maagizo ya daktari'),
-                    if (_prescriptions.isEmpty)
-                      Empty(
-                        _offline
-                            ? 'Maagizo kamili ya dawa yanahitaji intaneti; rekodi tupu iliyohifadhiwa haimaanishi kuwa huna agizo.'
-                            : 'Hakuna agizo la dawa lililopo kwenye rekodi zako.',
-                      ),
-                    MedicationPrescriptionCards(
-                      prescriptions: _prescriptions,
-                      formatDate: _date,
-                      fulfillmentByPrescription: _fulfillment,
-                      fulfillmentErrors: _fulfillmentErrors,
-                      handoffReferences: _handoffReferences,
-                      handoffBusy: _handoffBusy,
-                      canIssueHandoff: !_offline,
-                      onIssueHandoff: _createHandoff,
-                      onRevokeHandoff: _revokeHandoff,
-                      onSearchNearbyMedication: _searchPrescriptionItem,
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Dawa na maduka ya dawa')), actions: [
+        IconButton(
+            tooltip: L.tr('Dawa na ufuatiliaji'),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const MedicationFollowupScreen())),
+            icon: const Icon(Icons.alarm_rounded))
+      ]),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (_offline)
+                    Notice(
+                      _lastSyncedAt == null
+                          ? L.tr(
+                              'Cached data haipo. Ratiba ya dawa inahitaji intaneti ili kupakiwa.')
+                          : L.tr(
+                              "Cached data: ratiba ya dozi ilisawazishwa {0}. Maagizo kamili na upatikanaji vinahitaji intaneti.",
+                              [_date(_lastSyncedAt!.toIso8601String())]),
+                      tone: NoticeTone.attention,
                     ),
-                    const SectionTitle('Ratiba na uthibitisho wa dozi'),
-                    if (_logs.isEmpty)
-                      const Empty('Hakuna dozi zilizopangiwa.'),
-                    ..._logs.map(
-                      (l) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Panel(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${l['medication_name']} ${l['dosage']}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w500),
+                  if (_error != null) Notice(_error!),
+                  SectionTitle(L.tr('Maagizo ya daktari')),
+                  if (_prescriptions.isEmpty)
+                    Empty(
+                      _offline
+                          ? L.tr(
+                              'Maagizo kamili ya dawa yanahitaji intaneti; rekodi tupu iliyohifadhiwa haimaanishi kuwa huna agizo.')
+                          : L.tr(
+                              'Hakuna agizo la dawa lililopo kwenye rekodi zako.'),
+                    ),
+                  MedicationPrescriptionCards(
+                    prescriptions: _prescriptions,
+                    formatDate: _date,
+                    fulfillmentByPrescription: _fulfillment,
+                    fulfillmentErrors: _fulfillmentErrors,
+                    handoffReferences: _handoffReferences,
+                    handoffBusy: _handoffBusy,
+                    canIssueHandoff: !_offline,
+                    onIssueHandoff: _createHandoff,
+                    onRevokeHandoff: _revokeHandoff,
+                    onSearchNearbyMedication: _searchPrescriptionItem,
+                  ),
+                  SectionTitle(L.tr('Ratiba na uthibitisho wa dozi')),
+                  if (_logs.isEmpty) Empty(L.tr('Hakuna dozi zilizopangiwa.')),
+                  ..._logs.map(
+                    (l) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Panel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${l['medication_name']} ${l['dosage']}',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              '${_date(l['scheduled_at'])} • ${l['reported_status']}',
+                            ),
+                            if (l['reported_status'] == 'unreported')
+                              Row(
+                                children: [
+                                  TextButton(
+                                    onPressed: () => _report(l, 'taken'),
+                                    child: Text(L.tr('Nimetumia')),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => _report(l, 'missed'),
+                                    child: Text(L.tr('Sikutumia')),
+                                  ),
+                                ],
                               ),
+                            if (l['sync_status'] == 'queued' ||
+                                l['synced'] == 0 &&
+                                    l['sync_status'] != 'failed')
                               Text(
-                                '${_date(l['scheduled_at'])} • ${l['reported_status']}',
+                                L.tr(
+                                    'Pending sync — jibu halijathibitishwa na seva.'),
+                                style: TextStyle(
+                                    color: AppPalette.of(context).amber),
                               ),
-                              if (l['reported_status'] == 'unreported')
-                                Row(
-                                  children: [
-                                    TextButton(
-                                      onPressed: () => _report(l, 'taken'),
-                                      child: const Text('Nimetumia'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => _report(l, 'missed'),
-                                      child: const Text('Sikutumia'),
-                                    ),
-                                  ],
-                                ),
-                              if (l['sync_status'] == 'queued' ||
-                                  l['synced'] == 0 &&
-                                      l['sync_status'] != 'failed')
-                                Text(
-                                  'Pending sync — jibu halijathibitishwa na seva.',
-                                  style: TextStyle(
-                                      color: AppPalette.of(context).amber),
-                                ),
-                              if (l['sync_status'] == 'failed')
-                                Text(
-                                  'Jibu linahitaji kuangaliwa mtandaoni; halijathibitishwa.',
-                                  style: TextStyle(
-                                      color: AppPalette.of(context).clay),
-                                ),
-                            ],
-                          ),
+                            if (l['sync_status'] == 'failed')
+                              Text(
+                                L.tr(
+                                    'Jibu linahitaji kuangaliwa mtandaoni; halijathibitishwa.'),
+                                style: TextStyle(
+                                    color: AppPalette.of(context).clay),
+                              ),
+                          ],
                         ),
                       ),
                     ),
-                    const SectionTitle('Tafuta upatikanaji wa dawa'),
-                    const Text(
-                      'Taarifa za stock hutolewa na maduka na zinaweza kubadilika; hakuna dawa inayowekwa akiba hapa.',
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _search,
-                            decoration: const InputDecoration(
-                              labelText: 'Jina la dawa',
-                            ),
+                  ),
+                  SectionTitle(L.tr('Tafuta upatikanaji wa dawa')),
+                  Text(
+                    L.tr(
+                        'Taarifa za stock hutolewa na maduka na zinaweza kubadilika; hakuna dawa inayowekwa akiba hapa.'),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _search,
+                          decoration: InputDecoration(
+                            labelText: L.tr('Jina la dawa'),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: _searching ? null : _find,
-                          icon: const Icon(Icons.search),
-                        ),
-                      ],
-                    ),
-                    TextField(
-                      controller: _requiredQuantityInput,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Kiasi kinachohitajika (hiari)',
                       ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: _searching ? null : _find,
+                        icon: const Icon(Icons.search),
+                      ),
+                    ],
+                  ),
+                  TextField(
+                    controller: _requiredQuantityInput,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: L.tr('Kiasi kinachohitajika (hiari)'),
                     ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _latitudeInput,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'Latitudo',
-                            ),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _latitudeInput,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: L.tr('Latitudo'),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _longitudeInput,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'Longitudo',
-                            ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _longitudeInput,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: L.tr('Longitudo'),
                           ),
                         ),
-                      ],
-                    ),
-                    MedicationAvailabilityResults(
-                      rows: _availability,
-                      searched: _availabilitySearched,
-                      error: _availabilityError,
-                      formatDate: _date,
-                    ),
-                    if (_searching)
-                      const Center(child: CircularProgressIndicator()),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                  MedicationAvailabilityResults(
+                    rows: _availability,
+                    searched: _availabilitySearched,
+                    error: _availabilityError,
+                    formatDate: _date,
+                  ),
+                  if (_searching)
+                    const Center(child: CircularProgressIndicator()),
+                ],
               ),
-      );
+            ),
+    );
+  }
 }
 
 class MedicationPrescriptionCards extends StatelessWidget {
@@ -643,138 +662,165 @@ class MedicationPrescriptionCards extends StatelessWidget {
       onSearchNearbyMedication;
 
   @override
-  Widget build(BuildContext context) => Column(
-        children: prescriptions.map((prescription) {
-          final prescriptionId = prescription['id'] as String? ?? '';
-          final fulfilment = fulfillmentByPrescription[prescriptionId];
-          final items =
-              (prescription['items'] as List? ?? []).whereType<Map>().toList();
-          final fulfilmentItems = (fulfilment?['items'] as List? ?? [])
-              .whereType<Map>()
-              .map((row) => Map<String, dynamic>.from(row))
-              .toList();
-          final itemById = {for (final row in fulfilmentItems) row['id']: row};
-          final facility = fulfilment?['facility_pharmacy'] as Map?;
-          final facilityItems =
-              (facility?['items'] as List? ?? []).whereType<Map>().toList();
-          final history = (fulfilment?['dispensing_history'] as List? ?? [])
-              .whereType<Map>()
-              .toList();
-          final reference = handoffReferences[prescriptionId];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Panel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Agizo • ${prescription['status'] ?? ''} • ${formatDate(prescription['created_at'])}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Column(
+      children: prescriptions.map((prescription) {
+        final prescriptionId = prescription['id'] as String? ?? '';
+        final fulfilment = fulfillmentByPrescription[prescriptionId];
+        final items =
+            (prescription['items'] as List? ?? []).whereType<Map>().toList();
+        final fulfilmentItems = (fulfilment?['items'] as List? ?? [])
+            .whereType<Map>()
+            .map((row) => Map<String, dynamic>.from(row))
+            .toList();
+        final itemById = {for (final row in fulfilmentItems) row['id']: row};
+        final facility = fulfilment?['facility_pharmacy'] as Map?;
+        final facilityItems =
+            (facility?['items'] as List? ?? []).whereType<Map>().toList();
+        final history = (fulfilment?['dispensing_history'] as List? ?? [])
+            .whereType<Map>()
+            .toList();
+        final reference = handoffReferences[prescriptionId];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Panel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  L.tr("Agizo • {0} • {1}", [
+                    prescription['status'] ?? '',
+                    formatDate(prescription['created_at'])
+                  ]),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                if (fulfillmentErrors[prescriptionId] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(fulfillmentErrors[prescriptionId]!,
+                        style: TextStyle(color: AppPalette.of(context).clay)),
                   ),
-                  if (fulfillmentErrors[prescriptionId] != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(fulfillmentErrors[prescriptionId]!,
-                          style: TextStyle(color: AppPalette.of(context).clay)),
+                if (fulfilment != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(L.tr("Utoaji: {0}",
+                        [fulfilment['fulfilment_status'] ?? 'unknown'])),
+                  ),
+                if (facility != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            L.tr(
+                                "Duka la kituo: {0}", [facility['name'] ?? '']),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                        ...facilityItems.map((row) => Text(L.tr(
+                                "{0}: {1} • zilizopo {2} • hazijahifadhiwa", [
+                              row['medication_name'] ?? '',
+                              row['availability'] ?? 'unknown',
+                              row['quantity_on_hand'] ?? 'hazijathibitishwa'
+                            ]))),
+                      ],
                     ),
-                  if (fulfilment != null)
-                    Padding(
+                  ),
+                ...items.map(
+                  (item) {
+                    final detail = itemById[item['id']];
+                    final remaining = detail?['quantity_remaining'];
+                    final medicationName = item['medication_name'] as String?;
+                    return Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                          'Utoaji: ${fulfilment['fulfilment_status'] ?? 'unknown'}'),
-                    ),
-                  if (facility != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Duka la kituo: ${facility['name'] ?? ''}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600)),
-                          ...facilityItems.map((row) => Text(
-                              '${row['medication_name'] ?? ''}: ${row['availability'] ?? 'unknown'} • zilizopo ${row['quantity_on_hand'] ?? 'hazijathibitishwa'} • hazijahifadhiwa')),
+                          Text(
+                            L.tr("{0} • {1}\n{2} mara kwa siku kwa siku {3}{4}", [
+                                  item['medication_name'] ?? '',
+                                  item['dosage'] ?? '',
+                                  item['frequency_per_day'] ?? '?',
+                                  item['duration_days'] ?? '?',
+                                  item['instructions'] == null
+                                      ? ''
+                                      : '\n${item['instructions']}'
+                                ]) +
+                                '${detail == null ? '' : L.tr("\nKiasi: {0} • kimetolewa: {1} • kimebaki: {2}", [
+                                        detail['quantity_prescribed'] ??
+                                            'hakijaainishwa',
+                                        detail['quantity_dispensed'] ?? 0,
+                                        detail['quantity_remaining'] ??
+                                            'haijathibitishwa'
+                                      ])}',
+                          ),
+                          if (remaining is int &&
+                              remaining > 0 &&
+                              medicationName != null &&
+                              onSearchNearbyMedication != null)
+                            TextButton.icon(
+                              onPressed: () => onSearchNearbyMedication!(
+                                  medicationName, remaining),
+                              icon: const Icon(Icons.search),
+                              label: Text(L
+                                  .tr('Tafuta pharmacy kwa kiasi kilichobaki')),
+                            ),
                         ],
                       ),
-                    ),
-                  ...items.map(
-                    (item) {
-                      final detail = itemById[item['id']];
-                      final remaining = detail?['quantity_remaining'];
-                      final medicationName = item['medication_name'] as String?;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${item['medication_name'] ?? ''} • ${item['dosage'] ?? ''}\n${item['frequency_per_day'] ?? '?'} mara kwa siku kwa siku ${item['duration_days'] ?? '?'}${item['instructions'] == null ? '' : '\n${item['instructions']}'}'
-                              '${detail == null ? '' : '\nKiasi: ${detail['quantity_prescribed'] ?? 'hakijaainishwa'} • kimetolewa: ${detail['quantity_dispensed'] ?? 0} • kimebaki: ${detail['quantity_remaining'] ?? 'haijathibitishwa'}'}',
-                            ),
-                            if (remaining is int &&
-                                remaining > 0 &&
-                                medicationName != null &&
-                                onSearchNearbyMedication != null)
-                              TextButton.icon(
-                                onPressed: () => onSearchNearbyMedication!(
-                                    medicationName, remaining),
-                                icon: const Icon(Icons.search),
-                                label: const Text(
-                                    'Tafuta pharmacy kwa kiasi kilichobaki'),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  if (history.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    const Text('Historia ya utoaji',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
-                    ...history.map((event) {
-                      final pharmacy = event['pharmacy'] as Map? ?? {};
-                      final eventItems =
-                          (event['items'] as List? ?? []).whereType<Map>();
-                      return Text(
-                          '${pharmacy['name'] ?? 'Pharmacy'} • ${formatDate(event['dispensed_at'])}: ${eventItems.map((row) => '${row['medication_name']} × ${row['quantity_dispensed']}').join(', ')}');
-                    }),
-                  ],
-                  if (reference != null) ...[
-                    const SizedBox(height: 12),
-                    const Text(
-                        'Reference ya mkononi — ionyeshe mfamasia aliyeidhinishwa pekee. Haitoi ruhusa bila akaunti na uanachama wa pharmacy.',
-                        style: TextStyle(fontSize: 12)),
-                    SelectableText(reference,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, letterSpacing: 1.1)),
-                    TextButton(
-                        onPressed: handoffBusy.contains(prescriptionId)
-                            ? null
-                            : () => onRevokeHandoff?.call(prescriptionId),
-                        child: const Text('Batili reference')),
-                  ] else if (canIssueHandoff &&
-                      prescription['status'] == 'active' &&
-                      prescription['valid_until'] != null &&
-                      onIssueHandoff != null) ...[
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
+                    );
+                  },
+                ),
+                if (history.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(L.tr('Historia ya utoaji'),
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  ...history.map((event) {
+                    final pharmacy = event['pharmacy'] as Map? ?? {};
+                    final eventItems =
+                        (event['items'] as List? ?? []).whereType<Map>();
+                    return Text(
+                        '${pharmacy['name'] ?? L.tr('Pharmacy')} • ${formatDate(event['dispensed_at'])}: ${eventItems.map((row) => '${row['medication_name']} × ${row['quantity_dispensed']}').join(', ')}');
+                  }),
+                ],
+                if (reference != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                      L.tr(
+                          'Reference ya mkononi — ionyeshe mfamasia aliyeidhinishwa pekee. Haitoi ruhusa bila akaunti na uanachama wa pharmacy.'),
+                      style: TextStyle(fontSize: 12)),
+                  SelectableText(reference,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, letterSpacing: 1.1)),
+                  TextButton(
                       onPressed: handoffBusy.contains(prescriptionId)
                           ? null
-                          : () => onIssueHandoff?.call(prescriptionId),
-                      icon: handoffBusy.contains(prescriptionId)
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.qr_code_2),
-                      label: const Text('Pata reference salama ya pharmacy'),
-                    ),
-                  ],
+                          : () => onRevokeHandoff?.call(prescriptionId),
+                      child: Text(L.tr('Batili reference'))),
+                ] else if (canIssueHandoff &&
+                    prescription['status'] == 'active' &&
+                    prescription['valid_until'] != null &&
+                    onIssueHandoff != null) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: handoffBusy.contains(prescriptionId)
+                        ? null
+                        : () => onIssueHandoff?.call(prescriptionId),
+                    icon: handoffBusy.contains(prescriptionId)
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.qr_code_2),
+                    label: Text(L.tr('Pata reference salama ya pharmacy')),
+                  ),
                 ],
-              ),
+              ],
             ),
-          );
-        }).toList(),
-      );
+          ),
+        );
+      }).toList(),
+    );
+  }
 }
 
 class MedicationAvailabilityResults extends StatelessWidget {
@@ -793,11 +839,12 @@ class MedicationAvailabilityResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     if (error != null) return Notice(error!);
     if (!searched) return const SizedBox.shrink();
     if (rows.isEmpty) {
-      return const Empty(
-        'Hakuna taarifa ya upatikanaji wa dawa hii kwa eneo hilo.',
+      return Empty(
+        L.tr('Hakuna taarifa ya upatikanaji wa dawa hii kwa eneo hilo.'),
       );
     }
     return Column(
@@ -812,10 +859,11 @@ class MedicationAvailabilityResults extends StatelessWidget {
             '${r['medication_name'] ?? ''} • ${r['fulfillment_status'] ?? 'unknown'}',
           ),
           subtitle: Text(
-            '${pharmacy['name'] ?? 'Duka la dawa'}'
-            '${distance == null ? '' : ' • $distance km'}'
-            ' • zilizopo ${r['quantity_on_hand'] ?? 'hazijathibitishwa'} • hazijahifadhiwa'
-            ' • taarifa ${formatDate(r['last_reported_at'])}',
+            '${pharmacy['name'] ?? L.tr('Duka la dawa')}'
+                    '${distance == null ? '' : ' • $distance km'}' +
+                L.tr(" • zilizopo {0} • hazijahifadhiwa",
+                    [r['quantity_on_hand'] ?? 'hazijathibitishwa']) +
+                L.tr(" • taarifa {0}", [formatDate(r['last_reported_at'])]),
           ),
         );
       }).toList(),

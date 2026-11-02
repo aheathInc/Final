@@ -93,6 +93,7 @@ class Config {
     '/facilities': 4025,
     '/referrals': 4017,
     '/interop': 4017,
+    '/patient-platform': 4017,
   };
 
   /// Longest prefix wins: `/care-threads/x/messages` belongs to messaging even
@@ -125,7 +126,9 @@ class Config {
       return 'http://$_devHost:4002';
     }
 
-    if (path.startsWith('/care-threads/') && path.endsWith('/messages')) {
+    if (path.startsWith('/care-threads/') &&
+        (path.endsWith('/messages') ||
+            path.endsWith('/communication-consent'))) {
       return 'http://$_devHost:4006';
     }
     if (path.startsWith('/patient-profiles/')) {

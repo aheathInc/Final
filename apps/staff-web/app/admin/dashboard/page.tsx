@@ -6,8 +6,8 @@ import { MetricBars } from '@/components/premium/MetricBars';
 import { Icon } from '@/components/premium/Icon';
 import { serverGet } from '@/lib/serverToken';
 import type { ClinicianDirectoryEntry, Device, EmergencyRequest, Facility, IncidentReport, Page, Payment } from '@/lib/api';
-import { AdminPopulationPanel } from '@/components/admin/AdminPopulationPanel';
-import type { AdminAnalyticsReport } from '@/components/admin/types';
+import { RegionalInsights } from '@/components/admin/RegionalInsights';
+import { requireRole } from '@/lib/roles';
 
 function Stat({ label, value, href }: { label: string; value: number | string; href: string }) {
   return (
@@ -19,14 +19,14 @@ function Stat({ label, value, href }: { label: string; value: number | string; h
 }
 
 export default async function AdminDashboard() {
-  const [emergencies, verifications, payments, devices, facilities, incidents, population, session] = await Promise.all([
+  await requireRole(['platform_admin']);
+  const [emergencies, verifications, payments, devices, facilities, incidents, session] = await Promise.all([
     serverGet<Page<EmergencyRequest>>('/emergency-requests?limit=20'),
     serverGet<Page<ClinicianDirectoryEntry>>('/clinicians?verification_status=pending&limit=20'),
     serverGet<Page<Payment>>('/payments?limit=20'),
     serverGet<{ data: Device[] }>('/devices'),
     serverGet<Page<Facility>>('/facilities?limit=20'),
     serverGet<Page<IncidentReport>>('/incident-reports?limit=20'),
-    serverGet<AdminAnalyticsReport>('/surveillance/admin-analytics?days=90'),
     getServerSession(authOptions),
   ]);
 
@@ -37,7 +37,9 @@ export default async function AdminDashboard() {
 
   return (
     <PageShell>
-      <PageHeader title="Service overview" lede="A clear view of operations, outstanding work and the services supporting your care teams." />
+      <PageHeader title="Health & Regional Insights" lede="Explore diseases, reported cases and monthly trends in each recorded region and district." />
+
+      <RegionalInsights />
 
       <section className="ahp-stat-grid">
         <Stat label="Open emergencies" value={emergencies ? openEmergencies : 'Unavailable'} href="/admin/emergency" />
@@ -45,10 +47,6 @@ export default async function AdminDashboard() {
         <Stat label="Active devices" value={devices ? activeDevices : 'Unavailable'} href="/admin/devices" />
         <Stat label="Open incidents" value={incidents ? openIncidents : 'Unavailable'} href="/admin/incidents" />
       </section>
-
-      {session?.user?.role === 'platform_admin' && (population
-        ? <AdminPopulationPanel data={population} />
-        : <Card><p className="ahp-caption">Population analytics are temporarily unavailable. No values are inferred.</p></Card>)}
 
       <section className="ahp-bento">
         <Card><div className="ahp-section-heading"><h2>Care operations</h2><span className="ahp-caption">Choose your next action</span></div>

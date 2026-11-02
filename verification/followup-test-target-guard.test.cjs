@@ -99,6 +99,13 @@ test('matching local ahealth_test identity passes the guard (not DB acceptance)'
   assert.equal(run.error, null); assert.equal(run.beforeHooks.length, 1);
   await run.beforeHooks[0](); assert.equal(run.queryCount(), 1);
 });
+test('matching local ahealth_test owned suite schema passes the guard', async () => {
+  const schema = 'ahp_test_front_desk_acceptance';
+  const env = { ...goodEnv, DATABASE_URL: goodEnv.DATABASE_URL.replace('schema=public', `schema=${schema}`) };
+  const identity = { ...goodIdentity, schema_name: schema };
+  const run = bootstrap(env, identity);
+  assert.equal(run.error, null); await run.beforeHooks[0](); assert.equal(run.queryCount(), 1);
+});
 test('IPv6 loopback is accepted only with matching database and explicit test port', async () => {
   const run = bootstrap({ ...goodEnv, DATABASE_URL: 'postgresql://synthetic:fixture@[::1]:55439/ahealth_test?schema=public' }, { ...goodIdentity, server_address: '::1' });
   assert.equal(run.error, null); await run.beforeHooks[0]();

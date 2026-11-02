@@ -121,11 +121,14 @@ class PatientAiRepository implements PatientAiClient {
 
   @override
   Future<String> openConversation({required String idempotencyKey}) async {
-    final response = await _post('/ai/conversations', {
-      'audience': 'patient',
-      'language': 'sw',
-      'channel': 'app',
-    }, idempotencyKey: idempotencyKey);
+    final response = await _post(
+        '/ai/conversations',
+        {
+          'audience': 'patient',
+          'language': 'sw',
+          'channel': 'app',
+        },
+        idempotencyKey: idempotencyKey);
     if (response is! Map || response['id'] is! String) {
       throw const FormatException('AI conversation response is invalid');
     }
@@ -146,13 +149,16 @@ class PatientAiRepository implements PatientAiClient {
     if (!_isUuid(conversationId) || message.isEmpty || message.length > 4000) {
       throw const FormatException('AI message is invalid');
     }
-    final response = await _post('/ai/conversations/$conversationId/messages', {
-      'body': message,
-    }, idempotencyKey: idempotencyKey);
+    final response = await _post(
+        '/ai/conversations/$conversationId/messages',
+        {
+          'body': message,
+        },
+        idempotencyKey: idempotencyKey);
     return PatientAiReply.fromJson(response);
   }
 
   static bool _isUuid(String value) => RegExp(
-    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
-  ).hasMatch(value);
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+      ).hasMatch(value);
 }

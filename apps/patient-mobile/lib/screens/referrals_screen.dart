@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -17,7 +18,7 @@ class ReferralsScreen extends StatefulWidget {
       throw ApiException(
         502,
         'INVALID_RESPONSE',
-        'Rufaa hazikuweza kusomwa. Jaribu tena.',
+        L.tr('Rufaa hazikuweza kusomwa. Jaribu tena.'),
       );
     }
     return rows
@@ -65,29 +66,29 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
       setState(() {
         _error = error is ApiException
             ? error.message
-            : 'Rufaa hazikuweza kusomwa. Jaribu tena.';
+            : L.tr('Rufaa hazikuweza kusomwa. Jaribu tena.');
         _loading = false;
       });
     }
   }
 
   String _status(String value) => switch (value) {
-        'submitted' => 'Imetumwa — kituo bado hakijathibitisha kupokea',
-        'received' => 'Imepokelewa — uamuzi wa clinician unasubiri',
-        'accepted' => 'Imekubaliwa — huduma bado haijaanza',
-        'in_care' => 'Huduma imeanza',
-        'completed' => 'Rufaa imekamilika',
-        'declined' => 'Rufaa imekataliwa',
-        'cancelled' => 'Rufaa imeghairiwa',
-        'expired' => 'Rufaa imeisha muda',
-        _ => 'Rufaa inaandaliwa',
+        'submitted' => L.tr('Imetumwa — kituo bado hakijathibitisha kupokea'),
+        'received' => L.tr('Imepokelewa — uamuzi wa clinician unasubiri'),
+        'accepted' => L.tr('Imekubaliwa — huduma bado haijaanza'),
+        'in_care' => L.tr('Huduma imeanza'),
+        'completed' => L.tr('Rufaa imekamilika'),
+        'declined' => L.tr('Rufaa imekataliwa'),
+        'cancelled' => L.tr('Rufaa imeghairiwa'),
+        'expired' => L.tr('Rufaa imeisha muda'),
+        _ => L.tr('Rufaa inaandaliwa'),
       };
 
   String _outcome(String value) => switch (value) {
-        'care_provided' => 'Huduma imetolewa',
-        'redirected' => 'Ameelekezwa kwenye huduma nyingine',
-        'unable_to_complete' => 'Huduma haikuweza kukamilika',
-        _ => 'Matokeo yamehifadhiwa',
+        'care_provided' => L.tr('Huduma imetolewa'),
+        'redirected' => L.tr('Ameelekezwa kwenye huduma nyingine'),
+        'unable_to_complete' => L.tr('Huduma haikuweza kukamilika'),
+        _ => L.tr('Matokeo yamehifadhiwa'),
       };
 
   String _date(dynamic value) {
@@ -99,15 +100,16 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Rufaa Zangu')),
+      appBar: AppBar(title: Text(L.tr('Rufaa Zangu'))),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Notice(
-                'Kutumwa kwa rufaa hakumaanishi imekubaliwa. Hali ya kituo na hatua ya huduma huonyeshwa tofauti.'),
+            Notice(L.tr(
+                'Kutumwa kwa rufaa hakumaanishi imekubaliwa. Hali ya kituo na hatua ya huduma huonyeshwa tofauti.')),
             const SizedBox(height: 12),
             if (_loading)
               const Padding(
@@ -122,12 +124,12 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
                 child: TextButton.icon(
                   onPressed: _load,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Jaribu tena'),
+                  label: Text(L.tr('Jaribu tena')),
                 ),
               ),
             ] else if (_referrals.isEmpty)
-              const Empty(
-                  'Bado hakuna rufaa. Rufaa itakayoanzishwa na clinician wako itaonekana hapa.')
+              Empty(L.tr(
+                  'Bado hakuna rufaa. Rufaa itakayoanzishwa na clinician wako itaonekana hapa.'))
             else
               ..._referrals.map(_referralCard),
           ],
@@ -164,32 +166,36 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         leading: Icon(Icons.alt_route, color: tone),
-        title:
-            Text(destinationFacility['name'] as String? ?? 'Kituo cha rufaa'),
+        title: Text(
+            destinationFacility['name'] as String? ?? L.tr('Kituo cha rufaa')),
         subtitle: Text(_status(status), style: TextStyle(color: tone)),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
-          _detail(
-              'Kituo kilichotuma', sourceFacility['name'] as String? ?? '—'),
-          _detail('Kituo kinachopokea',
+          _detail(L.tr('Kituo kilichotuma'),
+              sourceFacility['name'] as String? ?? '—'),
+          _detail(L.tr('Kituo kinachopokea'),
               destinationFacility['name'] as String? ?? '—'),
-          _detail('Sababu ya rufaa', referral['purpose'] as String? ?? '—'),
-          _detail('Tarehe ya kutuma', _date(referral['submitted_at'])),
-          _detail('Tarehe ya kupokea', _date(referral['received_at'])),
-          _detail('Tarehe ya kukubali', _date(referral['accepted_at'])),
-          _detail('Huduma ilianza', _date(referral['care_started_at'])),
-          _detail('Tarehe ya kukamilika', _date(referral['completed_at'])),
+          _detail(
+              L.tr('Sababu ya rufaa'), referral['purpose'] as String? ?? '—'),
+          _detail(L.tr('Tarehe ya kutuma'), _date(referral['submitted_at'])),
+          _detail(L.tr('Tarehe ya kupokea'), _date(referral['received_at'])),
+          _detail(L.tr('Tarehe ya kukubali'), _date(referral['accepted_at'])),
+          _detail(L.tr('Huduma ilianza'), _date(referral['care_started_at'])),
+          _detail(
+              L.tr('Tarehe ya kukamilika'), _date(referral['completed_at'])),
           if (referral['decline_reason'] is String)
-            _detail(
-                'Maelezo ya kukataliwa', referral['decline_reason'] as String),
+            _detail(L.tr('Maelezo ya kukataliwa'),
+                referral['decline_reason'] as String),
           if (outcome != null) ...[
             const Divider(),
-            _detail('Matokeo', _outcome(outcome['status'] as String? ?? '')),
+            _detail(
+                L.tr('Matokeo'), _outcome(outcome['status'] as String? ?? '')),
             if (outcome['follow_up_recommendation'] is String)
-              _detail(
-                  'Ufuatiliaji', outcome['follow_up_recommendation'] as String),
+              _detail(L.tr('Ufuatiliaji'),
+                  outcome['follow_up_recommendation'] as String),
             if (outcome['patient_instructions'] is String)
-              _detail('Maelekezo', outcome['patient_instructions'] as String),
+              _detail(
+                  L.tr('Maelekezo'), outcome['patient_instructions'] as String),
           ],
         ],
       ),
@@ -203,7 +209,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
           children: [
             SizedBox(
                 width: 140,
-                child: Text(label,
+                child: Text(L.tr(label),
                     style: const TextStyle(color: AppColors.inkSoft))),
             Expanded(child: Text(value)),
           ],

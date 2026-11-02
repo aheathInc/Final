@@ -12,8 +12,13 @@ const idempotency = createIdempotency(env.IDEMPOTENCY_TTL_HOURS);
 
 export const diagnosticsRouter = Router();
 
+diagnosticsRouter.get('/laboratory/facilities', requireAuth, c.labFacilities);
+diagnosticsRouter.get('/laboratory/memberships', requireAuth, c.labMemberships);
+diagnosticsRouter.post('/laboratory/memberships', requireAuth, c.labAssign);
+
 diagnosticsRouter.post('/investigation-orders', requireAuth, idempotency, c.create);
 diagnosticsRouter.get('/investigation-orders', requireAuth, c.list);
 diagnosticsRouter.get('/investigation-orders/:order_id', requireAuth, c.getOne);
-diagnosticsRouter.post('/investigation-orders/:order_id/results', requireAuth, idempotency, c.fileResult);
+diagnosticsRouter.post('/investigation-orders/:order_id/results', requireAuth, c.checkLabOrderAccess, idempotency, c.fileResult);
+diagnosticsRouter.post('/investigation-orders/:order_id/collect', requireAuth, c.checkLabOrderAccess, idempotency, c.collect);
 diagnosticsRouter.post('/investigation-orders/:order_id/acknowledge', requireAuth, c.acknowledge);

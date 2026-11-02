@@ -11,8 +11,11 @@ behavior.
 ## Platform
 
 Native Flutter mobile UI with adaptive phone and wide-screen layouts. Appearance
-follows the Android system light/dark setting by default. Keep theme selection
-available to the platform rather than hard-coding light mode.
+offers patient-selectable System, Light and Dark modes. System is the default
+and follows Android appearance; explicit Light/Dark choices use the existing
+palettes. Kiswahili (default), English and French are selectable interface
+languages. Both preferences persist on the device and work offline, updating
+the interface without resetting navigation or drafts.
 
 ## Color
 
@@ -53,7 +56,8 @@ existing attention and problem meanings.
 - The home page uses a large facility-search feature, then a two-action Bento
   group and visit/service content. Cards and rows navigate to existing screens.
 - Use a Material navigation bar below 840 dp and a navigation rail at or above
-  840 dp. Keep all five destinations: Nyumbani, Huduma, Rekodi, Ujumbe, Wasifu.
+  840 dp. Keep all five destinations (Kiswahili labels: Nyumbani, Huduma, Rekodi,
+  Ujumbe, Wasifu), localized to the selected interface language.
 - Constrain wide content to a readable column; allow narrow layouts to scroll.
 - Preserve system insets, keyboard behavior, back navigation and dynamic text
   scaling.
@@ -63,8 +67,12 @@ existing attention and problem meanings.
 Use the Flutter Material type scale and the platform system face. The app's
 existing body sizes (17 dp large, 16 dp medium, 14 dp small) remain the base;
 the V2 theme adds a 28 dp headline and a 16 dp small title. Let text scale with
-the user's accessibility settings. Keep labels concise and in the app's
-Swahili-first voice. Do not use gradient text, emoji as icons or tiny body copy.
+the user's accessibility settings. Keep labels concise in the selected
+Kiswahili, English or French interface; allow translated labels to wrap naturally.
+Keep language choices recognizable as Kiswahili, English and Français. Use the
+selected locale for Material controls and dates. Do not translate clinical or
+user-authored content as interface copy. Do not use gradient text, emoji as
+icons or tiny body copy.
 
 ## Motion
 

@@ -32,3 +32,8 @@ export const completeReferralSchema = z.object({
 
 export type CreateReferralInput = z.infer<typeof createReferralSchema>;
 export type CompleteReferralInput = z.infer<typeof completeReferralSchema>;
+
+export const referralMessageSchema = z.object({
+  body: z.string().trim().min(1).max(4000),
+  client_message_id: z.string().uuid(),
+}).strict();

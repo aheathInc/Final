@@ -11,7 +11,7 @@ function fixture() {
     patientProfile: { count: result(11), groupBy: result([]) },
     facility: { count: result(2) }, consultationRequest: { count: result(13) },
     consultationNote: { count: result(3) },
-    $queryRaw: async () => { calls++; return [[], [], [
+    $queryRaw: async () => { calls++; return [[], [
       { label: '2026-09', count: 3n }, { label: '2026-10', count: 10n },
     ]][query++]; },
   };

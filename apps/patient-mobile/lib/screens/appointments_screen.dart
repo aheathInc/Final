@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -43,8 +44,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     } catch (e) {
       if (mounted)
         setState(() {
-          _error =
-              e is ApiException ? e.message : 'Imeshindikana kupakia miadi.';
+          _error = e is ApiException
+              ? e.message
+              : L.tr('Imeshindikana kupakia miadi.');
           _loading = false;
         });
     }
@@ -65,7 +67,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       if (mounted)
         setState(() {
           _busy = false;
-          _error = e is ApiException ? e.message : 'Nafasi hazikupatikana.';
+          _error =
+              e is ApiException ? e.message : L.tr('Nafasi hazikupatikana.');
         });
       return;
     }
@@ -73,8 +76,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     if (slots.isEmpty) {
       setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hakuna nafasi zinazopatikana kwa siku 30 zijazo.'),
+        SnackBar(
+          content:
+              Text(L.tr('Hakuna nafasi zinazopatikana kwa siku 30 zijazo.')),
         ),
       );
       return;
@@ -86,9 +90,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         child: ListView(
           shrinkWrap: true,
           children: [
-            const ListTile(
-              title: Text('Chagua muda'),
-              subtitle: Text('Nafasi hizi zimetolewa na daktari.'),
+            ListTile(
+              title: Text(L.tr('Chagua muda')),
+              subtitle: Text(L.tr('Nafasi hizi zimetolewa na daktari.')),
             ),
             ...slots.map(
               (s) => ListTile(
@@ -96,7 +100,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     Icon(Icons.schedule, color: AppPalette.of(context).petrol),
                 title: Text(_date(s['starts_at'] as String?)),
                 subtitle: Text(
-                  '${s['duration_minutes'] ?? ''} min • ${s['modality'] ?? ''}',
+                  L.tr("{0} min • {1}",
+                      [s['duration_minutes'] ?? '', s['modality'] ?? '']),
                 ),
                 onTap: () => Navigator.pop(context, s),
               ),
@@ -117,20 +122,20 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       await _load();
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Miadi imehifadhiwa na seva.')),
+          SnackBar(content: Text(L.tr('Miadi imehifadhiwa na seva.'))),
         );
     } on ApiException catch (e) {
       if (mounted)
         setState(
           () => _error = e.code == 'SLOT_UNAVAILABLE'
-              ? 'Nafasi hiyo imechukuliwa. Chagua nafasi nyingine.'
+              ? L.tr('Nafasi hiyo imechukuliwa. Chagua nafasi nyingine.')
               : e.message,
         );
     } catch (e) {
       if (mounted)
         setState(
-          () =>
-              _error = 'Miadi haikuhifadhiwa. Hakuna ombi lililowekwa foleni.',
+          () => _error =
+              L.tr('Miadi haikuhifadhiwa. Hakuna ombi lililowekwa foleni.'),
         );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -145,91 +150,96 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Miadi haikughairiwa.');
+      if (mounted) setState(() => _error = L.tr('Miadi haikughairiwa.'));
     }
   }
 
   String _date(String? raw) {
     final d = DateTime.tryParse(raw ?? '');
     return d == null
-        ? 'Muda haujulikani'
+        ? L.tr('Muda haujulikani')
         : DateFormat('EEE d MMM, HH:mm').format(d.toLocal());
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Miadi')),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    if (_error != null) Notice(_error!),
-                    const SectionTitle('Miadi yangu'),
-                    if (_appointments.isEmpty)
-                      const Empty('Huna miadi iliyohifadhiwa.'),
-                    ..._appointments.map(
-                      (a) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Panel(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AppointmentDetailScreen(
-                                appointmentId: a['id'] as String,
-                              ),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Miadi'))),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (_error != null) Notice(_error!),
+                  SectionTitle(L.tr('Miadi yangu')),
+                  if (_appointments.isEmpty)
+                    Empty(L.tr('Huna miadi iliyohifadhiwa.')),
+                  ..._appointments.map(
+                    (a) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Panel(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AppointmentDetailScreen(
+                              appointmentId: a['id'] as String,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _date(a['starts_at'] as String?),
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w600,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _date(a['starts_at'] as String?),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              L.tr("Hali: {0} • {1}", [
+                                a['status'] ?? 'haijulikani',
+                                a['modality'] ?? ''
+                              ]),
+                            ),
+                            if (a['status'] == 'booked')
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: _busy
+                                      ? null
+                                      : () => _cancel(a['id'] as String),
+                                  child: Text(L.tr('Ghairi miadi')),
                                 ),
                               ),
-                              Text(
-                                'Hali: ${a['status'] ?? 'haijulikani'} • ${a['modality'] ?? ''}',
-                              ),
-                              if (a['status'] == 'booked')
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _cancel(a['id'] as String),
-                                    child: const Text('Ghairi miadi'),
-                                  ),
-                                ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    const SectionTitle('Chagua daktari na muda'),
-                    if (_clinicians.isEmpty)
-                      const Empty(
-                          'Hakuna madaktari waliothibitishwa kwa sasa.'),
-                    ..._clinicians.map(
-                      (c) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(c['full_name'] as String? ?? 'Daktari'),
-                        subtitle: Text(
-                          '${c['specialty'] ?? 'Huduma ya jumla'} • ${c['status'] ?? ''}',
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: _busy ? null : () => _book(c),
+                  ),
+                  const SizedBox(height: 18),
+                  SectionTitle(L.tr('Chagua daktari na muda')),
+                  if (_clinicians.isEmpty)
+                    Empty(L.tr('Hakuna madaktari waliothibitishwa kwa sasa.')),
+                  ..._clinicians.map(
+                    (c) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(c['full_name'] as String? ?? L.tr('Daktari')),
+                      subtitle: Text(
+                        '${c['specialty'] ?? L.tr('Huduma ya jumla')} • ${c['status'] ?? ''}',
                       ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _busy ? null : () => _book(c),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-      );
+            ),
+    );
+  }
 }
 
 class AppointmentDetailScreen extends StatefulWidget {
@@ -262,43 +272,50 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
     } catch (e) {
       if (mounted)
         setState(
-          () => _error = e is ApiException ? e.message : 'Miadi haikupatikana.',
+          () => _error =
+              e is ApiException ? e.message : L.tr('Miadi haikupatikana.'),
         );
     }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Maelezo ya miadi')),
-        body: _appointment == null
-            ? Center(
-                child: _error == null
-                    ? const CircularProgressIndicator()
-                    : Notice(_error!),
-              )
-            : ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text(
-                    _appointment!['status'] as String? ?? 'Hali haijulikani',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Maelezo ya miadi'))),
+      body: _appointment == null
+          ? Center(
+              child: _error == null
+                  ? const CircularProgressIndicator()
+                  : Notice(_error!),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Text(
+                  _appointment!['status'] as String? ??
+                      L.tr('Hali haijulikani'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Text(_appointment!['starts_at'] as String? ??
-                      'Muda haujulikani'),
+                ),
+                Text(_appointment!['starts_at'] as String? ??
+                    L.tr('Muda haujulikani')),
+                Text(
+                  L.tr("Muda wa huduma: {0} min",
+                      [_appointment!['duration_minutes'] ?? '—']),
+                ),
+                Text(L.tr("Njia: {0}", [_appointment!['modality'] ?? '—'])),
+                if (_appointment!['reason'] != null)
+                  Text(L.tr("Sababu: {0}", [_appointment!['reason']])),
+                if (_appointment!['cancelled_reason'] != null)
                   Text(
-                    'Muda wa huduma: ${_appointment!['duration_minutes'] ?? '—'} min',
+                    L.tr("Sababu ya kughairi: {0}",
+                        [_appointment!['cancelled_reason']]),
                   ),
-                  Text('Njia: ${_appointment!['modality'] ?? '—'}'),
-                  if (_appointment!['reason'] != null)
-                    Text('Sababu: ${_appointment!['reason']}'),
-                  if (_appointment!['cancelled_reason'] != null)
-                    Text(
-                      'Sababu ya kughairi: ${_appointment!['cancelled_reason']}',
-                    ),
-                ],
-              ),
-      );
+              ],
+            ),
+    );
+  }
 }

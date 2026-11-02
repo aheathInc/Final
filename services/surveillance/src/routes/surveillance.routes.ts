@@ -11,6 +11,11 @@ const { requireAuth } = createAuthGuards(tokens);
 
 export const surveillanceRouter = Router();
 
+surveillanceRouter.get('/surveillance/regional-insights', requireAuth, c.getRegionalInsights);
+surveillanceRouter.get('/surveillance/reporting-areas', requireAuth, c.getReportingAreas);
+surveillanceRouter.post('/surveillance/reporting-areas', requireAuth, c.importReportingAreas);
+surveillanceRouter.post('/surveillance/regional-insights/releases', requireAuth, c.publishRegionalMonth);
+
 surveillanceRouter.get('/surveillance/admin-analytics', requireAuth, c.getAdminAnalytics);
 
 surveillanceRouter.get('/surveillance/conditions', requireAuth, c.getConditions);

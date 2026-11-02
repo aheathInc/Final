@@ -6,6 +6,8 @@ import { activeRuleset } from './ruleset.service.js';
 import { fanoutFor, rank, type Candidate } from '../engine/matching.js';
 import type { Caller, Meta } from './careThread.service.js';
 import { publishConsultationEvent } from '../events.js';
+import { createConsultationSchema } from '../types/consultation.types.js';
+import { billAcceptedConsultation, feePolicyVersion, remoteFee } from './fees.service.js';
 
 
 
@@ -23,6 +25,11 @@ export function serialiseConsultation(c: {
   referredFromId: string | null;
   appointmentId: string | null;
   channel: string;
+  consultationMode: string;
+  facilityId: string | null;
+  facilityName: string | null;
+  consultationFeeAmount: number | null;
+  feePolicyVersion: string | null;
   modality: string;
   symptomText: string | null;
   structuredSymptoms: unknown;
@@ -47,6 +54,13 @@ export function serialiseConsultation(c: {
     referred_from_consultation_id: c.referredFromId,
     appointment_id: c.appointmentId,
     channel: c.channel,
+    consultation_mode: c.consultationMode,
+    facility_id: c.facilityId,
+    facility_name: c.facilityName,
+    consultation_fee_required: c.consultationMode === 'remote',
+    consultation_fee_amount: c.consultationMode === 'hospital' ? 0 : c.consultationFeeAmount,
+    consultation_fee_currency: 'TZS',
+    consultation_fee_policy: c.feePolicyVersion,
     modality: c.modality,
     symptom_text: c.symptomText,
     structured_symptoms: c.structuredSymptoms ?? [],
@@ -78,7 +92,8 @@ export async function offerConsultation(consultationId: string, requestedClinici
       where: {
         verificationStatus: 'verified',
         user: { status: 'active' },
-        ...(requestedClinicianId ? { id: requestedClinicianId } : { isAvailable: true }),
+        ...(consultation.consultationMode === 'hospital' ? { facilityId: consultation.facilityId!, facility: { isActive: true } } : {}),
+        ...((consultation.requestedClinicianId ?? requestedClinicianId) ? { id: consultation.requestedClinicianId ?? requestedClinicianId } : { isAvailable: true }),
       },
       include: { facility: true },
       take: 200,
@@ -176,6 +191,8 @@ export async function createConsultation(
     care_thread_id?: string;
     patient_profile_id?: string;
     channel: string;
+    consultation_mode?: string;
+    facility_id?: string;
     modality?: string;
     symptom_text?: string;
     structured_symptoms?: { code: string; severity?: number; duration_hours?: number }[];
@@ -186,6 +203,13 @@ export async function createConsultation(
   },
   meta: Meta,
 ) {
+  // Validate service callers as well as HTTP, including offline replay paths.
+  const selection = createConsultationSchema.parse(input);
+  const mode = selection.consultation_mode ?? 'remote';
+  const facility = mode === 'hospital' ? await prisma.facility.findFirst({
+    where: { id: selection.facility_id, isActive: true, type: { in: ['hospital', 'clinic'] } },
+  }) : null;
+  if (mode === 'hospital' && !facility) throw notFound('Selected hospital is unavailable. Choose an active hospital or clinic.');
   const patientProfileId = input.patient_profile_id ?? caller.ppid;
   if (!patientProfileId) throw forbidden('ROLE_NOT_PERMITTED', 'No patient profile for this request');
 
@@ -196,6 +220,7 @@ export async function createConsultation(
     throw forbidden('NOT_RESOURCE_OWNER', 'You cannot raise a consultation for this patient');
   }
 
+  let quotedFee: number | null = mode === 'hospital' ? 0 : null;
   if (input.clinician_id) {
     const clinician = await prisma.clinicianProfile.findUnique({
       where: { id: input.clinician_id },
@@ -204,6 +229,8 @@ export async function createConsultation(
     if (!clinician || clinician.verificationStatus !== 'verified' || clinician.user.status !== 'active') {
       throw notFound('Selected clinician is not available for consultations');
     }
+    if (facility && clinician.facilityId !== facility.id) throw conflict('CONSULTATION_FACILITY_MISMATCH', 'The selected clinician does not practise at this hospital.');
+    if (mode === 'remote') quotedFee = remoteFee(clinician.specialty);
   }
 
   const ageYears = patient.dateOfBirth
@@ -267,7 +294,13 @@ export async function createConsultation(
         careThreadId: threadId,
         patientProfileId,
         channel: input.channel as never,
-        modality: (input.modality ?? 'chat') as never,
+        consultationMode: mode,
+        facilityId: facility?.id ?? null,
+        facilityName: facility?.name ?? null,
+        requestedClinicianId: input.clinician_id ?? null,
+        consultationFeeAmount: quotedFee,
+        feePolicyVersion,
+        modality: (mode === 'hospital' ? 'in_person' : input.modality ?? 'chat') as never,
         symptomText: input.symptom_text ?? null,
         structuredSymptoms: symptoms as never,
         voiceNoteKey: input.voice_note_key ?? null,
@@ -301,7 +334,7 @@ export async function createConsultation(
     action: 'consultation.created',
     entityType: 'consultation_requests',
     entityId: consultation.id,
-    metadata: { urgency: result.urgency, rules: result.matchedRules, ruleVersion: result.ruleVersion },
+    metadata: { urgency: result.urgency, rules: result.matchedRules, ruleVersion: result.ruleVersion, consultationMode: mode, modality: consultation.modality, facilityId: facility?.id ?? null },
     ipAddress: meta.ip,
     requestId: meta.requestId,
   });
@@ -332,6 +365,13 @@ export async function acceptConsultation(consultationId: string, caller: Caller,
       throw conflict('STATE_TRANSITION_INVALID', 'This offer is no longer actionable. Refresh the queue.');
     }
 
+    const request = await tx.consultationRequest.findUniqueOrThrow({ where: { id: consultationId } });
+    const clinician = await tx.clinicianProfile.findFirst({ where: {
+      id: cpid, user: { status: 'active' }, verificationStatus: 'verified',
+      ...(request.consultationMode === 'hospital' ? { facilityId: request.facilityId!, facility: { isActive: true } } : {}),
+    } });
+    if (!clinician || (request.requestedClinicianId && request.requestedClinicianId !== cpid)) throw forbidden('CONSULTATION_CLINICIAN_MISMATCH', 'This clinician cannot accept the selected consultation.');
+
     const claimed = await tx.consultationRequest.updateMany({
       where: { id: consultationId, assignedClinicianId: null, status: { in: ['pending', 'offered', 'escalated'] } },
       data: { assignedClinicianId: cpid, status: 'matched', acceptedAt, version: { increment: 1 } },
@@ -350,6 +390,7 @@ export async function acceptConsultation(consultationId: string, caller: Caller,
       where: { id: cpid },
       data: { currentLoad: { increment: 1 }, version: { increment: 1 } },
     });
+    await billAcceptedConsultation(tx, consultationId, cpid);
     return tx.consultationRequest.findUniqueOrThrow({ where: { id: consultationId } });
   }, { maxWait: 10_000, timeout: 15_000 });
 
@@ -422,7 +463,7 @@ export async function completeConsultation(
   caller: Caller,
   input: {
     note: { diagnosis_text: string; diagnosis_codes?: string[]; advice_text: string; red_flags_discussed?: string[] };
-    prescription?: { items: { medication_name: string; dosage: string; frequency_per_day: number; duration_days: number; instructions?: string; quantity_prescribed?: number }[]; valid_until?: string };
+    prescription?: { items: { medication_name: string; dosage: string; frequency_per_day: number; duration_days: number; instructions?: string; quantity_prescribed?: number; medication_image_url?: string; medication_education?: string }[]; valid_until?: string };
     follow_up_cycle?: { frequency: string; custom_cron?: string; duration_days: number; questionnaire_key?: string; recovery_criteria?: Record<string, unknown> };
     close_care_thread?: boolean;
   },
@@ -450,6 +491,7 @@ export async function completeConsultation(
       where: { id: consultationId },
       data: { status: 'completed', completedAt: new Date(), version: { increment: 1 } },
     });
+    await tx.consultationCall.updateMany({ where: { consultationId, endedAt: null }, data: { endedAt: new Date(), offer: null, answer: null } });
 
     // The signature is stamped server-side after checking the signer.
     // Client-supplied signature fields are never trusted.
@@ -480,6 +522,8 @@ export async function completeConsultation(
           items: {
             create: input.prescription.items.map((i) => ({
               medicationName: i.medication_name,
+              medicationImageUrl: i.medication_image_url ?? null,
+              medicationEducation: i.medication_education ?? null,
               dosage: i.dosage,
               frequencyPerDay: i.frequency_per_day,
               durationDays: i.duration_days,
@@ -564,6 +608,22 @@ export async function completeConsultation(
       careThreadId: consultation.careThreadId,
     });
 
+    if (consultation.appointmentId) {
+      const appointment = await tx.appointment.findUnique({ where: { id: consultation.appointmentId } });
+      if (!appointment || appointment.status !== 'started') {
+        throw conflict('STATE_TRANSITION_INVALID', 'Linked appointment is not in the started state');
+      }
+      const completedAppointment = await tx.appointment.update({
+        where: { id: appointment.id },
+        data: { status: 'completed', version: { increment: 1 } },
+      });
+      await recordChange(tx, {
+        entity: 'appointments', entityId: completedAppointment.id, op: 'update',
+        version: completedAppointment.version, patientProfileId: appointment.patientProfileId,
+        clinicianId: appointment.clinicianId,
+      });
+    }
+
     // Finish the linked hospital visit in the SAME transaction as the signed
     // consultation outcome. Existing remote consultations have no visit.
     const deskVisit = await tx.frontDeskVisit.findUnique({ where: { consultationId } });
@@ -627,6 +687,12 @@ export async function referConsultation(
   // same episode, not a fresh case with no history.
   const referralRuleset = await activeRuleset();
   const referralSla = referralRuleset.sla.routine;
+  if (source.consultationMode === 'hospital' && input.to_clinician_id) {
+    const destination = await prisma.clinicianProfile.findFirst({ where: {
+      id: input.to_clinician_id, facilityId: source.facilityId, verificationStatus: 'verified', user: { status: 'active' },
+    } });
+    if (!destination) throw conflict('CONSULTATION_FACILITY_MISMATCH', 'An in-person referral must remain at the selected hospital. Create a new visit for another facility.');
+  }
 
   const referral = await prisma.consultationRequest.create({
     data: {
@@ -635,7 +701,10 @@ export async function referConsultation(
       referredFromId: consultationId,
       assignedClinicianId: input.to_clinician_id ?? null,
       channel: source.channel,
-      modality: 'async',
+      consultationMode: source.consultationMode,
+      facilityId: source.facilityId,
+      facilityName: source.facilityName,
+      modality: source.consultationMode === 'hospital' ? 'in_person' : source.modality,
       symptomText: input.reason,
       structuredSymptoms: source.structuredSymptoms as never,
       urgencyLevel: source.urgencyLevel,

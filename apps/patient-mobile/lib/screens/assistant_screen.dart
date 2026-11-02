@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../core/patient_ai.dart';
@@ -56,19 +57,24 @@ Widget patientAiDestination(PatientNavigationAction action) => switch (action) {
     };
 
 String patientAiActionLabel(PatientNavigationAction action) => switch (action) {
-      PatientNavigationAction.openDoctors => 'Tafuta daktari',
-      PatientNavigationAction.startConsultation => 'Anza ombi la clinician',
-      PatientNavigationAction.openAppointments => 'Fungua miadi',
-      PatientNavigationAction.openDiagnostics => 'Fungua vipimo na majibu',
-      PatientNavigationAction.openMedications => 'Fungua maagizo na dawa',
-      PatientNavigationAction.openPharmacy => 'Angalia famasia',
-      PatientNavigationAction.openFamily => 'Fungua familia',
-      PatientNavigationAction.openEducation => 'Fungua elimu ya afya',
-      PatientNavigationAction.openPrevention => 'Fungua kinga na uchunguzi',
-      PatientNavigationAction.openEmergency => 'Fungua SOS / Dharura',
-      PatientNavigationAction.openPrivacy => 'Dhibiti ruhusa za faragha',
-      PatientNavigationAction.openFeedback => 'Fungua maoni na malalamiko',
-      PatientNavigationAction.openInsurancePayments => 'Fungua bima na malipo',
+      PatientNavigationAction.openDoctors => L.tr('Tafuta daktari'),
+      PatientNavigationAction.startConsultation =>
+        L.tr('Anza ombi la clinician'),
+      PatientNavigationAction.openAppointments => L.tr('Fungua miadi'),
+      PatientNavigationAction.openDiagnostics =>
+        L.tr('Fungua vipimo na majibu'),
+      PatientNavigationAction.openMedications => L.tr('Fungua maagizo na dawa'),
+      PatientNavigationAction.openPharmacy => L.tr('Angalia famasia'),
+      PatientNavigationAction.openFamily => L.tr('Fungua familia'),
+      PatientNavigationAction.openEducation => L.tr('Fungua elimu ya afya'),
+      PatientNavigationAction.openPrevention =>
+        L.tr('Fungua kinga na uchunguzi'),
+      PatientNavigationAction.openEmergency => L.tr('Fungua SOS / Dharura'),
+      PatientNavigationAction.openPrivacy => L.tr('Dhibiti ruhusa za faragha'),
+      PatientNavigationAction.openFeedback =>
+        L.tr('Fungua maoni na malalamiko'),
+      PatientNavigationAction.openInsurancePayments =>
+        L.tr('Fungua bima na malipo'),
     };
 
 class AssistantScreen extends StatefulWidget {
@@ -146,7 +152,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _error = 'Huduma ya msaidizi wa AI haipatikani sasa. Jaribu tena.';
+        _error =
+            L.tr('Huduma ya msaidizi wa AI haipatikani sasa. Jaribu tena.');
       });
       _scrollToEnd();
     }
@@ -177,105 +184,110 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Msaidizi wa AI / Uliza A-Health')),
-        body: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Notice(
-                'AI PROVIDER — LOCAL/STUB. Huu ni mwongoza huduma wa majaribio, si daktari. Hatoi utambuzi, tafsiri ya vipimo au maagizo ya dawa.',
-                tone: NoticeTone.attention,
-              ),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Msaidizi wa AI / Uliza A-Health'))),
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Notice(
+              L.tr(
+                  'AI PROVIDER — LOCAL/STUB. Huu ni mwongoza huduma wa majaribio, si daktari. Hatoi utambuzi, tafsiri ya vipimo au maagizo ya dawa.'),
+              tone: NoticeTone.attention,
             ),
-            Expanded(
-              child: _messages.isEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(28),
-                        child: Text(
-                          'Uliza jinsi ya kufungua huduma zilizopo, kama miadi, daktari, dawa, vipimo au faragha.',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scroll,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      itemCount: _messages.length + (_sending ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == _messages.length) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                                SizedBox(width: 10),
-                                Text('Msaidizi anaandaa jibu...'),
-                              ],
-                            ),
-                          );
-                        }
-                        return _messageCard(_messages[index]);
-                      },
-                    ),
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
+          ),
+          Expanded(
+            child: _messages.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(28),
                       child: Text(
-                        _error!,
-                        style: const TextStyle(color: AppColors.clay),
+                        L.tr(
+                            'Uliza jinsi ya kufungua huduma zilizopo, kama miadi, daktari, dawa, vipimo au faragha.'),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    TextButton(
-                        onPressed: _retry, child: const Text('Jaribu tena')),
-                  ],
-                ),
-              ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _input,
-                        enabled: !_sending,
-                        minLines: 1,
-                        maxLines: 4,
-                        maxLength: 4000,
-                        decoration: const InputDecoration(
-                          labelText: 'Andika swali au huduma unayotafuta',
-                          counterText: '',
-                          border: OutlineInputBorder(),
-                        ),
-                        onSubmitted: (_) => _send(),
-                      ),
+                  )
+                : ListView.builder(
+                    controller: _scroll,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    itemCount: _messages.length + (_sending ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _messages.length) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              SizedBox(width: 10),
+                              Text(L.tr('Msaidizi anaandaa jibu...')),
+                            ],
+                          ),
+                        );
+                      }
+                      return _messageCard(_messages[index]);
+                    },
+                  ),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      L.tr(_error!),
+                      style: const TextStyle(color: AppColors.clay),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton.filled(
-                      tooltip: 'Tuma swali',
-                      onPressed: _sending ? null : _send,
-                      icon: const Icon(Icons.send_outlined),
-                    ),
-                  ],
-                ),
+                  ),
+                  TextButton(
+                      onPressed: _retry, child: Text(L.tr('Jaribu tena'))),
+                ],
               ),
             ),
-          ],
-        ),
-      );
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _input,
+                      enabled: !_sending,
+                      minLines: 1,
+                      maxLines: 4,
+                      maxLength: 4000,
+                      decoration: InputDecoration(
+                        labelText: L.tr('Andika swali au huduma unayotafuta'),
+                        counterText: '',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: (_) => _send(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    tooltip: L.tr('Tuma swali'),
+                    onPressed: _sending ? null : _send,
+                    icon: const Icon(Icons.send_outlined),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _messageCard(_ConversationMessage message) {
     final background = message.isPatient ? AppColors.petrol : Colors.white;
@@ -296,15 +308,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              message.isPatient ? 'Wewe' : 'Msaidizi wa AI (LOCAL/STUB)',
+              message.isPatient
+                  ? L.tr('Wewe')
+                  : L.tr('Msaidizi wa AI (LOCAL/STUB)'),
               style: TextStyle(fontWeight: FontWeight.w700, color: foreground),
             ),
             const SizedBox(height: 6),
             Text(message.body, style: TextStyle(color: foreground)),
             if (message.escalated) ...[
               const SizedBox(height: 10),
-              const Text(
-                'Ikiwa uko kwenye hatari ya haraka, tafuta huduma ya dharura. SOS haitatumwa hadi uchague hatua hiyo kwenye ukurasa unaofuata.',
+              Text(
+                L.tr(
+                    'Ikiwa uko kwenye hatari ya haraka, tafuta huduma ya dharura. SOS haitatumwa hadi uchague hatua hiyo kwenye ukurasa unaofuata.'),
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
@@ -332,8 +347,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
             ],
             if (message.unsupportedAction) ...[
               const SizedBox(height: 8),
-              const Text(
-                'Hatua hii haijaungwa mkono. Hakuna ukurasa uliofunguliwa.',
+              Text(
+                L.tr(
+                    'Hatua hii haijaungwa mkono. Hakuna ukurasa uliofunguliwa.'),
                 style: TextStyle(fontStyle: FontStyle.italic),
               ),
             ],

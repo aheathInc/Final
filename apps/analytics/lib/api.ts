@@ -24,7 +24,7 @@ export interface ConditionCount {
 
 export interface TrendPoint {
   period: string;
-  count: number;
+  count: number | null;
   expected_low: number | null;
   expected_high: number | null;
   above_expected: boolean;

@@ -108,10 +108,16 @@ enum ConsultationStatus {
 }
 
 enum ConsultationModality {
+  in_person
   chat
   voice
   video
   async
+}
+
+enum ConsultationMode {
+  hospital
+  remote
 }
 
 enum ClinicalCollaborationStatus {
@@ -292,16 +298,30 @@ enum NotificationStatus {
 // ---------------------------------------------------------------------------
 
 model User {
-  id                String       @id @default(uuid()) @db.Uuid
-  phoneNumber       String       @unique @map("phone_number") @db.VarChar(20)
-  role              UserRole
-  status            UserStatus   @default(pending_verification)
-  fullName          String?      @map("full_name") @db.VarChar(150)
-  email             String?      @unique @db.VarChar(150)
-  // Argon2id. Null for patient accounts, which are OTP-only.
-  passwordHash      String?      @map("password_hash") @db.VarChar(255)
-  mfaSecret         String?      @map("mfa_secret") @db.VarChar(255)
-  preferredLanguage LanguageCode @default(sw) @map("preferred_language")
+  onboardingRequired Boolean @default(false) @map("onboarding_required")
+  enrollment PatientEnrollment?
+  careChatConsents       CareChatConsent[]     @relation("ChatConsentActor")
+  patientFeedback        PatientFeedback[]     @relation("FeedbackOwner")
+  socialReports          PatientSocialReport[] @relation("SocialReporter")
+  socialBlockedBy        PatientSocialBlock[]  @relation("SocialBlocked")
+  socialBlocks           PatientSocialBlock[]  @relation("SocialBlocker")
+  peerMessages           PeerMessage[]         @relation("PeerSender")
+  peerInvitations        PeerConversation[]    @relation("PeerRecipient")
+  peerRequests           PeerConversation[]    @relation("PeerRequester")
+  healthPostReviews      HealthSpacePost[]     @relation("HealthReviewer")
+  healthSpacePosts       HealthSpacePost[]     @relation("HealthAuthor")
+  healthSpaceMemberships HealthSpaceMember[]   @relation("HealthMembership")
+  socialProfile          PatientSocialProfile? @relation("SocialIdentity")
+  id                     String                @id @default(uuid()) @db.Uuid
+  phoneNumber            String                @unique @map("phone_number") @db.VarChar(20)
+  role                   UserRole
+  status                 UserStatus            @default(pending_verification)
+  fullName               String?               @map("full_name") @db.VarChar(150)
+  email                  String?               @unique @db.VarChar(150)
+  // Bcrypt. Null until a password is set; new patients set it after registration payment.
+  passwordHash           String?               @map("password_hash") @db.VarChar(255)
+  mfaSecret              String?               @map("mfa_secret") @db.VarChar(255)
+  preferredLanguage      LanguageCode          @default(sw) @map("preferred_language")
 
   /// Consecutive failed password attempts. Reset to zero on any success.
   failedLoginCount Int       @default(0) @map("failed_login_count")
@@ -310,53 +330,59 @@ model User {
   /// nothing to keep trying.
   lockedUntil      DateTime? @map("locked_until")
 
-  patientProfile   PatientProfile?     @relation("PatientUser")
-  clinicianProfile ClinicianProfile?
-  guardedProfiles  PatientProfile[]    @relation("Guardian")
-  refreshTokens    RefreshToken[]
-  messagesSent     Message[]
-  notifications    NotificationLog[]
-  idempotency      IdempotencyRecord[]
-  pharmacyMemberships PharmacyMembership[] @relation("PharmacyMember")
-  verifiedPharmacyMemberships PharmacyMembership[] @relation("PharmacyMembershipVerifier")
+  patientProfile                PatientProfile?        @relation("PatientUser")
+  clinicianProfile              ClinicianProfile?
+  guardedProfiles               PatientProfile[]       @relation("Guardian")
+  refreshTokens                 RefreshToken[]
+  messagesSent                  Message[]
+  notifications                 NotificationLog[]
+  idempotency                   IdempotencyRecord[]
+  pharmacyMemberships           PharmacyMembership[]   @relation("PharmacyMember")
+  verifiedPharmacyMemberships   PharmacyMembership[]   @relation("PharmacyMembershipVerifier")
+  laboratoryMemberships         LaboratoryMembership[] @relation("LaboratoryMember")
+  assignedLaboratoryMemberships LaboratoryMembership[] @relation("LaboratoryAssigner")
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  aiConversations  AiConversation[]
-  incidentReports  IncidentReport[]
-  researchQueries  ResearchQuery[]
-  emergencyReports EmergencyRequest[] @relation("EmergencyReporter")
-  realtimeTickets  RealtimeTicket[]
-  paymentsMade     PaymentIntent[]    @relation("Payer")
-  careBills        CareBill[]         @relation("BillPayer")
-  issuedCareBills  CareBill[]         @relation("BillIssuer")
-  createdInteropSystems ExternalHealthSystem[] @relation("InteropSystemCreatedBy")
-  activatedInteropSystems ExternalHealthSystem[] @relation("InteropSystemActivatedBy")
-  reviewedInteropIdentities ExternalPatientIdentity[] @relation("InteropIdentityReviewedBy")
+  aiConversations                         AiConversation[]
+  incidentReports                         IncidentReport[]
+  researchQueries                         ResearchQuery[]
+  emergencyReports                        EmergencyRequest[]         @relation("EmergencyReporter")
+  realtimeTickets                         RealtimeTicket[]
+  paymentsMade                            PaymentIntent[]            @relation("Payer")
+  careBills                               CareBill[]                 @relation("BillPayer")
+  issuedCareBills                         CareBill[]                 @relation("BillIssuer")
+  createdInteropSystems                   ExternalHealthSystem[]     @relation("InteropSystemCreatedBy")
+  activatedInteropSystems                 ExternalHealthSystem[]     @relation("InteropSystemActivatedBy")
+  reviewedInteropIdentities               ExternalPatientIdentity[]  @relation("InteropIdentityReviewedBy")
+  authoredTriageRulesets                  TriageRuleset[]            @relation("TriageRulesetAuthor")
+  activatedTriageRulesets                 TriageRuleset[]            @relation("TriageRulesetActivator")
+  relatedResearchOutputRequest_ownerId    ResearchOutputRequest[]    @relation("ResearchOutputRequest_ownerId")
+  relatedResearchResponseSnapshot_ownerId ResearchResponseSnapshot[] @relation("ResearchResponseSnapshot_ownerId")
+  relatedResearchOmopBuild_ownerId        ResearchOmopBuild[]        @relation("ResearchOmopBuild_ownerId")
+  relatedResearchOmopBatch_submittedBy    ResearchOmopBatch[]        @relation("ResearchOmopBatch_submittedBy")
+  relatedResearcherApplication_userId     ResearcherApplication[]    @relation("ResearcherApplication_userId")
+  relatedResearchStudy_ownerId            ResearchStudy[]            @relation("ResearchStudy_ownerId")
+  relatedResearchEvidence_ownerId         ResearchEvidence[]         @relation("ResearchEvidence_ownerId")
+  relatedResearchCollection_createdBy     ResearchCollection[]       @relation("ResearchCollection_createdBy")
+  relatedResearchSourceGrant_stewardId    ResearchSourceGrant[]      @relation("ResearchSourceGrant_stewardId")
+  relatedResearchExportRequest_ownerId    ResearchExportRequest[]    @relation("ResearchExportRequest_ownerId")
+  relatedResearchForm_ownerId             ResearchForm[]             @relation("ResearchForm_ownerId")
+  relatedResearchFormResponse_submittedBy ResearchFormResponse[]     @relation("ResearchFormResponse_submittedBy")
+  relatedResearchAccessKey_ownerId        ResearchAccessKey[]        @relation("ResearchAccessKey_ownerId")
 
   @@index([status, role])
   @@index([updatedAt])
   @@map("users")
-  authoredTriageRulesets  TriageRuleset[] @relation("TriageRulesetAuthor")
-  activatedTriageRulesets TriageRuleset[] @relation("TriageRulesetActivator")
-  relatedResearchOutputRequest_ownerId ResearchOutputRequest[] @relation("ResearchOutputRequest_ownerId")
-  relatedResearchResponseSnapshot_ownerId ResearchResponseSnapshot[] @relation("ResearchResponseSnapshot_ownerId")
-  relatedResearchOmopBuild_ownerId ResearchOmopBuild[] @relation("ResearchOmopBuild_ownerId")
-  relatedResearchOmopBatch_submittedBy ResearchOmopBatch[] @relation("ResearchOmopBatch_submittedBy")
-  relatedResearcherApplication_userId ResearcherApplication[] @relation("ResearcherApplication_userId")
-  relatedResearchStudy_ownerId ResearchStudy[] @relation("ResearchStudy_ownerId")
-  relatedResearchEvidence_ownerId ResearchEvidence[] @relation("ResearchEvidence_ownerId")
-  relatedResearchCollection_createdBy ResearchCollection[] @relation("ResearchCollection_createdBy")
-  relatedResearchSourceGrant_stewardId ResearchSourceGrant[] @relation("ResearchSourceGrant_stewardId")
-  relatedResearchExportRequest_ownerId ResearchExportRequest[] @relation("ResearchExportRequest_ownerId")
-  relatedResearchForm_ownerId ResearchForm[] @relation("ResearchForm_ownerId")
-  relatedResearchFormResponse_submittedBy ResearchFormResponse[] @relation("ResearchFormResponse_submittedBy")
-  relatedResearchAccessKey_ownerId ResearchAccessKey[] @relation("ResearchAccessKey_ownerId")
 }
 
 model PatientProfile {
+  medicationSupplies MedicationSupply[]
+  residence String? @db.VarChar(250)
+  nextOfKinName String? @map("next_of_kin_name") @db.VarChar(150)
+  nextOfKinPhone String? @map("next_of_kin_phone") @db.VarChar(20)
   id     String  @id @default(uuid()) @db.Uuid
   userId String? @unique @map("user_id") @db.Uuid
   user   User?   @relation("PatientUser", fields: [userId], references: [id], onDelete: Cascade)
@@ -377,6 +403,8 @@ model PatientProfile {
   // Coarse geography for de-identified aggregation. Never joined to an id in
   // an analytics view.
   regionCode        String?   @map("region_code") @db.VarChar(20)
+  reportingAreaCode String? @map("reporting_area_code") @db.VarChar(64)
+  reportingArea ReportingArea? @relation(fields: [reportingAreaCode], references: [code], onDelete: Restrict)
 
   reminderPreferences CareReminderPreference?
   careReminders CareReminder[]
@@ -410,6 +438,7 @@ model PatientProfile {
 
   @@index([guardianUserId])
   @@index([regionCode])
+  @@index([reportingAreaCode])
   @@index([updatedAt])
   @@map("patient_profiles")
 }
@@ -481,6 +510,8 @@ model ClinicianProfile {
   referralsReceived        DigitalReferral[] @relation("ReferralDestinationClinician")
   referralsAcknowledged    DigitalReferral[] @relation("ReferralReceivedClinician")
   referralOutcomes         DigitalReferralOutcome[]
+  referralMessages         DigitalReferralMessage[]
+  networkNotifications     ProfessionalNotification[]
 
   // The routing engine's candidate lookup. Partial index in a migration:
   //   WHERE verification_status = 'verified' AND is_available = true
@@ -524,6 +555,8 @@ model Facility {
   departments         Department[]
   transportUnits      TransportUnit[]
   investigationOrders InvestigationOrder[]
+  laboratoryMemberships LaboratoryMembership[]
+  consultations       ConsultationRequest[] @relation("ConsultationFacility")
   vaccinations        Vaccination[]
   incidentReports     IncidentReport[]
   emergencyArrivals   EmergencyRequest[]   @relation("EmergencyDestination")
@@ -554,6 +587,7 @@ model OtpChallenge {
 }
 
 model RefreshToken {
+  authMethod String @default("password") @map("auth_method") @db.VarChar(20)
   id        String  @id @default(uuid()) @db.Uuid
   userId    String  @map("user_id") @db.Uuid
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -635,9 +669,10 @@ model Appointment {
 // ---------------------------------------------------------------------------
 
 model CareThread {
-  id               String         @id @default(uuid()) @db.Uuid
-  patientProfileId String         @map("patient_profile_id") @db.Uuid
-  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  chatConsent      CareChatConsent?
+  id               String           @id @default(uuid()) @db.Uuid
+  patientProfileId String           @map("patient_profile_id") @db.Uuid
+  patient          PatientProfile   @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
 
   primaryClinicianId String?           @map("primary_clinician_id") @db.Uuid
   primaryClinician   ClinicianProfile? @relation("PrimaryClinician", fields: [primaryClinicianId], references: [id], onDelete: Restrict)
@@ -655,16 +690,16 @@ model CareThread {
   /// the thread so the timeline view does not have to query for it.
   activeFollowUpCycleId String? @map("active_follow_up_cycle_id") @db.Uuid
 
-  consultations  ConsultationRequest[]
-  notes          ConsultationNote[]
-  messages       Message[]
-  appointments   Appointment[]
-  prescriptions  Prescription[]
+  consultations          ConsultationRequest[]
+  notes                  ConsultationNote[]
+  messages               Message[]
+  appointments           Appointment[]
+  prescriptions          Prescription[]
   clinicalCollaborations ProviderClinicalCollaboration[]
-  followUpCycles FollowUpCycle[]
-  checkIns       CheckIn[]
-  consents       PatientConsent[]
-  medicalRecords MedicalRecord[]
+  followUpCycles         FollowUpCycle[]
+  checkIns               CheckIn[]
+  consents               PatientConsent[]
+  medicalRecords         MedicalRecord[]
 
   openedAt  DateTime  @default(now()) @map("opened_at")
   closedAt  DateTime? @map("closed_at")
@@ -703,6 +738,13 @@ model ConsultationRequest {
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
 
   channel            Channel
+  consultationMode   ConsultationMode @default(remote) @map("consultation_mode")
+  facilityId         String? @map("facility_id") @db.Uuid
+  facility           Facility? @relation("ConsultationFacility", fields: [facilityId], references: [id], onDelete: Restrict)
+  facilityName       String? @map("facility_name") @db.VarChar(200)
+  requestedClinicianId String? @map("requested_clinician_id") @db.Uuid
+  consultationFeeAmount Int? @map("consultation_fee_amount")
+  feePolicyVersion String? @map("fee_policy_version") @db.VarChar(40)
   modality           ConsultationModality @default(chat)
   symptomText        String?              @map("symptom_text")
   structuredSymptoms Json                 @default("[]") @map("structured_symptoms")
@@ -743,14 +785,31 @@ model ConsultationRequest {
   incidentReports IncidentReport[]
   paymentIntents  PaymentIntent[]
   careBill        CareBill?
+  calls           ConsultationCall[]
   payments        Payment[]
 
   // Powers the live queue view and the SLA escalation worker.
   @@index([status, urgencyLevel, slaDeadlineAt])
   @@index([assignedClinicianId, status])
+  @@index([facilityId, consultationMode, status])
   @@index([careThreadId, createdAt])
   @@index([updatedAt])
   @@map("consultation_requests")
+}
+
+model ConsultationCall {
+  id String @id @default(uuid()) @db.Uuid
+  consultationId String @map("consultation_id") @db.Uuid
+  consultation ConsultationRequest @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  callerUserId String @map("caller_user_id") @db.Uuid
+  answererUserId String? @map("answerer_user_id") @db.Uuid
+  offer String?
+  answer String?
+  endedAt DateTime? @map("ended_at")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([consultationId, expiresAt])
+  @@map("consultation_calls")
 }
 
 // Which clinicians a request was pushed to, and what happened. Not in the API
@@ -881,6 +940,9 @@ model Prescription {
 }
 
 model PrescriptionItem {
+  medicationImageUrl String? @map("medication_image_url") @db.VarChar(1000)
+  medicationEducation String? @map("medication_education") @db.VarChar(3000)
+  medicationSupplies MedicationSupply[]
   id             String       @id @default(uuid()) @db.Uuid
   prescriptionId String       @map("prescription_id") @db.Uuid
   prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
@@ -910,6 +972,9 @@ model PrescriptionItem {
 // One row per expected dose, generated when the prescription is created.
 // High write volume — a candidate for monthly partitioning at scale.
 model AdherenceLog {
+  skipReason String? @map("skip_reason") @db.VarChar(40)
+  snoozedUntil DateTime? @map("snoozed_until")
+  snoozeCount Int @default(0) @map("snooze_count")
   id                 String           @id @default(uuid()) @db.Uuid
   prescriptionItemId String           @map("prescription_item_id") @db.Uuid
   prescriptionItem   PrescriptionItem @relation(fields: [prescriptionItemId], references: [id], onDelete: Cascade)
@@ -1778,6 +1843,7 @@ model DigitalReferral {
   cancelledAt     DateTime?                 @map("cancelled_at")
   cancellationReason String?                @map("cancellation_reason") @db.VarChar(100)
   outcome         DigitalReferralOutcome?
+  messages        DigitalReferralMessage[]
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -1806,6 +1872,20 @@ model DigitalReferralOutcome {
   recordedAt                DateTime @default(now()) @map("recorded_at")
 
   @@map("digital_referral_outcomes")
+}
+
+model DigitalReferralMessage {
+  id String @id @default(uuid()) @db.Uuid
+  referralId String @map("referral_id") @db.Uuid
+  referral DigitalReferral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  authorClinicianId String @map("author_clinician_id") @db.Uuid
+  author ClinicianProfile @relation(fields: [authorClinicianId], references: [id], onDelete: Restrict)
+  requestKey String @map("request_key") @db.Uuid
+  body String @db.VarChar(4000)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@unique([referralId, authorClinicianId, requestKey])
+  @@index([referralId, createdAt, id])
+  @@map("digital_referral_messages")
 }
 
 // ===========================================================================
@@ -2429,6 +2509,23 @@ model DispensingItem {
 // Diagnostics
 // ===========================================================================
 
+model LaboratoryMembership {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  user User @relation("LaboratoryMember", fields: [userId], references: [id], onDelete: Restrict)
+  facilityId String @map("facility_id") @db.Uuid
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  assignedByUserId String @map("assigned_by_user_id") @db.Uuid
+  assignedBy User @relation("LaboratoryAssigner", fields: [assignedByUserId], references: [id], onDelete: Restrict)
+  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, facilityId])
+  @@index([facilityId, isActive])
+  @@map("laboratory_memberships")
+}
+
 model InvestigationOrder {
   id           String     @id @default(uuid()) @db.Uuid
   careThreadId String     @map("care_thread_id") @db.Uuid
@@ -2528,6 +2625,7 @@ model CommunityMembership {
 
   role     String   @default("member") @db.VarChar(30)
   joinedAt DateTime @default(now()) @map("joined_at")
+  notificationMode CommunityNotificationMode @default(replies) @map("notification_mode")
 
   @@unique([communityId, clinicianId])
   @@map("community_memberships")
@@ -2554,6 +2652,7 @@ model Discussion {
   replyCount Int @default(0) @map("reply_count")
 
   replies DiscussionReply[]
+  notifications ProfessionalNotification[]
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
@@ -2573,13 +2672,46 @@ model DiscussionReply {
   author            ClinicianProfile @relation(fields: [authorClinicianId], references: [id], onDelete: Restrict)
 
   body String
+  parentReplyId String? @map("parent_reply_id") @db.Uuid
+  parent DiscussionReply? @relation("ReplyThread", fields: [parentReplyId], references: [id], onDelete: Restrict)
+  children DiscussionReply[] @relation("ReplyThread")
+  notifications ProfessionalNotification[]
 
   version   Int      @default(1)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([discussionId, createdAt])
+  @@unique([id, discussionId])
+  @@index([parentReplyId])
   @@map("discussion_replies")
+}
+
+enum CommunityNotificationMode {
+  all
+  replies
+  muted
+}
+
+enum NetworkNotificationKind {
+  new_post
+  reply
+}
+
+model ProfessionalNotification {
+  id String @id @default(uuid()) @db.Uuid
+  recipientClinicianId String @map("recipient_clinician_id") @db.Uuid
+  recipient ClinicianProfile @relation(fields: [recipientClinicianId], references: [id], onDelete: Cascade)
+  discussionId String @map("discussion_id") @db.Uuid
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  replyId String? @map("reply_id") @db.Uuid
+  reply DiscussionReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  kind NetworkNotificationKind
+  dedupeKey String @unique @map("dedupe_key") @db.VarChar(180)
+  readAt DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([recipientClinicianId, readAt, createdAt])
+  @@map("professional_notifications")
 }
 
 model SecondOpinion {
@@ -2654,7 +2786,9 @@ model EducationArticle {
 
   /// Explicit misinformation counters, used where a myth is widespread enough
   /// that stating the fact alone does not displace it.
-  mythVsFact Json @default("[]") @map("myth_vs_fact")
+  mythVsFact   Json @default("[]") @map("myth_vs_fact")
+  diseaseGuide Json @default("{}") @map("disease_guide")
+  sources      Json @default("[]")
 
   reviewedById String?   @map("reviewed_by_id") @db.Uuid
   reviewedAt   DateTime? @map("reviewed_at")
@@ -2798,6 +2932,40 @@ model ResearchQuery {
 // ===========================================================================
 // Surveillance
 // ===========================================================================
+
+enum ReportingLevel {
+  country
+  region
+  district
+  ward
+  village
+}
+
+/// Administrative geography only. Centroids must never be patient coordinates.
+model ReportingArea {
+  code String @id @db.VarChar(64)
+  name String @db.VarChar(150)
+  level ReportingLevel
+  parentCode String? @map("parent_code") @db.VarChar(64)
+  parent ReportingArea? @relation("ReportingTree", fields: [parentCode], references: [code], onDelete: Restrict)
+  children ReportingArea[] @relation("ReportingTree")
+  latitude Float?
+  longitude Float?
+  source String @db.VarChar(300)
+  patients PatientProfile[]
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([parentCode, level])
+  @@map("reporting_areas")
+}
+
+/// Immutable, completed calendar-month aggregate release. Contains no patient rows.
+model RegionalInsightRelease {
+  period String @id @db.VarChar(7)
+  payload Json
+  publishedBy String @map("published_by") @db.Uuid
+  publishedAt DateTime @default(now()) @map("published_at")
+  @@map("regional_insight_releases")
+}
 
 /// Precomputed rollups. The live query would scan every encounter in a region;
 /// the dashboard has to answer in under a second for a ministry meeting to be
@@ -3010,6 +3178,7 @@ enum PaymentProvider {
 }
 
 enum PaymentPurpose {
+  registration_fee
   consultation_fee
   pharmacy_purchase
   insurance_copay
@@ -3308,6 +3477,25 @@ model MedicationReminderPlan {
   doses AdherenceLog[]
   @@index([status])
   @@map("medication_reminder_plans")
+}
+
+model MedicationSupply {
+  id String @id @default(uuid()) @db.Uuid
+  patientProfileId String @map("patient_profile_id") @db.Uuid
+  patient PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Restrict)
+  prescriptionItemId String @map("prescription_item_id") @db.Uuid
+  item PrescriptionItem @relation(fields: [prescriptionItemId], references: [id], onDelete: Restrict)
+  baselineQuantity Decimal @map("baseline_quantity") @db.Decimal(12,3)
+  unitsPerDose Decimal? @map("units_per_dose") @db.Decimal(12,3)
+  unitLabel String @map("unit_label") @db.VarChar(30)
+  lowStockThreshold Decimal @map("low_stock_threshold") @db.Decimal(12,3)
+  baselineAt DateTime @default(now()) @map("baseline_at")
+  updatedById String @map("updated_by_id") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([patientProfileId, prescriptionItemId])
+  @@map("medication_supplies")
 }
 
 model CareReminderPreference {
@@ -3732,6 +3920,7 @@ model ResearchOutputRequest {
 
 /// Immutable server-issued payable. Patients never choose or edit the price.
 model CareBill {
+  enrollment PatientEnrollment?
   id String @id @default(uuid()) @db.Uuid
   reference String @unique @db.VarChar(40)
   payerUserId String @map("payer_user_id") @db.Uuid
@@ -3753,4 +3942,167 @@ model CareBill {
   intents PaymentIntent[]
   @@index([payerUserId, status, createdAt])
   @@map("care_bills")
+}
+
+
+// Patient social spaces are separate from clinician-only discussions.
+model PatientSocialProfile {
+  user           User     @relation("SocialIdentity", fields: [userId], references: [id], onDelete: Restrict)
+  userId         String   @id @map("user_id") @db.Uuid
+  alias          String   @db.VarChar(60)
+  consentVersion String?  @map("consent_version")
+  peerEnabled    Boolean  @default(false) @map("peer_enabled")
+  suspended      Boolean  @default(false)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("patient_social_profiles")
+}
+
+model HealthSpace {
+  id          String              @id @default(uuid()) @db.Uuid
+  name        String              @db.VarChar(120)
+  description String
+  active      Boolean             @default(true)
+  members     HealthSpaceMember[]
+  posts       HealthSpacePost[]
+
+  @@map("health_spaces")
+}
+
+model HealthSpaceMember {
+  user     User        @relation("HealthMembership", fields: [userId], references: [id], onDelete: Restrict)
+  spaceId  String      @map("space_id") @db.Uuid
+  userId   String      @map("user_id") @db.Uuid
+  space    HealthSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  joinedAt DateTime    @default(now()) @map("joined_at")
+
+  @@id([spaceId, userId])
+  @@index([userId])
+  @@map("health_space_members")
+}
+
+model HealthSpacePost {
+  reviewer   User?             @relation("HealthReviewer", fields: [reviewedBy], references: [id], onDelete: Restrict)
+  author     User              @relation("HealthAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  id         String            @id @default(uuid()) @db.Uuid
+  spaceId    String            @map("space_id") @db.Uuid
+  space      HealthSpace       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  authorId   String            @map("author_id") @db.Uuid
+  parentId   String?           @map("parent_id") @db.Uuid
+  parent     HealthSpacePost?  @relation("HealthReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  replies    HealthSpacePost[] @relation("HealthReplies")
+  body       String
+  status     String            @default("pending") @db.VarChar(20)
+  reason     String?
+  reviewedBy String?           @map("reviewed_by") @db.Uuid
+  reviewedAt DateTime?         @map("reviewed_at")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  @@index([spaceId, status, createdAt])
+  @@map("health_space_posts")
+}
+
+model PeerConversation {
+  recipient   User          @relation("PeerRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+  requester   User          @relation("PeerRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  id          String        @id @default(uuid()) @db.Uuid
+  requesterId String        @map("requester_id") @db.Uuid
+  recipientId String        @map("recipient_id") @db.Uuid
+  pairKey     String        @unique @map("pair_key")
+  status      String        @default("pending") @db.VarChar(20)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  messages    PeerMessage[]
+
+  @@index([recipientId, status])
+  @@index([requesterId])
+  @@map("peer_conversations")
+}
+
+model PeerMessage {
+  sender         User             @relation("PeerSender", fields: [senderId], references: [id], onDelete: Restrict)
+  id             String           @id @default(uuid()) @db.Uuid
+  conversationId String           @map("conversation_id") @db.Uuid
+  conversation   PeerConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String           @map("sender_id") @db.Uuid
+  requestKey     String           @map("request_key") @db.Uuid
+  body           String
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@unique([senderId, requestKey])
+  @@index([conversationId, createdAt])
+  @@map("peer_messages")
+}
+
+model PatientSocialBlock {
+  target   User   @relation("SocialBlocked", fields: [targetId], references: [id], onDelete: Restrict)
+  blocker  User   @relation("SocialBlocker", fields: [userId], references: [id], onDelete: Restrict)
+  userId   String @map("user_id") @db.Uuid
+  targetId String @map("target_id") @db.Uuid
+
+  @@id([userId, targetId])
+  @@map("patient_social_blocks")
+}
+
+model PatientSocialReport {
+  reporter   User     @relation("SocialReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  id         String   @id @default(uuid()) @db.Uuid
+  reporterId String   @map("reporter_id") @db.Uuid
+  targetId   String   @map("target_id") @db.Uuid
+  targetKind String   @map("target_kind")
+  reason     String
+  snapshot   String
+  urgent     Boolean  @default(false)
+  status     String   @default("open")
+  resolution String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([status, urgent, createdAt])
+  @@map("patient_social_reports")
+}
+
+model PatientFeedback {
+  user      User     @relation("FeedbackOwner", fields: [userId], references: [id], onDelete: Restrict)
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  kind      String
+  subject   String   @db.VarChar(150)
+  body      String
+  status    String   @default("received")
+  escalated Boolean  @default(false)
+  history   Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@index([status, escalated])
+  @@map("patient_feedback")
+}
+
+model CareChatConsent {
+  thread       CareThread @relation(fields: [careThreadId], references: [id], onDelete: Cascade)
+  actor        User       @relation("ChatConsentActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  careThreadId String     @id @map("care_thread_id") @db.Uuid
+  accepted     Boolean    @default(false)
+  actorUserId  String     @map("actor_user_id") @db.Uuid
+  version      String
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("care_chat_consents")
+}
+
+/// A restricted, expiring registration capability. Never an API login session.
+model PatientEnrollment {
+  userId String @id @map("user_id") @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tokenHash String @unique @map("token_hash") @db.VarChar(64)
+  expiresAt DateTime @map("expires_at")
+  profileCompletedAt DateTime? @map("profile_completed_at")
+  completedAt DateTime? @map("completed_at")
+  billId String? @unique @map("bill_id") @db.Uuid
+  bill CareBill? @relation(fields: [billId], references: [id], onDelete: Restrict)
+  consentVersion String? @map("consent_version") @db.VarChar(60)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("patient_enrollments")
 }

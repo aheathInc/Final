@@ -14,8 +14,10 @@ export function buildRouter(bus: EventBus): Router {
 
   const router = Router();
   router.get('/care-threads/:care_thread_id/messages', requireAuth, c.list);
-  router.post('/care-threads/:care_thread_id/messages', requireAuth, idempotency, c.create);
+  router.post('/care-threads/:care_thread_id/messages', requireAuth, c.authorize, idempotency, c.create);
   router.post('/care-threads/:care_thread_id/messages/read', requireAuth, c.markRead);
   router.post('/realtime/token', requireAuth, c.realtimeToken);
+  router.get('/care-threads/:care_thread_id/communication-consent',requireAuth,c.chatConsent);
+  router.post('/care-threads/:care_thread_id/communication-consent',requireAuth,c.setChatConsent);
   return router;
 }

@@ -4,7 +4,10 @@ import { appendAudit, conflict, cursorArgs, forbidden, notFound, toCursorPage } 
 export interface Caller { sub: string; role: string; cpid?: string }
 export interface Meta { ip?: string | null; requestId?: string | null }
 
-function assertAuthor(caller: Caller) {
+async function assertAuthor(caller: Caller) {
+  const user = await prisma.user.findFirst({where:{id:caller.sub,role:caller.role as never,status:"active"}});
+  if (!user) throw forbidden("ROLE_NOT_PERMITTED","An active author account is required");
+  if(caller.role === "clinician" && !await prisma.clinicianProfile.findFirst({where:{userId:caller.sub,verificationStatus:"verified"}})) throw forbidden("ROLE_NOT_PERMITTED","A verified clinician is required");
   if (caller.role !== 'clinician' && caller.role !== 'platform_admin') {
     throw forbidden('ROLE_NOT_PERMITTED', 'Only a clinician or admin may manage education content');
   }
@@ -16,7 +19,7 @@ function serialiseTopic(t: { slug: string; name: string; category: string; isAct
 
 function serialiseArticle(a: {
   slug: string; title: string; summary: string; body: string | null; mediaKey: string | null;
-  language: string; format: string; readingLevel: string; mythVsFact: unknown;
+  language: string; format: string; readingLevel: string; mythVsFact: unknown; diseaseGuide: unknown; sources: unknown;
   reviewedById: string | null; reviewedAt: Date | null; publishedAt: Date | null;
   topic?: { slug: string };
 }) {
@@ -31,6 +34,7 @@ function serialiseArticle(a: {
     format: a.format,
     reading_level: a.readingLevel,
     myth_vs_fact: a.mythVsFact ?? [],
+    disease_guide: a.diseaseGuide, sources: a.sources,
     reviewed_by_id: a.reviewedById,
     reviewed_at: a.reviewedAt?.toISOString() ?? null,
   };
@@ -38,6 +42,7 @@ function serialiseArticle(a: {
 
 /** Admin only. The category an article is filed under. */
 export async function createTopic(caller: Caller, input: { slug: string; name: string; category: string }, meta: Meta) {
+  await assertAuthor(caller);
   if (caller.role !== 'platform_admin') throw forbidden('ROLE_NOT_PERMITTED', 'Only an admin may create topics');
 
   const existing = await prisma.educationTopic.findUnique({ where: { slug: input.slug } });
@@ -79,10 +84,11 @@ export async function createArticle(
   input: {
     topic_slug: string; slug: string; title: string; summary: string; body?: string;
     language: string; format?: string; reading_level?: string; media_key?: string;
+    disease_guide?: Record<string,string>; sources?: {title:string;url:string}[];
   },
   meta: Meta,
 ) {
-  assertAuthor(caller);
+  await assertAuthor(caller);
 
   const topic = await prisma.educationTopic.findUnique({ where: { slug: input.topic_slug } });
   if (!topic) throw notFound('Topic not found');
@@ -95,6 +101,7 @@ export async function createArticle(
   const article = await prisma.educationArticle.create({
     data: {
       topicId: topic.id,
+      diseaseGuide: input.disease_guide ?? {}, sources: input.sources ?? [],
       slug: input.slug,
       title: input.title,
       summary: input.summary,
@@ -123,7 +130,8 @@ export async function createArticle(
  * this is what a "who approved this claim" question is answered from later.
  */
 export async function publishArticle(slug: string, language: string, caller: Caller, meta: Meta) {
-  assertAuthor(caller);
+  await assertAuthor(caller);
+  if (caller.role !== 'clinician') throw forbidden('ROLE_NOT_PERMITTED', 'A verified clinician must review and publish health education.');
 
   const article = await prisma.educationArticle.findUnique({
     where: { slug_language: { slug, language: language as never } },
@@ -148,7 +156,7 @@ export async function publishArticle(slug: string, language: string, caller: Cal
 
 /** Public. Only published content — a draft is never visible outside authoring. */
 export async function listArticles(
-  query: { topic_slug?: string; language?: string; format?: string; cursor?: string; limit: number },
+  query: { q?: string; topic_slug?: string; language?: string; format?: string; cursor?: string; limit: number },
 ) {
   const rows = await prisma.educationArticle.findMany({
     where: {
@@ -156,6 +164,7 @@ export async function listArticles(
       ...(query.topic_slug ? { topic: { slug: query.topic_slug } } : {}),
       ...(query.language ? { language: query.language as never } : {}),
       ...(query.format ? { format: query.format as never } : {}),
+      ...(query.q ? {OR:[{title:{contains:query.q,mode:'insensitive' as const}},{summary:{contains:query.q,mode:'insensitive' as const}},{body:{contains:query.q,mode:'insensitive' as const}}]} : {}),
     },
     include: { topic: true },
     orderBy: { publishedAt: 'desc' },
@@ -182,4 +191,9 @@ export async function getArticle(slug: string, requestedLanguage: string | undef
     if (match) return serialiseArticle(match);
   }
   return serialiseArticle(candidates[0]!);
+}
+
+export async function listDrafts(caller:Caller) {
+  await assertAuthor(caller);
+  return {data:(await prisma.educationArticle.findMany({where:{publishedAt:null},include:{topic:true},orderBy:{createdAt:'asc'},take:100})).map(serialiseArticle)};
 }

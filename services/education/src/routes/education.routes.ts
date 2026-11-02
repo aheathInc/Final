@@ -13,6 +13,7 @@ const idempotency = createIdempotency(env.IDEMPOTENCY_TTL_HOURS);
 export const educationRouter = Router();
 
 // Reading is public — health information must not be gated behind a login.
+educationRouter.get('/education/drafts',requireAuth,c.listDrafts);
 educationRouter.get('/education/topics', c.listTopics);
 educationRouter.get('/education/articles', c.listArticles);
 educationRouter.get('/education/articles/:slug', c.getArticle);

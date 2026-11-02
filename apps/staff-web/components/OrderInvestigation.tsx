@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, errorMessage, idem } from '@/lib/api';
@@ -25,6 +25,15 @@ export function OrderInvestigation({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [facilities, setFacilities] = useState<{ id: string; name: string }[]>([]);
+  const [facilityId, setFacilityId] = useState('');
+  const [facilityError, setFacilityError] = useState<string | null>(null);
+  useEffect(() => { let active = true;
+    api.get<{ data: { id: string; name: string }[] }>('/laboratory/facilities')
+      .then(({ data }) => { if (active) setFacilities(data.data); })
+      .catch(() => { if (active) setFacilityError('Laboratory destinations could not be loaded. Reload this page to retry.'); });
+    return () => { active = false; };
+  }, []);
 
   const selected = OPTIONS.find((o) => o.code === code) ?? OPTIONS[0]!;
 
@@ -41,6 +50,7 @@ export function OrderInvestigation({
         investigation_type: selected.type,
         urgency: 'routine',
         clinical_notes: notes.trim() || undefined,
+        facility_id: selected.type !== 'imaging' ? facilityId || undefined : undefined,
       }, idem());
       setOrderId(res.data.id);
       setNotes('');
@@ -69,6 +79,15 @@ export function OrderInvestigation({
           </select>
         </Field>
         <div className="self-end text-sm text-ink-soft">{selected.type}</div>
+      </div>
+      <div className="mt-3">
+        {selected.type !== 'imaging' && <Field label="Destination laboratory" htmlFor="investigation-facility" hint="Only staff assigned to the selected facility can receive this order.">
+          <select id="investigation-facility" className={inputClass} value={facilityId} onChange={e => setFacilityId(e.target.value)}>
+            <option value="">Unassigned — clinician-managed order</option>
+            {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </Field>}
+        {facilityError && <Notice>{facilityError}</Notice>}
       </div>
       <div className="mt-3">
         <Field label="Clinical notes" htmlFor="investigation-notes" hint="Optional">

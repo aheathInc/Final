@@ -322,11 +322,13 @@ paths:
   /auth/otp/verify:
     post:
       tags: [auth]
-      summary: Verify an OTP and issue tokens
+      summary: Verify OTP and return a session or restricted patient registration
       description: |
         Six digits, five-minute expiry, maximum five attempts per challenge.
         Exceeding the attempt limit invalidates the challenge entirely — a new
-        one must be requested.
+        one must be requested. New patients receive a restricted registration token,
+        not access or refresh tokens, until profile, verified TZS 4000 payment and
+        password setup are complete. Existing active patients keep ordinary login.
       operationId: verifyOtp
       security: []
       requestBody:
@@ -352,10 +354,212 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenPair'
+                oneOf:
+                  - $ref: '#/components/schemas/TokenPair'
+                  - $ref: '#/components/schemas/PatientRegistrationSession'
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /auth/registration:
+    get:
+      tags: [auth]
+      operationId: getPatientRegistration
+      summary: Resume own verified-phone registration
+      description: Uses the opaque registration token in Authorization Bearer; ordinary login JWTs are not accepted. Returns step, phone_number, fee, profile, bill and payment.
+      responses:
+        '200':
+          description: Saved registration status
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /auth/registration/locations:
+    post:
+      tags: [auth]
+      operationId: searchRegistrationResidence
+      summary: Suggest places in Tanzania as the patient types
+      description: Requires a valid opaque registration token. Only the place query is sent to the configured Photon provider. Returns up to five labels; free-text residence remains supported. No GPS or inferred administrative hierarchy is stored.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [q]
+              properties:
+                q: {type: string, minLength: 3, maxLength: 100}
+      responses:
+        '200':
+          description: Place suggestions and source attribution
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [places, attribution]
+                properties:
+                  places:
+                    type: array
+                    maxItems: 5
+                    items:
+                      type: object
+                      required: [name, context, label]
+                      properties:
+                        name: {type: string}
+                        context: {type: string}
+                        label: {type: string, maxLength: 250}
+                  attribution:
+                    type: object
+                    required: [name, url]
+                    properties:
+                      name: {type: string}
+                      url: {type: string, format: uri}
+        '401': {description: Registration token expired or invalid}
+        '422': {description: Invalid search query}
+        '429': {description: Search budget exceeded; wait before retrying}
+        '503': {description: Provider unavailable; manual residence entry is still allowed}
+  /auth/registration/profile:
+    put:
+      tags: [auth]
+      operationId: savePatientRegistrationProfile
+      summary: Save registration details and issue the single TZS 4000 bill
+      description: Requires the opaque registration token. Phone is inherited from OTP verification and cannot be changed here.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PatientRegistrationProfile' }
+      responses:
+        '200':
+          description: Saved profile and registration status
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /auth/registration/complete:
+    post:
+      tags: [auth]
+      operationId: completePatientRegistration
+      summary: Set password after verified registration payment and activate account
+      description: Requires the single-use opaque registration token, completed profile and verified unrefunded server-priced payment. Production requires live payment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [password]
+              properties:
+                password: { type: string, minLength: 12, maxLength: 200, writeOnly: true }
+                device_id: { type: string, maxLength: 128 }
+      responses:
+        '200':
+          description: Activated patient session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: Registration incomplete or payment not verified
+  /auth/patient/login:
+    post:
+      tags: [auth]
+      operationId: loginPatientPassword
+      security: []
+      summary: Patient phone and password login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone_number, password]
+              properties:
+                phone_number: { type: string, pattern: '^\+[1-9][0-9]{7,14}$' }
+                password: { type: string, maxLength: 200, writeOnly: true }
+                device_id: { type: string, maxLength: 128 }
+      responses:
+        '200':
+          description: Patient session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '423':
+          description: Too many failed password attempts
+  /payments/registration/receipt:
+    get:
+      tags: [payments]
+      operationId: downloadRegistrationReceipt
+      summary: Download own settled registration receipt before account activation
+      description: Requires an unexpired opaque enrollment token. Uses only its own registration bill. Simulated/test payments are prominently labelled and refunds are included.
+      responses:
+        '200':
+          description: PDF attachment; Cache-Control no-store
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+        '401': {description: Invalid or expired enrollment token}
+        '409': {description: No confirmed payment exists yet}
+  /payments/bills/{bill_id}/receipt:
+    get:
+      tags: [payments]
+      operationId: downloadBillReceipt
+      summary: Download a settled bill receipt as a PDF
+      description: Active payer or active platform administrator only. Includes original paid amount and current refund totals. Does not include clinical details.
+      parameters:
+        - name: bill_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: PDF attachment; Cache-Control no-store
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+        '401': {description: Authentication required}
+        '403': {description: Account inactive or role not permitted}
+        '404': {description: Bill not found or not owned by caller}
+        '409': {description: No confirmed payment exists yet}
+  /payments/registration/options:
+    get:
+      tags: [payments]
+      operationId: getRegistrationPaymentOptions
+      summary: Configured payment options for an opaque registration token
+      responses:
+        '200':
+          description: Processor, environment, carrier options and required payer fields
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+  /payments/registration/intents:
+    post:
+      tags: [payments]
+      operationId: createRegistrationPaymentIntent
+      summary: Pay the registration token owner's server-issued bill
+      description: Requires the opaque registration token. Reuses a pending intent; clients cannot set price, currency, bill ID or settlement status.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [provider, payer_phone]
+              properties:
+                provider: { type: string, enum: [mpesa, tigo_pesa, airtel_money] }
+                payer_phone: { type: string, pattern: '^\+255[0-9]{9}$' }
+                payer_email: { type: string, format: email }
+      responses:
+        '201':
+          description: Pending payment intent, not proof of settlement
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
   /auth/login:
     post:
       tags: [auth]
@@ -548,6 +752,10 @@ paths:
                 region_code:
                   type: string
                   maxLength: 20
+                reporting_area_code:
+                  type: [string, 'null']
+                  maxLength: 64
+                  description: Existing administrative catalogue code; null clears the link. Unknown geography is never inferred.
       responses:
         '200':
           description: Updated profile
@@ -1224,6 +1432,14 @@ paths:
                   type: string
                   format: uuid
                   description: Optional verified clinician to target using the existing consultation matching rules.
+                consultation_mode:
+                  $ref: '#/components/schemas/ConsultationMode'
+                modality:
+                  $ref: '#/components/schemas/ConsultationModality'
+                facility_id:
+                  type: string
+                  format: uuid
+                  description: Required for hospital mode; forbidden for remote mode. Hospital modality is in_person; explicit remote requests select video, voice, or chat.
                 channel:
                   $ref: '#/components/schemas/Channel'
                 symptom_text:
@@ -1284,6 +1500,133 @@ paths:
                       $ref: '#/components/schemas/ConsultationRequest'
                   meta:
                     $ref: '#/components/schemas/CursorMeta'
+
+  /consultations/options:
+    get:
+      tags: [consultations]
+      summary: List consultation modes, prices, and active hospitals or clinics
+      operationId: getConsultationOptions
+      responses:
+        '200':
+          description: Request form options
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [modes, remote_modalities, remote_fees, facilities]
+                properties:
+                  modes:
+                    type: array
+                    items: { $ref: '#/components/schemas/ConsultationMode' }
+                  remote_modalities:
+                    type: array
+                    items: { type: string, enum: [video, voice, chat] }
+                  remote_fees:
+                    type: object
+                    properties:
+                      general_practice: { type: integer, const: 5000 }
+                      specialist: { type: integer, const: 8000 }
+                      currency: { type: string, const: TZS }
+                  facilities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        region_code: { type: [string, 'null'] }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /consultations/{consultation_id}/call:
+    get:
+      tags: [consultations]
+      summary: Read participant-scoped WebRTC signalling and ICE configuration
+      operationId: getConsultationCall
+      parameters:
+        - $ref: '#/components/parameters/ConsultationId'
+      responses:
+        '200':
+          description: Current call; requires an accepted remote audio/video consultation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsultationCallState' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /consultations/{consultation_id}/call/offer:
+    post:
+      tags: [consultations]
+      summary: Assigned doctor starts a WebRTC call using a client-generated retry UUID
+      operationId: offerConsultationCall
+      parameters:
+        - $ref: '#/components/parameters/ConsultationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [call_id, sdp]
+              properties:
+                call_id: { type: string, format: uuid }
+                sdp: { type: string, minLength: 10, maxLength: 100000, pattern: '^v=0' }
+      responses:
+        '201':
+          description: Offered call; one active call per consultation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsultationCallState' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /consultations/{consultation_id}/call/{call_id}/answer:
+    post:
+      tags: [consultations]
+      summary: Answer the other participant's call
+      operationId: answerConsultationCall
+      parameters:
+        - $ref: '#/components/parameters/ConsultationId'
+        - name: call_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sdp]
+              properties:
+                sdp: { type: string, minLength: 10, maxLength: 100000, pattern: '^v=0' }
+      responses:
+        '200':
+          description: Answered call
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsultationCallState' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /consultations/{consultation_id}/call/{call_id}/end:
+    post:
+      tags: [consultations]
+      summary: End the call and clear its SDP
+      operationId: endConsultationCall
+      parameters:
+        - $ref: '#/components/parameters/ConsultationId'
+        - name: call_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Call ended
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ended]
+                properties:
+                  ended: { type: boolean }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /consultations/{consultation_id}:
     get:
@@ -3424,9 +3767,9 @@ paths:
       tags: [network]
       summary: Open a discussion
       description: |
-        Verified clinicians only. A case discussion must reference a care
-        thread, and the platform de-identifies it on the way in — the point is
-        the clinical question, not the patient's identity.
+        Active, verified group members only. Case discussions require an assigned care
+        thread. The thread reference is never returned to group members. Clinicians
+        must omit patient identifiers from free text; there is no automatic text redaction.
       operationId: createDiscussion
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -3456,9 +3799,9 @@ paths:
       tags: [network]
       summary: Get a discussion with its replies
       description: |
-        Never joins patient identity, even for a case discussion — what is
-        shared is the clinical question, de-identified on the way in; this
-        endpoint has no path back to who the patient is.
+        Requires active verified membership. Patient identity and care-thread references
+        are never joined into group responses. Returns the first 50 chronological replies
+        and replies_meta for pagination. Authors are responsible for de-identifying free text.
       operationId: getDiscussion
       parameters:
         - name: discussion_id
@@ -3475,6 +3818,8 @@ paths:
                   - $ref: '#/components/schemas/Discussion'
                   - type: object
                     properties:
+                      community_name: { type: string }
+                      replies_meta: { $ref: '#/components/schemas/CursorMeta' }
                       replies:
                         type: array
                         items: { $ref: '#/components/schemas/DiscussionReply' }
@@ -3482,6 +3827,25 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
 
   /network/discussions/{discussion_id}/replies:
+    get:
+      tags: [network]
+      summary: Read paginated replies in a joined professional group
+      operationId: listDiscussionReplies
+      parameters:
+        - $ref: '#/components/parameters/DiscussionId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Replies in chronological order, including parent reply references
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/DiscussionReply' } }
+                  meta: { $ref: '#/components/schemas/CursorMeta' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       tags: [network]
       summary: Reply to a discussion
@@ -3498,12 +3862,123 @@ paths:
               required: [body]
               properties:
                 body: { type: string, maxLength: 8000 }
+                parent_reply_id: { type: string, format: uuid, description: Optional parent in this same discussion. Omit for a group-wide reply to the discussion. Maximum eight nesting levels. }
       responses:
         '201':
           description: Reply posted
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DiscussionReply' }
+
+  /network/communities/{community_id}/membership:
+    parameters:
+      - name: community_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      tags: [network]
+      summary: Join a group or set its notification preference
+      operationId: joinCommunity
+      description: Requires an active verified clinician. Replies mode notifies the discussion author and clinicians who have replied; all includes new posts and replies; muted suppresses new notifications.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notification_mode: { type: string, enum: [all, replies, muted], default: replies }
+      responses:
+        '200': { description: Membership and notification preference saved }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [network]
+      summary: Leave a group and remove its notifications
+      operationId: leaveCommunity
+      responses:
+        '200': { description: Membership removed }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /network/notifications:
+    get:
+      tags: [network]
+      summary: Read own professional group notifications
+      operationId: listNetworkNotifications
+      responses:
+        '200':
+          description: Latest 50 notifications and total unread count in active joined groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread_count: { type: integer }
+                  data: { type: array, items: { $ref: '#/components/schemas/ProfessionalNotification' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /network/notifications/{notification_id}/read:
+    post:
+      tags: [network]
+      summary: Mark own notification as read
+      operationId: readNetworkNotification
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Notification marked read }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /referrals/{referral_id}/messages:
+    parameters:
+      - name: referral_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [network]
+      summary: Read a patient-authorized clinician handoff
+      description: Referring and eligible destination clinicians only. Requires active exact-thread facility consent. Draft, cancelled and expired referrals are inaccessible; completed and declined conversations are read-only.
+      operationId: listReferralMessages
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Paginated handoff messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/DigitalReferralMessage' } }
+                  meta: { $ref: '#/components/schemas/CursorMeta' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [network]
+      summary: Send a secure referral handoff message
+      description: Checks current authorization on every retry. Requires an open submitted referral; client_message_id deduplicates a sender's retries, and reusing it for different text conflicts. Audit records omit message bodies.
+      operationId: createReferralMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body, client_message_id]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 4000 }
+                client_message_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Message saved or prior message returned on retry
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DigitalReferralMessage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
 
   /network/second-opinions:
     get:
@@ -4548,18 +5023,105 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /surveillance/regional-insights:
+    get:
+      tags: [surveillance]
+      operationId: getRegionalInsights
+      summary: Health & Regional Insights
+      description: Active platform administrators only. Immutable monthly aggregates with a minimum of 10 distinct patients per base cell. Parent totals sum published cells only. No patient identities or household coordinates.
+      parameters:
+        - { name: from, in: query, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' } }
+        - { name: to, in: query, schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' } }
+        - { name: area, in: query, schema: { type: string } }
+        - { name: condition, in: query, schema: { type: string } }
+        - { name: level, in: query, schema: { $ref: '#/components/schemas/ReportingLevel' } }
+      responses:
+        '200':
+          description: Protected aggregate report; unavailable values are null, not zero. Response uses Cache-Control no-store.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegionalInsightReport' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /surveillance/regional-insights/releases:
+    post:
+      tags: [surveillance]
+      operationId: publishRegionalInsightMonth
+      summary: Publish an authorized completed UTC month
+      description: Active platform administrator only. Idempotent and immutable; later clinical edits or geography imports do not rewrite a release. Audited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [period]
+              properties:
+                period: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$', description: Completed month from 2020 onwards. }
+      responses:
+        '200':
+          description: Published or existing release
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [period, publishedAt, alreadyPublished]
+                properties:
+                  period: { type: string }
+                  publishedAt: { type: string, format: date-time }
+                  alreadyPublished: { type: boolean }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /surveillance/reporting-areas:
+    get:
+      tags: [surveillance]
+      operationId: listReportingAreas
+      summary: List recorded administrative geography
+      description: Authenticated catalogue lookup with no clinical data. Supports patient profile address entry.
+      responses:
+        '200':
+          description: Recorded areas only
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/ReportingArea' } }
+        '401': { description: Authentication required }
+    post:
+      tags: [surveillance]
+      operationId: importReportingAreas
+      summary: Import an authorized administrative geography catalogue
+      description: Active platform administrator only. Append-only metadata; every non-country needs a parent at the preceding level. Coordinates must be administrative centroids, never household locations. Existing unknown geography remains blank.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportingAreaImport' }
+      responses:
+        '200':
+          description: Areas imported
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [added]
+                properties:
+                  added: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   /surveillance/conditions:
     get:
       tags: [surveillance]
       summary: Leading diagnosed conditions by geography
       description: |
-        Aggregated and de-identified. Available at ward, district, region,
-        national and — as the platform expands — continental level, starting
-        in Tanzania.
-
-        This is the standing evidence base for government engagement: instead
-        of arguing for support in the abstract, showing in near real time where
-        the gaps actually are.
+        Authorized clinicians and administrators read immutable completed-month releases.
+        Only base cells with at least 10 distinct patients contribute; totals exclude
+        withheld cells. Dates select whole UTC months. Missing areas remain unknown.
       operationId: getSurveillanceConditions
       parameters:
         - name: level
@@ -4592,11 +5154,11 @@ paths:
   /surveillance/trends:
     get:
       tags: [surveillance]
-      summary: Trend and outbreak signal for one condition
+      summary: Published monthly diagnosis-case trends
       description: |
-        Time series with a modelled expected range. A district's malaria count
-        rising above its expected band is the signal that lets a health
-        authority act before a local rise becomes an outbreak.
+        Uses the same protected releases as regional insights. Missing months have null
+        counts, never zero. Expected bounds and model version are null; no outbreak
+        forecast is produced. Dates select whole UTC months.
       operationId: getSurveillanceTrends
       parameters:
         - name: condition_code
@@ -8670,6 +9232,9 @@ components:
         - CLINICIAN_ASSIGNMENT_INVALID
         - CLINICIAN_UNAVAILABLE
         - FACILITY_MEMBERSHIP_REQUIRED
+        - GROUP_MEMBERSHIP_REQUIRED
+        - REFERRAL_COMMUNICATION_UNAVAILABLE
+        - REFERRAL_CLOSED
         - COLLABORATOR_NOT_ELIGIBLE
         - PATIENT_CONSENT_REQUIRED
         - COLLABORATION_ALREADY_EXISTS
@@ -8798,13 +9363,47 @@ components:
       type: string
       enum: [booked, started, completed, cancelled, no_show]
 
+    ConsultationCallState:
+      type: object
+      required: [call, ice_servers, available, relay_configured, can_start]
+      properties:
+        available: { type: boolean }
+        relay_configured: { type: boolean }
+        can_start: { type: boolean, description: True only for the assigned verified doctor. Patients wait for and answer the doctor's offer. }
+        ice_servers:
+          type: array
+          items:
+            type: object
+            required: [urls]
+            properties:
+              urls:
+                type: array
+                items: { type: string }
+              username: { type: string }
+              credential: { type: string, description: Temporary relay credential; never log or persist. }
+        call:
+          type: [object, 'null']
+          required: [id, is_caller, offer, answer, expires_at]
+          properties:
+            id: { type: string, format: uuid }
+            is_caller: { type: boolean }
+            offer: { type: string }
+            answer: { type: [string, 'null'] }
+            expires_at: { type: string, format: date-time }
+
+    ConsultationMode:
+      type: string
+      enum: [hospital, remote]
+      default: remote
+      description: Hospital consultations have no consultation fee. Remote consultations cost TZS 5000 for general practice or TZS 8000 for a specialist.
+
     ConsultationModality:
       type: string
       description: |
-        `async` is store-and-forward — the clinician answers when able, without
-        both parties being online. It is the default for low-bandwidth areas and
-        the only modality guaranteed to work over SMS and USSD.
-      enum: [chat, voice, video, async]
+        Hospital mode uses `in_person`. Explicit remote requests select `chat`,
+        `voice`, or `video`; an omitted modality defaults to `chat`.
+        `async` is retained for legacy store-and-forward workflows.
+      enum: [chat, voice, video, async, in_person]
 
     AdherenceStatus:
       type: string
@@ -8863,6 +9462,25 @@ components:
           - sandbox
           - live
 
+    PatientRegistrationSession:
+      type: object
+      required: [registration_required, registration_token, registration]
+      properties:
+        registration_required: { type: boolean, enum: [true] }
+        registration_token: { type: string, description: Opaque expiring capability; never a normal API JWT. }
+        registration: { type: object, additionalProperties: true }
+    PatientRegistrationProfile:
+      type: object
+      additionalProperties: false
+      required: [full_name, date_of_birth, sex, residence, next_of_kin_name, next_of_kin_phone, consent_version]
+      properties:
+        full_name: { type: string, minLength: 3, maxLength: 150 }
+        date_of_birth: { type: string, format: date }
+        sex: { type: string, enum: [female, male, other] }
+        residence: { type: string, minLength: 3, maxLength: 250 }
+        next_of_kin_name: { type: string, minLength: 3, maxLength: 150 }
+        next_of_kin_phone: { type: string, description: E.164 number distinct from the verified patient phone. }
+        consent_version: { type: string, enum: [patient-registration-2026-10-v1] }
     TokenPair:
       type: object
       required: [access_token, refresh_token, expires_in, token_type]
@@ -8928,6 +9546,9 @@ components:
         region_code:
           type: string
           description: Used for de-identified aggregation. Never returned in analytics views alongside an id.
+        reporting_area_code:
+          type: [string, 'null']
+          description: Linked administrative area, if recorded.
         version: { type: integer }
         updated_at: { type: string, format: date-time }
 
@@ -9052,6 +9673,17 @@ components:
         care_thread_id: { type: string, format: uuid }
         patient_profile_id: { type: string, format: uuid }
         assigned_clinician_id: { type: [string, 'null'], format: uuid }
+        consultation_mode:
+          $ref: '#/components/schemas/ConsultationMode'
+        facility_id: { type: [string, 'null'], format: uuid }
+        facility_name: { type: [string, 'null'] }
+        consultation_fee_amount:
+          type: [integer, 'null']
+          minimum: 0
+          description: Zero for hospital; remote quote may be null until a doctor is assigned.
+        consultation_fee_currency: { type: string, enum: [TZS] }
+        consultation_fee_required: { type: boolean }
+        consultation_fee_policy: { type: [string, 'null'] }
         referred_from_consultation_id: { type: [string, 'null'], format: uuid }
         appointment_id:
           type: [string, 'null']
@@ -10178,6 +10810,29 @@ components:
         resulted_at: { type: [string, 'null'], format: date-time }
         version: { type: integer }
 
+    DigitalReferralMessage:
+      type: object
+      required: [id, referral_id, author_clinician_id, author_name, body, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        referral_id: { type: string, format: uuid }
+        author_clinician_id: { type: string, format: uuid }
+        author_name: { type: [string, 'null'] }
+        body: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ProfessionalNotification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [new_post, reply] }
+        discussion_id: { type: string, format: uuid }
+        title: { type: string }
+        group_name: { type: string }
+        href: { type: string }
+        read_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
+
     Community:
       type: object
       required: [id, name, specialty]
@@ -10186,6 +10841,8 @@ components:
         name: { type: string }
         specialty: { $ref: '#/components/schemas/Specialty' }
         member_count: { type: integer }
+        is_member: { type: boolean }
+        notification_mode: { type: [string, 'null'], enum: [all, replies, muted, null] }
         description: { type: [string, 'null'] }
 
     Discussion:
@@ -10197,11 +10854,12 @@ components:
         title: { type: string }
         body: { type: string }
         author_clinician_id: { type: string, format: uuid }
+        author_name: { type: string }
         is_case_discussion: { type: boolean }
         care_thread_id:
           type: [string, 'null']
           format: uuid
-          description: Present for case discussions. De-identified on the way in.
+          description: Always null in group responses. Assigned care-thread references are stored privately and never exposed to group members.
         reply_count: { type: integer }
         created_at: { type: string, format: date-time }
         version: { type: integer }
@@ -10212,6 +10870,8 @@ components:
       properties:
         id: { type: string, format: uuid }
         discussion_id: { type: string, format: uuid }
+        parent_reply_id: { type: [string, 'null'], format: uuid }
+        author_name: { type: string }
         body: { type: string }
         author_clinician_id: { type: string, format: uuid }
         created_at: { type: string, format: date-time }
@@ -10365,6 +11025,7 @@ components:
       required: [id, status, priority, purpose, clinical_summary, consultation_id, source, destination, received_by, created_at, updated_at, expires_at, version]
       properties:
         id: { type: string, format: uuid }
+        patient_reference: { type: [string, 'null'], format: uuid, description: Patient profile reference; null when clinician authorization is unavailable. }
         status: { $ref: '#/components/schemas/DigitalReferralStatus' }
         priority: { $ref: '#/components/schemas/DigitalReferralPriority' }
         purpose: { type: string }
@@ -10595,9 +11256,143 @@ components:
         submitted_at: { type: string, format: date-time }
         completed_at: { type: [string, 'null'], format: date-time }
 
+    ReportingLevel:
+      type: string
+      enum: [country, region, district, ward, village]
+    ReportingArea:
+      type: object
+      required: [code, name, level, parentCode, latitude, longitude]
+      properties:
+        code: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 150 }
+        level: { $ref: '#/components/schemas/ReportingLevel' }
+        parentCode: { type: [string, 'null'] }
+        latitude: { type: [number, 'null'], minimum: -90, maximum: 90 }
+        longitude: { type: [number, 'null'], minimum: -180, maximum: 180 }
+    ReportingAreaImport:
+      type: object
+      additionalProperties: false
+      required: [source, administrative_centroids_confirmed, areas]
+      properties:
+        source: { type: string, minLength: 5, maxLength: 300 }
+        administrative_centroids_confirmed: { type: boolean, const: true }
+        areas:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            type: object
+            additionalProperties: false
+            required: [code, name, level, parent_code]
+            properties:
+              code: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$' }
+              name: { type: string, minLength: 1, maxLength: 150 }
+              level: { $ref: '#/components/schemas/ReportingLevel' }
+              parent_code: { type: [string, 'null'] }
+              latitude: { type: [number, 'null'], minimum: -90, maximum: 90 }
+              longitude: { type: [number, 'null'], minimum: -180, maximum: 180 }
+    PublishedCaseCount:
+      type: [integer, 'null']
+      description: Sum of published base cells only. Null includes absent and suppressed data, never interpreted as zero.
+    RegionalInsightReport:
+      type: object
+      required: [source, privacy, areas, conditions, conditionLabels, filters, availablePeriods, releases, totalCases, unlocatedCases, distribution, diseaseComparison, diseases, trend]
+      properties:
+        source: { type: string }
+        privacy:
+          type: object
+          required: [minimumParticipants, rule]
+          properties:
+            minimumParticipants: { type: integer, const: 10 }
+            rule: { type: string }
+        areas: { type: array, items: { $ref: '#/components/schemas/ReportingArea' } }
+        conditions: { type: array, items: { type: string } }
+        conditionLabels: { type: object, additionalProperties: { type: string } }
+        filters:
+          type: object
+          properties:
+            from: { type: string }
+            to: { type: string }
+            area: { type: string }
+            condition: { type: string }
+            level: { $ref: '#/components/schemas/ReportingLevel' }
+        availablePeriods: { type: array, items: { type: string } }
+        releases:
+          type: array
+          items:
+            type: object
+            required: [period, publishedAt]
+            properties:
+              period: { type: string }
+              publishedAt: { type: string, format: date-time }
+        totalCases: { $ref: '#/components/schemas/PublishedCaseCount' }
+        unlocatedCases: { $ref: '#/components/schemas/PublishedCaseCount' }
+        distribution:
+          type: array
+          items:
+            allOf:
+              - { $ref: '#/components/schemas/ReportingArea' }
+              - type: object
+                required: [cases, leadingDisease]
+                properties:
+                  cases: { $ref: '#/components/schemas/PublishedCaseCount' }
+                  leadingDisease:
+                    oneOf:
+                      - type: 'null'
+                      - type: object
+                        required: [code, name, cases]
+                        properties:
+                          code: { type: string }
+                          name: { type: string }
+                          cases: { $ref: '#/components/schemas/PublishedCaseCount' }
+        diseaseComparison:
+          type: object
+          required: [latestPeriod, previousPeriod]
+          properties:
+            latestPeriod: { type: [string, 'null'] }
+            previousPeriod: { type: [string, 'null'], description: 'The calendar month immediately before latestPeriod, even if unpublished.' }
+        diseases:
+          type: array
+          items:
+            type: object
+            required: [code, name, cases, latestCases, previousCases, changeCases, changePercent, direction, series]
+            properties:
+              code: { type: string }
+              name: { type: string }
+              cases: { $ref: '#/components/schemas/PublishedCaseCount' }
+              latestCases: { $ref: '#/components/schemas/PublishedCaseCount' }
+              previousCases: { $ref: '#/components/schemas/PublishedCaseCount' }
+              changeCases: { type: [integer, 'null'] }
+              changePercent: { type: [number, 'null'], description: Rounded to one decimal; unavailable unless both consecutive months have published counts. }
+              direction: { type: string, enum: [rising, falling, stable, unavailable] }
+              series:
+                type: array
+                items:
+                  type: object
+                  required: [period, cases]
+                  properties:
+                    period: { type: string }
+                    cases: { $ref: '#/components/schemas/PublishedCaseCount' }
+        trend:
+          type: array
+          items:
+            type: object
+            required: [period, cases, areas]
+            properties:
+              period: { type: string }
+              cases: { $ref: '#/components/schemas/PublishedCaseCount' }
+              areas:
+                type: array
+                items:
+                  type: object
+                  required: [code, cases]
+                  properties:
+                    code: { type: string }
+                    cases: { $ref: '#/components/schemas/PublishedCaseCount' }
+
     GeoLevel:
       type: string
-      enum: [ward, district, region, national, continental]
+      enum: [village, ward, district, region, country, national]
 
     ConditionCount:
       type: object
@@ -10615,12 +11410,12 @@ components:
       required: [period, count]
       properties:
         period: { type: string, format: date }
-        count: { type: integer }
+        count: { type: [integer, 'null'] }
         expected_low: { type: [number, 'null'] }
         expected_high: { type: [number, 'null'] }
         above_expected:
           type: boolean
-          description: The outbreak signal — a count outside its modelled band.
+          description: Always false; monthly releases do not provide outbreak forecasts.
 
     TrendSeries:
       type: object
@@ -10632,7 +11427,7 @@ components:
         points:
           type: array
           items: { $ref: '#/components/schemas/TrendPoint' }
-        model_version: { type: string }
+        model_version: { type: [string, 'null'] }
 
     InsuranceCoverage:
       type: object
@@ -10730,7 +11525,7 @@ components:
 
     PaymentPurpose:
       type: string
-      enum: [consultation_fee, pharmacy_purchase, insurance_copay, subscription, other]
+      enum: [registration_fee, consultation_fee, pharmacy_purchase, insurance_copay, subscription, other]
 
     PaymentStatus:
       type: string
@@ -11505,6 +12300,8 @@ components:
         created_at: { type: string, format: date-time }
         expires_at: { type: string, format: date-time }
         paid_at: { type: [string, 'null'], format: date-time }
+        payable: { type: boolean, description: False for free consultations and bills that are no longer due or have expired. Returned by the bill list. }
+        payment_block_reason: { type: [string, 'null'] }
     PaymentOptions:
       type: object
       required: [method, providers, processor, environment, requires_email]

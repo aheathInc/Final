@@ -2,6 +2,20 @@ import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { resolveServiceUrl } from './services';
 
+function readAccessClaims(accessToken: string | undefined): { sub?: string; role?: string } {
+  if (!accessToken) return {};
+  try {
+    const payload = accessToken.split('.')[1];
+    if (!payload) return {};
+    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      sub?: string;
+      role?: string;
+    };
+  } catch {
+    return {};
+  }
+}
+
 /**
  * next-auth is a session container here, not an identity provider. The real
  * authentication happens where it already does — POST /auth/login in the auth
@@ -71,12 +85,14 @@ export const authOptions: NextAuthOptions = {
 
         if (!res || !res.ok) return null;
         const data = await res.json();
+        const claims = readAccessClaims(data.access_token);
+        if (!claims.sub || !claims.role || !data.refresh_token) return null;
 
         return {
-          id: data.user?.id ?? 'unknown',
+          id: data.user?.id ?? claims.sub,
           name: data.user?.full_name ?? null,
           email: data.user?.email ?? credentials.email,
-          role: data.user?.role ?? 'clinician',
+          role: data.user?.role ?? claims.role,
           accessToken: data.access_token,
           refreshToken: data.refresh_token,
           accessTokenExpires: Date.now() + (data.expires_in ?? 900) * 1000,

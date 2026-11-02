@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use Face ID to unlock your A-Health account on this device.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>A-Health uses your location only when you request nearby pharmacies.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -66,5 +70,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+    <key>NSCameraUsageDescription</key>
+    <string>Kamera inatumika unapokubali video consultation na daktari.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Microphone inatumika unapokubali audio au video consultation na daktari.</string>
 </dict>
+<!-- Camera and microphone are requested only when joining a consultation call. -->
 </plist>

@@ -13,6 +13,11 @@ export type LanguageCode = 'sw' | 'en' | 'fr' | 'ha' | 'am';
 type Template = (vars: Record<string, string>) => string;
 
 const TEMPLATES: Record<string, Partial<Record<LanguageCode, Template>>> = {
+  'patient.peer_invitation': {sw:()=> 'A-Health: Una invitation mpya ya peer chat. Fungua app kuchagua kukubali au kukataa.',en:()=> 'A-Health: You have a peer chat invitation. Open the app to accept or decline.'},
+  'patient.peer_message': {sw:()=> 'A-Health: Una ujumbe mpya. Fungua app kuusoma kwa faragha.',en:()=> 'A-Health: You have a new message. Open the app to read it privately.'},
+  'patient.community_review': {sw:()=> 'A-Health: Post yako ina taarifa mpya ya moderation. Fungua community kwenye app.',en:()=> 'A-Health: Your community post has a moderation update. Open the app.'},
+  'patient.report_resolved': {sw:()=> 'A-Health: Ripoti yako imefanyiwa kazi. Fungua app kuona taarifa.',en:()=> 'A-Health: Your safety report has been reviewed. Open the app for details.'},
+  'patient.feedback_updated': {sw:()=> 'A-Health: Feedback yako ina taarifa mpya. Fungua Fuatilia feedback kwenye app.',en:()=> 'A-Health: Your feedback has an update. Open feedback tracking in the app.'},
   'payment.verified': {
     sw:(v)=>`A-Health: Malipo ya ${v.reference??'bili yako'} yamethibitishwa. Fungua A-Health kwa risiti.`,
     en:(v)=>`A-Health: Payment for ${v.reference??'your bill'} is verified. Open A-Health for your receipt.`,

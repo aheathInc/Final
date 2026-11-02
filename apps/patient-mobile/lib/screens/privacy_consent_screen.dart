@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -67,7 +68,7 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
       final user = await Session.user();
       final profileId = user?['patient_profile_id'] as String?;
       if (profileId == null) {
-        throw const FormatException('Akaunti hii haina wasifu wa mgonjwa.');
+        throw FormatException(L.tr('Akaunti hii haina wasifu wa mgonjwa.'));
       }
       final results = await Future.wait([
         _repository.consents(profileId),
@@ -90,10 +91,16 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
         if (!mounted) return;
         setState(() {
           _facilities = facilityRows is List
-              ? facilityRows.whereType<Map>().map((row) => Map<String, dynamic>.from(row)).toList()
+              ? facilityRows
+                  .whereType<Map>()
+                  .map((row) => Map<String, dynamic>.from(row))
+                  .toList()
               : [];
           _patientConsultations = consultationRows is List
-              ? consultationRows.whereType<Map>().map((row) => Map<String, dynamic>.from(row)).toList()
+              ? consultationRows
+                  .whereType<Map>()
+                  .map((row) => Map<String, dynamic>.from(row))
+                  .toList()
               : [];
         });
       } catch (_) {
@@ -110,7 +117,7 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
 
   String _message(Object error) => error is ApiException
       ? '${error.message} (${error.code ?? error.status})'
-      : 'Taarifa hazikuweza kusomwa. Jaribu tena.';
+      : L.tr('Taarifa hazikuweza kusomwa. Jaribu tena.');
 
   Future<void> _grant() async {
     final profileId = _profileId;
@@ -119,11 +126,11 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
     final threadId = _threadId.text.trim();
     if ((_grantee == 'clinician' || _grantee == 'facility') &&
         !_isUuid(recipientId)) {
-      setState(() => _error = 'Weka kitambulisho halali cha mpokeaji.');
+      setState(() => _error = L.tr('Weka kitambulisho halali cha mpokeaji.'));
       return;
     }
     if (_scope == 'current_thread' && !_isUuid(threadId)) {
-      setState(() => _error = 'Weka kitambulisho halali cha mazungumzo.');
+      setState(() => _error = L.tr('Weka kitambulisho halali cha mazungumzo.'));
       return;
     }
     setState(() {
@@ -155,7 +162,7 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
         _expiry = null;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ruhusa imehifadhiwa na kuthibitishwa.')),
+        SnackBar(content: Text(L.tr('Ruhusa imehifadhiwa na kuthibitishwa.'))),
       );
     } catch (error) {
       if (!mounted) return;
@@ -185,7 +192,7 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
         _busy = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kufutwa kwa ruhusa kumethibitishwa.')),
+        SnackBar(content: Text(L.tr('Kufutwa kwa ruhusa kumethibitishwa.'))),
       );
     } catch (error) {
       if (!mounted) return;
@@ -217,159 +224,168 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
 
   String _threadLabel(Map<String, dynamic> row) {
     final summary = row['symptom_text'] as String?;
-    if (summary == null || summary.isEmpty) return 'Mazungumzo ya huduma';
+    if (summary == null || summary.isEmpty) return L.tr('Mazungumzo ya huduma');
     return summary.length > 42 ? '${summary.substring(0, 42)}…' : summary;
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Faragha na ruhusa')),
-        body: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              const Notice(
-                'Dhibiti ruhusa zilizohifadhiwa kwa wasifu wako. Kufuta ruhusa hakubadilishi moja kwa moja udhibiti wa huduma nyingine isipokuwa huduma hiyo inatekeleza ruhusa hiyo.',
-                tone: NoticeTone.attention,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Notice(_error!)
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Faragha na ruhusa'))),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Notice(
+              L.tr(
+                  'Dhibiti ruhusa zilizohifadhiwa kwa wasifu wako. Kufuta ruhusa hakubadilishi moja kwa moja udhibiti wa huduma nyingine isipokuwa huduma hiyo inatekeleza ruhusa hiyo.'),
+              tone: NoticeTone.attention,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Notice(_error!)
+            ],
+            const SizedBox(height: 20),
+            SectionTitle(L.tr('Ruhusa zilizohifadhiwa')),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_consents.isEmpty)
+              Empty(L.tr('Hakuna ruhusa iliyohifadhiwa.'))
+            else
+              ..._consents.map(_consentCard),
+            const SizedBox(height: 24),
+            SectionTitle(L.tr('Historia ya ruhusa na ufikiaji')),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_auditHistory.isEmpty)
+              Empty(L.tr('Hakuna tukio la ruhusa au ufikiaji lililorekodiwa.'))
+            else
+              ..._auditHistory.map(_auditHistoryCard),
+            const SizedBox(height: 24),
+            SectionTitle(L.tr('Toa ruhusa mpya')),
+            DropdownButtonFormField<String>(
+              initialValue: _grantee,
+              decoration: InputDecoration(labelText: L.tr('Aina ya mpokeaji')),
+              items: [
+                for (final item in _granteeTypes)
+                  DropdownMenuItem(value: item, child: Text(item)),
               ],
-              const SizedBox(height: 20),
-              const SectionTitle('Ruhusa zilizohifadhiwa'),
-              if (_loading)
-                const Center(child: CircularProgressIndicator())
-              else if (_consents.isEmpty)
-                const Empty('Hakuna ruhusa iliyohifadhiwa.')
-              else
-                ..._consents.map(_consentCard),
-              const SizedBox(height: 24),
-              const SectionTitle('Historia ya ruhusa na ufikiaji'),
-              if (_loading)
-                const Center(child: CircularProgressIndicator())
-              else if (_auditHistory.isEmpty)
-                const Empty('Hakuna tukio la ruhusa au ufikiaji lililorekodiwa.')
-              else
-                ..._auditHistory.map(_auditHistoryCard),
-              const SizedBox(height: 24),
-              const SectionTitle('Toa ruhusa mpya'),
-              DropdownButtonFormField<String>(
-                initialValue: _grantee,
-                decoration:
-                    const InputDecoration(labelText: 'Aina ya mpokeaji'),
-                items: [
-                  for (final item in _granteeTypes)
-                    DropdownMenuItem(value: item, child: Text(item)),
-                ],
-                onChanged: _busy
-                    ? null
-                    : (value) => setState(() => _grantee = value ?? _grantee),
-              ),
-              if (_grantee == 'clinician' || _grantee == 'facility') ...[
-                const SizedBox(height: 10),
-                if (_grantee == 'facility' && _scope == 'current_thread' && _facilities.isNotEmpty)
-                  DropdownButtonFormField<String>(
-                    initialValue: _facilities.any((row) => row['id'] == _recipientId.text)
-                        ? _recipientId.text
-                        : null,
-                    decoration: const InputDecoration(labelText: 'Kituo kitakachopokea rufaa'),
-                    items: [
-                      for (final row in _facilities)
-                        DropdownMenuItem(
-                          value: row['id'] as String,
-                          child: Text(row['name'] as String? ?? 'Kituo'),
-                        ),
-                    ],
-                    onChanged: _busy ? null : (value) => _recipientId.text = value ?? '',
-                  )
-                else
-                  TextField(
-                    controller: _recipientId,
-                    decoration: InputDecoration(
-                      labelText: _grantee == 'clinician'
-                          ? 'Kitambulisho cha clinician'
-                          : 'Kitambulisho cha facility',
-                    ),
-                  ),
-              ],
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _grantee = value ?? _grantee),
+            ),
+            if (_grantee == 'clinician' || _grantee == 'facility') ...[
               const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: _scope,
-                decoration: const InputDecoration(
-                  labelText: 'Wigo unaoungwa mkono',
-                ),
-                items: [
-                  for (final item in _consentScopes)
-                    DropdownMenuItem(value: item, child: Text(item)),
-                ],
-                onChanged: _busy
-                    ? null
-                    : (value) => setState(() => _scope = value ?? _scope),
-              ),
-              const SizedBox(height: 10),
-              if (_scope == 'current_thread' && _patientConsultations.isNotEmpty)
+              if (_grantee == 'facility' &&
+                  _scope == 'current_thread' &&
+                  _facilities.isNotEmpty)
                 DropdownButtonFormField<String>(
-                initialValue: _threadOptions.any((row) => row['care_thread_id'] == _threadId.text)
-                      ? _threadId.text
-                      : null,
+                  initialValue:
+                      _facilities.any((row) => row['id'] == _recipientId.text)
+                          ? _recipientId.text
+                          : null,
                   decoration: InputDecoration(
-                    labelText: _grantee == 'facility'
-                        ? 'Mazungumzo yatakayotumika kwa ruhusa ya rufaa'
-                        : 'Mazungumzo ya huduma',
-                  ),
+                      labelText: L.tr('Kituo kitakachopokea rufaa')),
                   items: [
-                    for (final row in _threadOptions)
-                      if (row['care_thread_id'] is String)
-                        DropdownMenuItem(
-                          value: row['care_thread_id'] as String,
-                          child: Text(_threadLabel(row)),
-                        ),
+                    for (final row in _facilities)
+                      DropdownMenuItem(
+                        value: row['id'] as String,
+                        child: Text(row['name'] as String? ?? L.tr('Kituo')),
+                      ),
                   ],
-                  onChanged: _busy ? null : (value) => _threadId.text = value ?? '',
+                  onChanged:
+                      _busy ? null : (value) => _recipientId.text = value ?? '',
                 )
               else
                 TextField(
-                  controller: _threadId,
+                  controller: _recipientId,
                   decoration: InputDecoration(
-                    labelText: _scope == 'current_thread'
-                        ? 'Kitambulisho cha thread (kinahitajika)'
-                        : 'Kitambulisho cha thread (hiari)',
+                    labelText: _grantee == 'clinician'
+                        ? L.tr('Kitambulisho cha clinician')
+                        : L.tr('Kitambulisho cha facility'),
                   ),
                 ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _reason,
-                maxLength: 500,
-                decoration: const InputDecoration(
-                  labelText: 'Sababu / madhumuni (hiari)',
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _busy ? null : _chooseExpiry,
-                icon: const Icon(Icons.event_outlined),
-                label: Text(
-                  _expiry == null
-                      ? 'Weka mwisho wa muda (hiari)'
-                      : 'Inaisha: ${_date(_expiry!.toIso8601String())}',
-                ),
-              ),
-              if (_expiry != null)
-                TextButton(
-                  onPressed:
-                      _busy ? null : () => setState(() => _expiry = null),
-                  child: const Text('Ondoa mwisho wa muda'),
-                ),
-              FilledButton.icon(
-                onPressed: _busy ? null : _grant,
-                icon: const Icon(Icons.verified_user_outlined),
-                label: const Text('Hifadhi ruhusa'),
-              ),
             ],
-          ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: _scope,
+              decoration: InputDecoration(
+                labelText: L.tr('Wigo unaoungwa mkono'),
+              ),
+              items: [
+                for (final item in _consentScopes)
+                  DropdownMenuItem(value: item, child: Text(item)),
+              ],
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _scope = value ?? _scope),
+            ),
+            const SizedBox(height: 10),
+            if (_scope == 'current_thread' && _patientConsultations.isNotEmpty)
+              DropdownButtonFormField<String>(
+                initialValue: _threadOptions
+                        .any((row) => row['care_thread_id'] == _threadId.text)
+                    ? _threadId.text
+                    : null,
+                decoration: InputDecoration(
+                  labelText: _grantee == 'facility'
+                      ? L.tr('Mazungumzo yatakayotumika kwa ruhusa ya rufaa')
+                      : L.tr('Mazungumzo ya huduma'),
+                ),
+                items: [
+                  for (final row in _threadOptions)
+                    if (row['care_thread_id'] is String)
+                      DropdownMenuItem(
+                        value: row['care_thread_id'] as String,
+                        child: Text(_threadLabel(row)),
+                      ),
+                ],
+                onChanged:
+                    _busy ? null : (value) => _threadId.text = value ?? '',
+              )
+            else
+              TextField(
+                controller: _threadId,
+                decoration: InputDecoration(
+                  labelText: _scope == 'current_thread'
+                      ? L.tr('Kitambulisho cha thread (kinahitajika)')
+                      : L.tr('Kitambulisho cha thread (hiari)'),
+                ),
+              ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _reason,
+              maxLength: 500,
+              decoration: InputDecoration(
+                labelText: L.tr('Sababu / madhumuni (hiari)'),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _busy ? null : _chooseExpiry,
+              icon: const Icon(Icons.event_outlined),
+              label: Text(
+                _expiry == null
+                    ? L.tr('Weka mwisho wa muda (hiari)')
+                    : L.tr("Inaisha: {0}", [_date(_expiry!.toIso8601String())]),
+              ),
+            ),
+            if (_expiry != null)
+              TextButton(
+                onPressed: _busy ? null : () => setState(() => _expiry = null),
+                child: Text(L.tr('Ondoa mwisho wa muda')),
+              ),
+            FilledButton.icon(
+              onPressed: _busy ? null : _grant,
+              icon: const Icon(Icons.verified_user_outlined),
+              label: Text(L.tr('Hifadhi ruhusa')),
+            ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   Future<void> _chooseExpiry() async {
     final today = DateTime.now();
@@ -403,21 +419,21 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Mpokeaji: $recipient'),
-            Text('Wigo: ${row['scope']}'),
-            Text('Sababu: ${row['reason'] ?? 'haikutajwa'}'),
-            Text('Hali: $status'),
-            Text('Ilitolewa: ${_date(row['granted_at'])}'),
+            Text(L.tr("Mpokeaji: {0}", [recipient])),
+            Text(L.tr("Wigo: {0}", [row['scope']])),
+            Text(L.tr("Sababu: {0}", [row['reason'] ?? 'haikutajwa'])),
+            Text(L.tr("Hali: {0}", [status])),
+            Text(L.tr("Ilitolewa: {0}", [_date(row['granted_at'])])),
             if (row['expires_at'] != null)
-              Text('Inaisha: ${_date(row['expires_at'])}'),
+              Text(L.tr("Inaisha: {0}", [_date(row['expires_at'])])),
             if (row['revoked_at'] != null)
-              Text('Ilifutwa: ${_date(row['revoked_at'])}'),
+              Text(L.tr("Ilifutwa: {0}", [_date(row['revoked_at'])])),
             if (status != 'revoked')
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: _busy ? null : () => _revoke(row['id'] as String),
-                  child: const Text('Futa ruhusa'),
+                  child: Text(L.tr('Futa ruhusa')),
                 ),
               ),
           ],
@@ -429,10 +445,10 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
   Widget _auditHistoryCard(Map<String, dynamic> row) {
     final eventType = row['event_type'] as String? ?? '';
     final title = switch (eventType) {
-      'consent.granted' => 'Ruhusa imetolewa',
-      'consent.revoked' => 'Ruhusa imefutwa',
-      'emergency.context_break_glass_access' => 'Ufikiaji wa dharura',
-      _ => 'Tukio la ruhusa',
+      'consent.granted' => L.tr('Ruhusa imetolewa'),
+      'consent.revoked' => L.tr('Ruhusa imefutwa'),
+      'emergency.context_break_glass_access' => L.tr('Ufikiaji wa dharura'),
+      _ => L.tr('Tukio la ruhusa'),
     };
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -440,11 +456,11 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
-            Text('Muda: ${_date(row['occurred_at'])}'),
-            if (row['scope'] is String) Text('Wigo: ${row['scope']}'),
+            Text(L.tr(title), style: Theme.of(context).textTheme.titleSmall),
+            Text(L.tr("Muda: {0}", [_date(row['occurred_at'])])),
+            if (row['scope'] is String) Text(L.tr("Wigo: {0}", [row['scope']])),
             if (row['grantee_type'] is String)
-              Text('Aina ya mpokeaji: ${row['grantee_type']}'),
+              Text(L.tr("Aina ya mpokeaji: {0}", [row['grantee_type']])),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -29,6 +30,7 @@ class _PremiumCardState extends State<PremiumCard> {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final palette = AppPalette.of(context);
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -103,73 +105,76 @@ class _PremiumAuroraHeroState extends State<PremiumAuroraHero>
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _animation,
-        child: Padding(padding: widget.padding, child: widget.child),
-        builder: (context, foreground) {
-          final palette = AppPalette.of(context);
-          final t =
-              _reduced ? .55 : Curves.easeOutCubic.transform(_animation.value);
-          return Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: LinearGradient(
-                begin: Alignment(-1 + .35 * t, -1),
-                end: Alignment(1 - .18 * t, 1),
-                colors: [
-                  Color.lerp(palette.heroStart, palette.heroMiddle, t)!,
-                  palette.heroMiddle,
-                  Color.lerp(palette.heroEnd, palette.deepOcean, t)!,
-                ],
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return AnimatedBuilder(
+      animation: _animation,
+      child: Padding(padding: widget.padding, child: widget.child),
+      builder: (context, foreground) {
+        final palette = AppPalette.of(context);
+        final t =
+            _reduced ? .55 : Curves.easeOutCubic.transform(_animation.value);
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: LinearGradient(
+              begin: Alignment(-1 + .35 * t, -1),
+              end: Alignment(1 - .18 * t, 1),
+              colors: [
+                Color.lerp(palette.heroStart, palette.heroMiddle, t)!,
+                palette.heroMiddle,
+                Color.lerp(palette.heroEnd, palette.deepOcean, t)!,
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: palette.petrol.withValues(alpha: .18),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: palette.petrol.withValues(alpha: .18),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -76,
-                  top: -82,
-                  child: ExcludeSemantics(
-                    child: Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: .10),
-                          width: 30,
-                        ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -76,
+                top: -82,
+                child: ExcludeSemantics(
+                  child: Container(
+                    width: 220,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .10),
+                        width: 30,
                       ),
                     ),
                   ),
                 ),
-                Positioned(
-                  right: 22,
-                  bottom: 12,
-                  child: ExcludeSemantics(
-                    child: Transform.rotate(
-                      angle: math.pi / 9,
-                      child: Icon(
-                        Icons.favorite_outline_rounded,
-                        size: 74,
-                        color: Colors.white.withValues(alpha: .07),
-                      ),
+              ),
+              Positioned(
+                right: 22,
+                bottom: 12,
+                child: ExcludeSemantics(
+                  child: Transform.rotate(
+                    angle: math.pi / 9,
+                    child: Icon(
+                      Icons.favorite_outline_rounded,
+                      size: 74,
+                      color: Colors.white.withValues(alpha: .07),
                     ),
                   ),
                 ),
-                foreground!,
-              ],
-            ),
-          );
-        },
-      );
+              ),
+              foreground!,
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class PremiumHeroButton extends StatefulWidget {
@@ -193,6 +198,7 @@ class _PremiumHeroButtonState extends State<PremiumHeroButton> {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final palette = AppPalette.of(context);
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
@@ -246,19 +252,22 @@ class PremiumSectionHeading extends StatelessWidget {
   final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 10),
-        child: Row(
-          children: [
-            Expanded(
-              child:
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-            ),
-            if (action != null && onAction != null)
-              TextButton(onPressed: onAction, child: Text(action!)),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(L.tr(title),
+                style: Theme.of(context).textTheme.titleMedium),
+          ),
+          if (action != null && onAction != null)
+            TextButton(onPressed: onAction, child: Text(action!)),
+        ],
+      ),
+    );
+  }
 }
 
 class PremiumAction extends StatelessWidget {
@@ -281,6 +290,7 @@ class PremiumAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final palette = AppPalette.of(context);
     return PremiumCard(
       onTap: onTap,
@@ -299,7 +309,7 @@ class PremiumAction extends StatelessWidget {
             child: Icon(icon, color: iconColor ?? palette.petrol, size: 23),
           ),
           const SizedBox(height: 14),
-          Text(title, style: Theme.of(context).textTheme.titleSmall),
+          Text(L.tr(title), style: Theme.of(context).textTheme.titleSmall),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -331,6 +341,7 @@ class PremiumLinkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final palette = AppPalette.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -353,7 +364,8 @@ class PremiumLinkRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: Theme.of(context).textTheme.titleSmall),
+                  Text(L.tr(title),
+                      style: Theme.of(context).textTheme.titleSmall),
                   if (subtitle != null) ...[
                     const SizedBox(height: 3),
                     Text(subtitle!,
@@ -378,29 +390,32 @@ class PremiumStatus extends StatelessWidget {
   final bool urgent;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        container: true,
-        label: label,
-        child: ExcludeSemantics(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Semantics(
+      container: true,
+      label: label,
+      child: ExcludeSemantics(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: urgent
+                ? AppPalette.of(context).urgentWash
+                : AppPalette.of(context).paperSunk,
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Text(
+            L.tr(label),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
               color: urgent
-                  ? AppPalette.of(context).urgentWash
-                  : AppPalette.of(context).paperSunk,
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: urgent
-                    ? AppPalette.of(context).clay
-                    : AppPalette.of(context).ink,
-              ),
+                  ? AppPalette.of(context).clay
+                  : AppPalette.of(context).ink,
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }

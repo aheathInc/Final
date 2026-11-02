@@ -1,0 +1,80 @@
+// Browser UX uses clearly labelled synthetic aggregates; no fake clinical rows enter the live database.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{createRequire}=require('node:module');
+const root=path.resolve(__dirname,'..');process.env.AHP_SOURCE_ROOT=root;
+const env=require('dotenv').parse(fs.readFileSync(path.join(root,'.env')));
+const dbUrl=new URL(env.DATABASE_URL);assert.equal(dbUrl.hostname,'127.0.0.1');assert.equal(dbUrl.port,'55432');assert.equal(dbUrl.pathname,'/ahealth_dev');
+const {PrismaClient}=createRequire(path.join(root,'packages/database/package.json'))('@prisma/client');
+const bcrypt=createRequire(path.join(root,'services/auth/package.json'))('bcrypt');
+const prisma=new PrismaClient({datasources:{db:{url:env.DATABASE_URL}}});
+const {chromium}=createRequire(path.join(root,'apps/staff-web/package.json'))('@playwright/test');
+const {load}=require('./lib/load-typescript.cjs');const {reportFromReleases}=load('services/surveillance/src/services/regional-insights.policy.ts');
+const out=path.join(root,'.impeccable/review/disease-insights');fs.mkdirSync(out,{recursive:true});
+const a=(code,name,level,parentCode,latitude=null,longitude=null)=>({code,name,level,parentCode,latitude,longitude});
+const areas=[a('C','Synthetic country','country',null,-6,35),a('R1','Synthetic East','region','C',-6.8,39.2),a('R2','Synthetic Central','region','C',-6.2,35.7),a('R3','Synthetic withheld area','region','C',-5,37),a('D','Synthetic district','district','R1',-6.8,39.2),a('W','Synthetic ward','ward','D',-6.8,39.2),a('V','Synthetic village','village','W',-6.8,39.2)];
+const releases=['2026-06','2026-07','2026-08','2026-09'].map((period,i)=>({period,publishedAt:new Date('2026-10-01T12:00:00Z'),payload:{version:1,areas,labels:{B50:'Synthetic disease A',J00:'Synthetic disease B'},cells:[{areaCode:'V',conditionCode:'B50',cases:48+i*7},{areaCode:'R2',conditionCode:'B50',cases:30+i*4},{areaCode:'V',conditionCode:'J00',cases:22+i*3}]}}));
+async function login(page,email){await page.goto('http://localhost:3000/login');await page.waitForLoadState('networkidle');await page.request.get('http://localhost:3000/api/auth/csrf');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(env.AHP_LOCAL_TEST_PASSWORD);await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.waitForURL(url=>!url.pathname.includes('/login'));}
+async function capture(page,name){await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(150);await page.screenshot({path:path.join(out,name+'.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'No horizontal page overflow');}
+(async()=>{
+ const browser=await chromium.launch({channel:'chrome',headless:true});
+ let reviewer;
+ try{
+  const email='regional-insights-review@dev.local', marker='AHP Local Test: Regional Insights Reviewer';
+  const existing=await prisma.user.findUnique({where:{email}});if(existing&&existing.fullName!==marker)throw Error('Refusing to change unmarked account');
+  const account={fullName:marker,phoneNumber:'TEST-REGIONAL-REVIEW',role:'platform_admin',status:'active',passwordHash:await bcrypt.hash(env.AHP_LOCAL_TEST_PASSWORD,12),failedLoginCount:0,lockedUntil:null};
+  reviewer=await prisma.user.upsert({where:{email},create:{email,...account},update:account});
+  const context=await browser.newContext({viewport:{width:1440,height:1100}});const page=await context.newPage();page.setDefaultTimeout(90000);
+  await login(page,email);await page.waitForURL('**/admin/dashboard');
+  await page.getByRole('heading',{name:'Health & Regional Insights',exact:true}).waitFor();
+  const actual=await page.request.get('http://localhost:3000/bff/surveillance/regional-insights');assert.equal(actual.status(),200);
+  const live=await actual.json();assert.ok(Array.isArray(live.availablePeriods));assert.ok(!JSON.stringify(live).includes('diagnosisText'));
+  console.log('Real administrator routing and authorized report API: PASS');
+  let mode='fixture';
+  await page.route('**/bff/surveillance/regional-insights?*',async route=>{
+   if(mode==='error')return route.fulfill({status:503,json:{error:{message:'Synthetic unavailable service'}}});
+   const q=new URL(route.request().url()).searchParams;
+   let rows=mode==='empty'?[]:releases.filter(r=>(!q.get('from')||r.period>=q.get('from'))&&(!q.get('to')||r.period<=q.get('to')));
+   const report=reportFromReleases(rows,{level:q.get('level')||'region',area:q.get('area')||undefined,condition:q.get('condition')||undefined});
+   return route.fulfill({json:{...report,source:'SYNTHETIC ACCEPTANCE DATA — no patient records',availablePeriods:mode==='empty'?[]:releases.map(r=>r.period).reverse()}});
+  });
+  await page.goto('http://localhost:3000/admin/insights');await page.getByRole('checkbox',{name:'Compare Synthetic East',exact:true}).waitFor();
+  assert.equal(await page.getByLabel('District',{exact:true}).locator('option:checked').textContent(),'Select region first');
+  assert.equal(await page.getByLabel('Ward',{exact:true}).locator('option:checked').textContent(),'Select district first');
+  assert.equal(await page.getByLabel('Village',{exact:true}).locator('option:checked').textContent(),'Select ward first');
+  await page.getByRole('heading',{name:'Trending diseases in all recorded areas',exact:true}).waitFor();
+  const ranking=page.getByRole('region',{name:'Disease ranking table',exact:true});
+  assert.ok((await ranking.innerText()).includes('Synthetic disease A'));
+  assert.ok((await ranking.innerText()).includes('Rising'));
+  await page.getByLabel('Rank diseases by',{exact:true}).selectOption('rising');
+  await page.getByRole('button',{name:'Explore disease Synthetic disease A',exact:true}).click();
+  await page.getByRole('heading',{name:'Synthetic disease A: geographic distribution',exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Disease',{exact:true}).inputValue(),'B50');
+  await page.getByRole('button',{name:'Show all diseases in this area',exact:true}).click();
+  await page.getByRole('heading',{name:'All diseases: geographic distribution',exact:true}).waitFor();
+  console.log('Disease rankings, monthly changes and disease-specific map drilldown: PASS');
+  await page.getByRole('checkbox',{name:'Compare Synthetic East',exact:true}).check();await page.getByRole('checkbox',{name:'Compare Synthetic Central',exact:true}).check();
+  assert.ok(await page.getByRole('checkbox',{name:'Compare Synthetic withheld area',exact:true}).isDisabled());
+  await page.getByText('Monthly values (accessible table)',{exact:true}).click();
+  await capture(page,'desktop');
+  await page.getByLabel('Country',{exact:true}).selectOption('C');await page.getByLabel('Region',{exact:true}).selectOption('R1');
+  await page.getByLabel('District',{exact:true}).selectOption('D');await page.getByRole('heading',{name:'Trending diseases in Synthetic district',exact:true}).waitFor();await capture(page,'district');await page.getByLabel('Ward',{exact:true}).selectOption('W');await page.getByLabel('Village',{exact:true}).selectOption('V');
+  await page.getByLabel('Disease',{exact:true}).selectOption('B50');
+  await page.getByRole('checkbox',{name:'Compare Synthetic village',exact:true}).waitFor();
+  console.log('Five-level cascading filters, diagnosis and privacy-safe comparison: PASS');
+  await page.getByRole('button',{name:'Reset filters',exact:true}).click();await page.getByRole('checkbox',{name:'Compare Synthetic East',exact:true}).waitFor();
+  await page.getByRole('button',{name:/Synthetic East: .*Filter this area/}).click();await page.getByLabel('Region',{exact:true}).waitFor();assert.equal(await page.getByLabel('Region',{exact:true}).inputValue(),'R1');
+  console.log('Interactive map area selection: PASS');
+  await page.getByRole('button',{name:'Reset filters',exact:true}).click();await page.getByRole('checkbox',{name:'Compare Synthetic East',exact:true}).waitFor();
+  await page.setViewportSize({width:390,height:844});await capture(page,'mobile');
+  await page.evaluate(()=>{document.documentElement.dataset.theme='dark';});await capture(page,'mobile-dark');
+  mode='empty';await page.reload();await page.getByRole('heading',{name:'No monthly reports published yet'}).waitFor();await capture(page,'empty');
+  mode='error';await page.reload();await page.getByText('Synthetic unavailable service',{exact:true}).waitFor();
+  mode='fixture';await page.getByRole('button',{name:'Retry',exact:true}).click();await page.getByRole('checkbox',{name:'Compare Synthetic East',exact:true}).waitFor();
+  console.log('Responsive light/dark, honest empty state, error and retry: PASS');
+  const doctor=await browser.newContext();const doctorPage=await doctor.newPage();doctorPage.setDefaultTimeout(90000);
+  const doctorFixture=JSON.parse(fs.readFileSync(path.join(root,'.local/consultation-live.json')));
+  await login(doctorPage,doctorFixture.email);await doctorPage.waitForURL('**/doctor/queue');
+  const denied=await doctorPage.request.get('http://localhost:3000/bff/surveillance/regional-insights');assert.equal(denied.status(),403);
+  await doctorPage.goto('http://localhost:3000/admin/insights');await doctorPage.waitForURL('**/doctor/queue');
+  console.log('Doctor department home and admin insights denial: PASS');
+ }finally{await browser.close();if(reviewer)await prisma.user.update({where:{id:reviewer.id},data:{status:'suspended'}});await prisma.$disconnect();}
+})().catch(e=>{console.error(e.message);process.exitCode=1;});

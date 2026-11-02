@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api.dart';
@@ -37,10 +38,10 @@ class _FamilyScreenState extends State<FamilyScreen> {
         family = familyFromJson(await Api.get('/families/me'));
       } on ApiException catch (error) {
         if (error.status != 404) {
-          familyError = 'Taarifa za kundi la familia hazipatikani.';
+          familyError = L.tr('Taarifa za kundi la familia hazipatikani.');
         }
       } catch (_) {
-        familyError = 'Taarifa za kundi la familia hazipatikani.';
+        familyError = L.tr('Taarifa za kundi la familia hazipatikani.');
       }
       if (family != null) {
         final relationships = <String, String>{
@@ -68,15 +69,15 @@ class _FamilyScreenState extends State<FamilyScreen> {
       if (mounted) {
         setState(() {
           _error = error.status == 403
-              ? 'Huna ruhusa ya kuona wategemezi hawa.'
-              : 'Wategemezi hawakuweza kupakiwa.';
+              ? L.tr('Huna ruhusa ya kuona wategemezi hawa.')
+              : L.tr('Wategemezi hawakuweza kupakiwa.');
           _loading = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'Wategemezi hawakuweza kupakiwa.';
+          _error = L.tr('Wategemezi hawakuweza kupakiwa.');
           _loading = false;
         });
       }
@@ -100,88 +101,93 @@ class _FamilyScreenState extends State<FamilyScreen> {
       if (mounted) {
         setState(() {
           _error = error.status == 409
-              ? 'Akaunti hii imefikia kikomo cha wategemezi.'
-              : 'Mtegemezi hakuweza kuongezwa.';
+              ? L.tr('Akaunti hii imefikia kikomo cha wategemezi.')
+              : L.tr('Mtegemezi hakuweza kuongezwa.');
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _error = 'Mtegemezi hakuweza kuongezwa.');
+      if (mounted)
+        setState(() => _error = L.tr('Mtegemezi hakuweza kuongezwa.'));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Familia na wategemezi')),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    const Text(
-                      'Taarifa za uhusiano tu. Rekodi za afya za mtegemezi hazionyeshwi hapa.',
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      Notice(_error!),
-                    ],
-                    if (_familyError != null) ...[
-                      const SizedBox(height: 12),
-                      Notice(_familyError!),
-                    ],
-                    const SizedBox(height: 20),
-                    const SectionTitle('Wategemezi'),
-                    if (_dependants.isEmpty)
-                      const Empty('Hakuna wategemezi walioongezwa.'),
-                    ..._dependants.map((dependant) => _memberTile(
-                          dependant,
-                          gp: _assignmentFor(dependant, 'gp_clinician'),
-                          obgyn: _assignmentFor(dependant, 'obgyn_clinician'),
-                        )),
-                    OutlinedButton.icon(
-                      onPressed: _saving ? null : _createDependant,
-                      icon: _saving
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.person_add_alt_1),
-                      label: const Text('Ongeza mtegemezi'),
-                    ),
-                    if (_family != null) ...[
-                      const SizedBox(height: 24),
-                      Text(
-                        _family!['name'] as String? ?? 'Familia',
-                        style: const TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Text(
-                          'Kundi la familia na madaktari waliopangiwa (taarifa za kusoma tu).'),
-                      const SizedBox(height: 16),
-                      const SectionTitle('Wanafamilia'),
-                      ..._familyMembersNotShownAsDependants()
-                          .map((member) => _memberTile(
-                                member,
-                                gp: _family!['gp_clinician'] as Map?,
-                                obgyn: _family!['obgyn_clinician'] as Map?,
-                              )),
-                      const SizedBox(height: 12),
-                      const SectionTitle('Madaktari waliopangiwa familia'),
-                      _assignmentCard('Daktari wa familia (GP)',
-                          _family!['gp_clinician'] as Map?),
-                      _assignmentCard('Daktari wa afya ya uzazi (OB-GYN)',
-                          _family!['obgyn_clinician'] as Map?),
-                    ],
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Familia na wategemezi'))),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Text(
+                    L.tr(
+                        'Taarifa za uhusiano tu. Rekodi za afya za mtegemezi hazionyeshwi hapa.'),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Notice(_error!),
                   ],
-                ),
+                  if (_familyError != null) ...[
+                    const SizedBox(height: 12),
+                    Notice(_familyError!),
+                  ],
+                  const SizedBox(height: 20),
+                  SectionTitle(L.tr('Wategemezi')),
+                  if (_dependants.isEmpty)
+                    Empty(L.tr('Hakuna wategemezi walioongezwa.')),
+                  ..._dependants.map((dependant) => _memberTile(
+                        dependant,
+                        gp: _assignmentFor(dependant, 'gp_clinician'),
+                        obgyn: _assignmentFor(dependant, 'obgyn_clinician'),
+                      )),
+                  OutlinedButton.icon(
+                    onPressed: _saving ? null : _createDependant,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.person_add_alt_1),
+                    label: Text(L.tr('Ongeza mtegemezi')),
+                  ),
+                  if (_family != null) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      _family!['name'] as String? ?? L.tr('Familia'),
+                      style: const TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(L.tr(
+                        'Kundi la familia na madaktari waliopangiwa (taarifa za kusoma tu).')),
+                    const SizedBox(height: 16),
+                    SectionTitle(L.tr('Wanafamilia')),
+                    ..._familyMembersNotShownAsDependants()
+                        .map((member) => _memberTile(
+                              member,
+                              gp: _family!['gp_clinician'] as Map?,
+                              obgyn: _family!['obgyn_clinician'] as Map?,
+                            )),
+                    const SizedBox(height: 12),
+                    SectionTitle(L.tr('Madaktari waliopangiwa familia')),
+                    _assignmentCard(L.tr('Daktari wa familia (GP)'),
+                        _family!['gp_clinician'] as Map?),
+                    _assignmentCard(L.tr('Daktari wa afya ya uzazi (OB-GYN)'),
+                        _family!['obgyn_clinician'] as Map?),
+                  ],
+                ],
               ),
-      );
+            ),
+    );
+  }
 
   List<Map<String, dynamic>> _familyMembersNotShownAsDependants() {
     final dependantIds =
@@ -230,8 +236,9 @@ class _FamilyScreenState extends State<FamilyScreen> {
                       member['full_name'] as String,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    Text(
-                        'Aina: ${_relationshipLabel(member['relationship'] as String)}'),
+                    Text(L.tr("Aina: {0}", [
+                      _relationshipLabel(member['relationship'] as String)
+                    ])),
                   ],
                 ),
               ),
@@ -247,12 +254,13 @@ class _FamilyScreenState extends State<FamilyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+              Text(L.tr(label),
+                  style: const TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
-              Text(clinician?['full_name'] as String? ?? 'Hajapangiwa'),
+              Text(clinician?['full_name'] as String? ?? L.tr('Hajapangiwa')),
               Text(clinician == null
-                  ? 'Hali: haijapangiwa'
-                  : 'Hali: amepangiwa'),
+                  ? L.tr('Hali: haijapangiwa')
+                  : L.tr('Hali: amepangiwa')),
             ],
           ),
         ),
@@ -260,12 +268,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
 }
 
 String _relationshipLabel(String value) => switch (value) {
-      'dependant' => 'Mtegemezi',
-      'head' => 'Mkuu wa familia',
-      'spouse' => 'Mwenza',
-      'child' => 'Mtoto',
-      'parent' => 'Mzazi',
-      'sibling' => 'Ndugu',
+      'dependant' => L.tr('Mtegemezi'),
+      'head' => L.tr('Mkuu wa familia'),
+      'spouse' => L.tr('Mwenza'),
+      'child' => L.tr('Mtoto'),
+      'parent' => L.tr('Mzazi'),
+      'sibling' => L.tr('Ndugu'),
       _ => value,
     };
 
@@ -288,68 +296,71 @@ class _CreateDependantDialogState extends State<_CreateDependantDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Ongeza mtegemezi'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _name,
-                decoration: const InputDecoration(labelText: 'Jina kamili'),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final now = DateTime.now();
-                  final value = await showDatePicker(
-                    context: context,
-                    initialDate: _dateOfBirth ?? DateTime(now.year - 10, 1, 1),
-                    firstDate: DateTime(1900),
-                    lastDate: now,
-                  );
-                  if (value != null) setState(() => _dateOfBirth = value);
-                },
-                icon: const Icon(Icons.calendar_month_outlined),
-                label: Text(_dateOfBirth == null
-                    ? 'Tarehe ya kuzaliwa'
-                    : '${_dateOfBirth!.year}-${_dateOfBirth!.month.toString().padLeft(2, '0')}-${_dateOfBirth!.day.toString().padLeft(2, '0')}'),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _sex,
-                decoration: const InputDecoration(labelText: 'Jinsia'),
-                items: const [
-                  DropdownMenuItem(value: 'female', child: Text('Mwanamke')),
-                  DropdownMenuItem(value: 'male', child: Text('Mwanaume')),
-                  DropdownMenuItem(value: 'other', child: Text('Nyingine')),
-                ],
-                onChanged: (value) => setState(() => _sex = value),
-              ),
-            ],
-          ),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return AlertDialog(
+      title: Text(L.tr('Ongeza mtegemezi')),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _name,
+              decoration: InputDecoration(labelText: L.tr('Jina kamili')),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final now = DateTime.now();
+                final value = await showDatePicker(
+                  context: context,
+                  initialDate: _dateOfBirth ?? DateTime(now.year - 10, 1, 1),
+                  firstDate: DateTime(1900),
+                  lastDate: now,
+                );
+                if (value != null) setState(() => _dateOfBirth = value);
+              },
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: Text(_dateOfBirth == null
+                  ? L.tr('Tarehe ya kuzaliwa')
+                  : '${_dateOfBirth!.year}-${_dateOfBirth!.month.toString().padLeft(2, '0')}-${_dateOfBirth!.day.toString().padLeft(2, '0')}'),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: _sex,
+              decoration: InputDecoration(labelText: L.tr('Jinsia')),
+              items: [
+                DropdownMenuItem(
+                    value: 'female', child: Text(L.tr('Mwanamke'))),
+                DropdownMenuItem(value: 'male', child: Text(L.tr('Mwanaume'))),
+                DropdownMenuItem(value: 'other', child: Text(L.tr('Nyingine'))),
+              ],
+              onChanged: (value) => setState(() => _sex = value),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Ghairi'),
-          ),
-          FilledButton(
-            onPressed: _name.text.trim().isEmpty ||
-                    _dateOfBirth == null ||
-                    _sex == null
-                ? null
-                : () => Navigator.pop(context, {
-                      'full_name': _name.text.trim(),
-                      'date_of_birth':
-                          '${_dateOfBirth!.year}-${_dateOfBirth!.month.toString().padLeft(2, '0')}-${_dateOfBirth!.day.toString().padLeft(2, '0')}',
-                      'sex': _sex,
-                    }),
-            child: const Text('Hifadhi'),
-          ),
-        ],
-      );
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(L.tr('Ghairi')),
+        ),
+        FilledButton(
+          onPressed:
+              _name.text.trim().isEmpty || _dateOfBirth == null || _sex == null
+                  ? null
+                  : () => Navigator.pop(context, {
+                        'full_name': _name.text.trim(),
+                        'date_of_birth':
+                            '${_dateOfBirth!.year}-${_dateOfBirth!.month.toString().padLeft(2, '0')}-${_dateOfBirth!.day.toString().padLeft(2, '0')}',
+                        'sex': _sex,
+                      }),
+          child: Text(L.tr('Hifadhi')),
+        ),
+      ],
+    );
+  }
 }
 
 class DependantSummaryScreen extends StatelessWidget {
@@ -365,37 +376,44 @@ class DependantSummaryScreen extends StatelessWidget {
   final Map? obgyn;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Muhtasari wa mwanafamilia')),
-        body: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              dependant['full_name'] as String,
-              style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
-            ),
-            Text(
-                'Aina: ${_relationshipLabel(dependant['relationship'] as String)}'),
-            if (dependant['date_of_birth'] is String)
-              Text('Tarehe ya kuzaliwa: ${dependant['date_of_birth']}'),
-            if (dependant['sex'] is String) Text('Jinsia: ${dependant['sex']}'),
-            const SizedBox(height: 16),
-            const Notice(
-              'Muktadha wa mtegemezi huyu umechaguliwa. Rekodi zake za afya hazionyeshwi bila ruhusa tofauti.',
-            ),
-            if (gp != null || obgyn != null) ...[
-              const SectionTitle('Madaktari waliopangiwa familia'),
-              _doctor('GP', gp),
-              _doctor('OB-GYN', obgyn),
-            ],
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Muhtasari wa mwanafamilia'))),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(
+            dependant['full_name'] as String,
+            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
+          ),
+          Text(L.tr("Aina: {0}",
+              [_relationshipLabel(dependant['relationship'] as String)])),
+          if (dependant['date_of_birth'] is String)
+            Text(L.tr("Tarehe ya kuzaliwa: {0}", [dependant['date_of_birth']])),
+          if (dependant['sex'] is String)
+            Text(L.tr("Jinsia: {0}", [dependant['sex']])),
+          const SizedBox(height: 16),
+          Notice(
+            L.tr(
+                'Muktadha wa mtegemezi huyu umechaguliwa. Rekodi zake za afya hazionyeshwi bila ruhusa tofauti.'),
+          ),
+          if (gp != null || obgyn != null) ...[
+            SectionTitle(L.tr('Madaktari waliopangiwa familia')),
+            _doctor('GP', gp),
+            _doctor('OB-GYN', obgyn),
           ],
-        ),
-      );
+        ],
+      ),
+    );
+  }
 
   Widget _doctor(String role, Map? clinician) => ListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(role),
-        subtitle: Text(clinician?['full_name'] as String? ?? 'Hajapangiwa'),
-        trailing: Text(clinician == null ? 'Haijapangiwa' : 'Amepangiwa'),
+        subtitle:
+            Text(clinician?['full_name'] as String? ?? L.tr('Hajapangiwa')),
+        trailing:
+            Text(clinician == null ? L.tr('Haijapangiwa') : L.tr('Amepangiwa')),
       );
 }

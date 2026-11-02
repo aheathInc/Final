@@ -11,6 +11,7 @@ import { ReferForOpinion } from '@/components/ReferForOpinion';
 import { urgencyStyle } from '@/lib/urgency';
 import { dateTime } from '@/lib/format';
 import { BillIssuer } from '@/components/BillIssuer';
+import { ConsultationCall } from '@/components/ConsultationCall';
 
 export default async function CasePage({ params }: { params: { consultation_id: string } }) {
   const session = await getServerSession(authOptions);
@@ -51,7 +52,14 @@ export default async function CasePage({ params }: { params: { consultation_id: 
         <div className="rounded-md border border-line bg-white p-3"><dt>Channel</dt><dd className="font-medium capitalize text-ink">{c.channel}</dd></div>
         <div className="rounded-md border border-line bg-white p-3"><dt>Status</dt><dd className="font-medium capitalize text-ink">{c.status.replace(/_/g, ' ')}</dd></div>
       </dl>
+      <Card className="mt-4">
+        <h2 className="font-semibold">{c.consultation_mode === 'hospital' ? 'Hospital consultation' : 'Remote consultation'}</h2>
+        <p className="mt-2">{c.consultation_mode === 'hospital'
+          ? `Patient attends ${c.facility_name ?? 'the selected hospital'} in person. No consultation fee.`
+          : `${c.modality === 'voice' ? 'Audio call' : c.modality === 'video' ? 'Video call' : 'Live chat'} · Consultation fee: ${c.consultation_fee_amount == null ? 'See consultation bill' : `TZS ${c.consultation_fee_amount.toLocaleString()}`}`}</p>
+      </Card>
 
+      {c.consultation_mode === 'remote' && ['voice', 'video'].includes(c.modality) && ['matched', 'in_progress'].includes(c.status) && <ConsultationCall consultationId={c.id} video={c.modality === 'video'} />}
       <MessageThread
         careThreadId={c.care_thread_id}
         meId={session.user?.id ?? ''}
@@ -71,7 +79,8 @@ export default async function CasePage({ params }: { params: { consultation_id: 
         </div>
         <OrderInvestigation careThreadId={c.care_thread_id} consultationId={c.id} />
         <ReferForOpinion careThreadId={c.care_thread_id} />
-        <BillIssuer consultationId={c.id} />
+        {c.consultation_mode === 'remote' && !c.consultation_fee_policy && <BillIssuer consultationId={c.id} />}
+        {c.consultation_mode === 'remote' && c.consultation_fee_policy && <p className="text-sm text-ink-soft">The consultation bill was issued when this case was accepted. The patient can pay from Bills in the app.</p>}
       </div>
     </PageShell>
   );

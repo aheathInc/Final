@@ -54,6 +54,32 @@ The launcher starts PostgreSQL only if it finds the configured isolated cluster 
 
 The 25 backend services occupy ports 4001–4025; the complete port and readiness matrix is in [local-dev-readiness.md](local-dev-readiness.md).
 
+## Laboratory workflow
+
+After applying migrations and seeding the local role accounts, run
+`pnpm seed:local:lab` from the repository root. It only accepts the isolated
+development database on `127.0.0.1:55432`. It creates a marked demo laboratory,
+assigns `lab-tech@dev.local`, and adds two synthetic orders for the local demo
+patient and doctor. Repeating it preserves existing order states and revoked
+memberships; it does not reset results or passwords.
+
+- Staff Web `/lab`: sign in as the lab technician, open an assigned order,
+  confirm the sample was received, then enter and submit the report values.
+- Doctor case page: choose a **Destination laboratory** when ordering an
+  investigation. An unassigned order remains clinician-managed. The ordering
+  clinician reviews and acknowledges submitted results in Diagnostics.
+- Platform admin → Facilities → facility details: **Laboratory staff access**
+  grants or revokes access by the active lab technician's email. Facility
+  administrators cannot grant laboratory access.
+
+Lab access is limited to laboratory, pathology and point-of-care orders sent
+to an active facility with an active membership. Revocation, inactive users,
+and inactive facilities remove access. Result filing uses order versions and
+transactions to reject stale or duplicate reports; filing and acknowledgement
+are separate audited actions. Reports cannot be edited after submission in
+this workflow. The report author supplies applicable ranges; the software does
+not select reference ranges or interpret qualitative findings.
+
 ## Patient Mobile
 
 Use a physical Android phone over Wi-Fi; an emulator is not required. Enable Developer options > Wireless debugging. Pair this computer once using the temporary pairing address/code shown on the phone, then connect using the phone's separate wireless-debugging connection address:

@@ -30,7 +30,7 @@ export function assertIsolatedLocalTestTarget(
   const schemas = url.searchParams.getAll('schema');
   const schema = schemas[0] ?? '';
   const testSchema = schema === 'ahp_test' || /^ahp_test_[a-z0-9_]+$/.test(schema);
-  const acceptedTarget = (database === 'ahealth_test' && schema === 'public') ||
+  const acceptedTarget = (database === 'ahealth_test' && (schema === 'public' || testSchema)) ||
     (database === 'ahealth_dev' && testSchema);
   const supportedOptions = [...url.searchParams].every(([key, value]) =>
     (key === 'schema' && value === schema && (value === 'public' || testSchema)) ||

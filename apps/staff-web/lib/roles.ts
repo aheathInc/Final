@@ -4,6 +4,7 @@ import { authOptions } from './auth';
 
 export const ROLE_HOME: Record<string, string> = {
   clinician: '/doctor/queue',
+  lab_technician: '/lab',
   pharmacist: '/pharmacy',
   dispatcher: '/admin/emergency',
   facility_admin: '/admin/facilities',

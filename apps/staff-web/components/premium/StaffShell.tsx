@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Keyb
 import { activeHref, navigationFor, roleLabel, type NavigationGroup } from '@/lib/premium/navigation';
 import { DisplayPreferences } from './DisplayPreferences';
 import { Icon } from './Icon';
+import { BrandMark } from './BrandMark';
 
 // Native modal semantics provide background inertness; wrap boundary tab stops
 // explicitly so keyboard focus does not move to browser chrome in Chromium.
@@ -19,7 +20,7 @@ function modalKeys(event: ReactKeyboardEvent<HTMLDialogElement>, close: () => vo
  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 }
 
-function Brand() { return <Link href="/" className="ahp-brand" aria-label="A-Health home"><span className="ahp-brand-mark"><Icon name="heart" size={22}/></span><span className="ahp-brand-name">A-Health</span></Link>; }
+function Brand() { return <Link href="/" className="ahp-brand" aria-label="A-Health home"><span className="ahp-brand-mark"><BrandMark/></span><span className="ahp-brand-name">A-Health</span></Link>; }
 function Navigation({groups,path,collapsed,onNavigate}:{groups:NavigationGroup[];path:string;collapsed:boolean;onNavigate?:()=>void}) {
  return <nav aria-label="Staff navigation" className="ahp-nav">{groups.map((group,i)=>
   <details className="ahp-nav-group" key={group.label} open={i===0||group.items.some(x=>activeHref(path,x.href))||collapsed}>

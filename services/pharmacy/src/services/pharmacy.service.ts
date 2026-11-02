@@ -1,5 +1,5 @@
 import { prisma } from '@a-health/database';
-import { cursorArgs, toCursorPage } from '@a-health/http';
+import { toCursorPage } from '@a-health/http';
 
 function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const R = 6371;
@@ -35,7 +35,7 @@ export async function listPharmacies(query: {
     // on every read, not just at onboarding.
     where: { isVerified: true, isActive: true },
     orderBy: { name: 'asc' },
-    ...cursorArgs(query.cursor, query.limit),
+
   });
 
   const withDistance = rows.map((p) => ({
@@ -53,8 +53,9 @@ export async function listPharmacies(query: {
 
   filtered.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
 
+  const start = query.cursor ? filtered.findIndex(x => x.row.id === query.cursor) + 1 : 0;
   return toCursorPage(
-    filtered.map((x) => x.row),
+    filtered.slice(start, start + query.limit + 1).map((x) => x.row),
     query.limit,
     (row) => serialisePharmacy(row, filtered.find((x) => x.row.id === row.id)?.distance),
   );
@@ -74,11 +75,10 @@ export async function searchMedication(input: {
   const stock = await prisma.pharmacyStock.findMany({
     where: {
       medicationName: { contains: input.medication_name, mode: 'insensitive' },
-      stockStatus: { not: 'out_of_stock' },
       pharmacy: { isVerified: true, isActive: true },
     },
     include: { pharmacy: true },
-    take: 200,
+
   });
 
   const withDistance = stock
@@ -95,12 +95,17 @@ export async function searchMedication(input: {
       : a.stock.pharmacy.name.localeCompare(b.stock.pharmacy.name));
 
   return {
-    data: withDistance.map(({ stock: s, distance }) => ({
+    data: withDistance.slice(0,200).map(({ stock: s, distance }) => {
+      const fresh=Date.now()-s.lastReportedAt.getTime()<=24*60*60*1000 && s.lastReportedAt.getTime()<=Date.now();
+      const reliable=fresh && s.quantityOnHand!==null && ((['in_stock','low_stock'].includes(s.stockStatus) && s.quantityOnHand>0) || (s.stockStatus==='out_of_stock' && s.quantityOnHand===0));
+      return ({
       pharmacy: serialisePharmacy(s.pharmacy, distance),
       medication_name: s.medicationName,
-      stock_status: s.stockStatus,
-      quantity_on_hand: s.quantityOnHand,
-      fulfillment_status: s.quantityOnHand == null
+      stock_status: reliable ? s.stockStatus : 'unknown',
+      inventory_fresh: fresh,
+      availability_note: reliable ? 'Reported by pharmacy; confirm before travelling.' : 'Availability not confirmed. Contact the pharmacy.',
+      quantity_on_hand: reliable ? s.quantityOnHand : null,
+      fulfillment_status: !reliable || s.quantityOnHand == null
         ? 'unknown'
         : s.quantityOnHand <= 0
           ? 'unavailable'
@@ -112,6 +117,8 @@ export async function searchMedication(input: {
       // Stock data ages fast. A stale figure sends someone on a journey for
       // nothing, so the age travels with the answer.
       last_reported_at: s.lastReportedAt.toISOString(),
-    })),
+    });}),
+    truncated: withDistance.length>200,
+    freshness_hours:24,
   };
 }

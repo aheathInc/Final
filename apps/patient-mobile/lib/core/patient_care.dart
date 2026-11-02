@@ -1,3 +1,4 @@
+import 'l10n.dart';
 import 'api.dart';
 
 typedef PatientGet = Future<dynamic> Function(
@@ -25,8 +26,9 @@ class ConsultationRecord {
   final Map<String, dynamic> data;
 
   factory ConsultationRecord.fromJson(dynamic value) {
-    if (value is! Map)
+    if (value is! Map) {
       throw const FormatException('Consultation response is invalid.');
+    }
     final data = Map<String, dynamic>.from(value);
     if (data['id'] is! String || data['care_thread_id'] is! String) {
       throw const FormatException(
@@ -50,21 +52,21 @@ class ConsultationRecord {
 String consultationStatusLabel(String status) {
   switch (status) {
     case 'pending':
-      return 'Ombi limepokelewa; linasubiri kupangiwa daktari';
+      return L.tr('Ombi limepokelewa; linasubiri kupangiwa daktari');
     case 'offered':
-      return 'Ombi linapelekwa kwa madaktari';
+      return L.tr('Ombi linapelekwa kwa madaktari');
     case 'matched':
-      return 'Daktari amekubali ombi';
+      return L.tr('Daktari amekubali ombi');
     case 'in_progress':
-      return 'Mazungumzo ya matibabu yanaendelea';
+      return L.tr('Mazungumzo ya matibabu yanaendelea');
     case 'escalated':
-      return 'Ombi limepelekwa kwa hatua ya juu';
+      return L.tr('Ombi limepelekwa kwa hatua ya juu');
     case 'completed':
-      return 'Ushauri umekamilika';
+      return L.tr('Ushauri umekamilika');
     case 'cancelled':
-      return 'Ombi limeghairiwa';
+      return L.tr('Ombi limeghairiwa');
     default:
-      return 'Hali ya ombi: $status';
+      return L.tr("Hali ya ombi: {0}", [status]);
   }
 }
 
@@ -129,7 +131,8 @@ Map<String, dynamic> profileClinicalUpdateBody({
     };
 
 class PatientCareRepository {
-  PatientCareRepository({PatientGet? get, PatientDurablePost? durablePost, PatientPost? post})
+  PatientCareRepository(
+      {PatientGet? get, PatientDurablePost? durablePost, PatientPost? post})
       : _get = get ?? Api.get,
         _durablePost = durablePost ?? Api.postDurable,
         _post = post ?? Api.post;
@@ -137,6 +140,10 @@ class PatientCareRepository {
   final PatientGet _get;
   final PatientDurablePost _durablePost;
   final PatientPost _post;
+
+  Future<Map<String, dynamic>> consultationOptions() async => patientCareRecord(
+      await _get('/consultations/options'),
+      'Consultation options are unavailable.');
 
   Future<ConsultationRecord> createConsultation({
     required String opId,
@@ -153,15 +160,17 @@ class PatientCareRepository {
 
   Future<Map<String, dynamic>> queueStatus(String consultationId) async {
     final response = await _get('/consultations/$consultationId/queue-status');
-    if (response is! Map)
+    if (response is! Map) {
       throw const FormatException('Queue status response is invalid.');
+    }
     return Map<String, dynamic>.from(response);
   }
 
   Future<Map<String, dynamic>> signedNote(String consultationId) async {
     final response = await _get('/consultations/$consultationId/note');
-    if (response is! Map)
+    if (response is! Map) {
       throw const FormatException('Consultation note response is invalid.');
+    }
     return Map<String, dynamic>.from(response);
   }
 
@@ -175,30 +184,36 @@ class PatientCareRepository {
     return patientCareRows(response);
   }
 
-  Future<Map<String, dynamic>> prescriptionFulfillment(String prescriptionId) async {
+  Future<Map<String, dynamic>> prescriptionFulfillment(
+      String prescriptionId) async {
     final response = await _get('/prescriptions/$prescriptionId/fulfillment');
-    return patientCareRecord(response, 'Prescription fulfilment response is invalid.');
+    return patientCareRecord(
+        response, 'Prescription fulfilment response is invalid.');
   }
 
   /// The opaque reference is held in screen memory only; it is never cached offline.
-  Future<Map<String, dynamic>> createPrescriptionHandoff(String prescriptionId) async {
+  Future<Map<String, dynamic>> createPrescriptionHandoff(
+      String prescriptionId) async {
     final key = 'handoff-${DateTime.now().microsecondsSinceEpoch}';
     final response = await _post(
       '/prescriptions/$prescriptionId/dispense-code',
       const <String, dynamic>{},
       idempotencyKey: key,
     );
-    return patientCareRecord(response, 'Prescription handoff response is invalid.');
+    return patientCareRecord(
+        response, 'Prescription handoff response is invalid.');
   }
 
-  Future<Map<String, dynamic>> revokePrescriptionHandoff(String prescriptionId) async {
+  Future<Map<String, dynamic>> revokePrescriptionHandoff(
+      String prescriptionId) async {
     final key = 'revoke-${DateTime.now().microsecondsSinceEpoch}';
     final response = await _post(
       '/prescriptions/$prescriptionId/dispense-code/revoke',
       const <String, dynamic>{},
       idempotencyKey: key,
     );
-    return patientCareRecord(response, 'Prescription handoff response is invalid.');
+    return patientCareRecord(
+        response, 'Prescription handoff response is invalid.');
   }
 
   Future<List<Map<String, dynamic>>> appointments() async {
@@ -327,8 +342,9 @@ class PatientCareRepository {
 
   Future<Map<String, dynamic>> careThread(String careThreadId) async {
     final response = await _get('/care-threads/$careThreadId');
-    if (response is! Map)
+    if (response is! Map) {
       throw const FormatException('Care thread response is invalid.');
+    }
     return Map<String, dynamic>.from(response);
   }
 
@@ -341,13 +357,25 @@ class PatientCareRepository {
   }
 
   Future<List<Map<String, dynamic>>> threadMessages(String careThreadId) async {
-    final response = await _get(
-      '/care-threads/$careThreadId/messages',
-      query: {'limit': 100},
-    );
-    final data = response is Map ? response['data'] : null;
-    if (data is! List) return const [];
-    return data.whereType<Map>().map(Map<String, dynamic>.from).toList();
+    final messages = <Map<String, dynamic>>[];
+    final seen = <String>{};
+    String? cursor;
+    do {
+      final response = await _get(
+        '/care-threads/$careThreadId/messages',
+        query: {'limit': 100, if (cursor != null) 'cursor': cursor},
+      );
+      final data = response is Map ? response['data'] : null;
+      if (data is! List) {
+        throw const FormatException('Invalid conversation messages');
+      }
+      messages.addAll(data.whereType<Map>().map(Map<String, dynamic>.from));
+      cursor = (response['meta'] as Map?)?['next_cursor'] as String?;
+      if (cursor != null && !seen.add(cursor)) {
+        throw const FormatException('Invalid conversation cursor');
+      }
+    } while (cursor != null);
+    return messages;
   }
 
   Future<dynamic> sendMessage({

@@ -57,6 +57,11 @@ export function QueueCard({
       <p className="mt-2 text-[0.95rem] leading-snug">
         {entry.consultation.symptom_text || 'No symptom text provided.'}
       </p>
+      <p className="mt-3 font-medium text-sm">
+        {entry.consultation.consultation_mode === 'hospital'
+          ? `Hospital · ${entry.consultation.facility_name ?? 'In person'} · No consultation fee`
+          : `Remote · ${entry.consultation.modality === 'voice' ? 'Audio call' : entry.consultation.modality === 'video' ? 'Video call' : 'Chat'} · ${entry.consultation.consultation_fee_amount == null ? 'TZS 5,000 general / 8,000 specialist' : `TZS ${entry.consultation.consultation_fee_amount.toLocaleString()}`}`}
+      </p>
 
       {/*
         Only what the contract permits before acceptance: an age band, never a

@@ -5,17 +5,50 @@ their treatment, and get help in an emergency.
 
 ## Running it
 
-The platform folders are not in this repository. Generate them once, then run:
+The Android and iOS platform folders are already included. From the repository
+root:
 
 ```bash
-cd apps/patient_app
-flutter create .          # creates android/ ios/ for this package
+cd apps/patient-mobile
 flutter pub get
 flutter run
 ```
 
+### Android over USB (local backend)
+
+Start the backend with `pnpm dev:local` from the repository root. Connect the
+phone, enable USB debugging, and accept its debugging prompt. In PowerShell,
+use the device serial shown by `adb devices -l`:
+
+```powershell
+$deviceSerial = '<DEVICE_SERIAL>'
+foreach ($port in 4001..4025) {
+  adb -s $deviceSerial reverse "tcp:$port" "tcp:$port"
+}
+cd apps/patient-mobile
+flutter run -d $deviceSerial --dart-define=API_HOST=127.0.0.1
+```
+
+USB forwarding connects the phone's loopback ports to this computer's backend;
+Wi-Fi is not required. Keep USB connected and repeat the forwarding commands
+after reconnecting the phone or restarting ADB. Debug installs use the package
+`com.example.a_health_patient.debug`. The local login screen offers
+`Ingia kama tester wa ndani`, which requests and verifies a real development
+OTP for the seeded local patient; it requires local OTP echo on the backend.
+
+To verify the live backend from the connected phone, run from this directory:
+
+```powershell
+flutter test integration_test/patient_ai_navigation_live_test.dart -d $deviceSerial --dart-define=API_HOST=127.0.0.1
+```
+
+Run the normal `flutter run` command again afterward to restore the app entry
+point in place of the test runner.
+
+### Android over Wi-Fi
+
 An Android emulator reaches your machine on `10.0.2.2`, not `localhost`.
-A real phone must use your computer's LAN IP, for example:
+A real phone connecting over Wi-Fi uses your computer's LAN IP, for example:
 
 ```bash
 flutter run --dart-define=API_HOST=192.168.1.14

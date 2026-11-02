@@ -20,7 +20,7 @@ function load(session){
   if(!Object.hasOwn(deps,s))throw new Error('Unconfigured collaborator');return deps[s];
  },m,m.exports);return m.exports;
 }
-for(const [role,home] of Object.entries({clinician:'/doctor/queue',pharmacist:'/pharmacy',platform_admin:'/admin/dashboard',dispatcher:'/admin/emergency',facility_admin:'/admin/facilities',researcher:'/analytics/research'})){
+for(const [role,home] of Object.entries({clinician:'/doctor/queue',lab_technician:'/lab',pharmacist:'/pharmacy',platform_admin:'/admin/dashboard',dispatcher:'/admin/emergency',facility_admin:'/admin/facilities',researcher:'/analytics/research'})){
  test(`${role} resolves to the existing role-specific home`,()=>assert.equal(load(null).homeForRole(role),home));
 }
 for(const role of [undefined,null,'','unknown','patient','__proto__','constructor','toString']){
@@ -37,4 +37,23 @@ test('Doctor cannot inherit pharmacy route permission',async()=>{
 });
 test('explicitly allowed session is returned unchanged',async()=>{
  const session={user:{role:'pharmacist'}};assert.equal(await load(session).requireRole(['pharmacist']),session);
+});
+
+test('lab technician reaches the lab layout with its own role',async()=>{
+ const session={user:{role:'lab_technician'}};
+ assert.equal(await load(session).requireRole(['lab_technician']),session);
+});
+
+for(const role of ['clinician','platform_admin','pharmacist']){
+ test(`${role} cannot enter the laboratory layout`,async()=>{
+  const roles=load({user:{role}});
+  await assert.rejects(roles.requireRole(['lab_technician']),e=>e.destination===roles.homeForRole(role));
+ });
+}
+
+test('lab technician cannot inherit clinician or administrator access',async()=>{
+ const roles=load({user:{role:'lab_technician'}});
+ for(const allowed of [['clinician'],['platform_admin'],['pharmacist']]){
+  await assert.rejects(roles.requireRole(allowed),e=>e.destination==='/lab');
+ }
 });

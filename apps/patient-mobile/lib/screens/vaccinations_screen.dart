@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -55,19 +56,20 @@ class _VaccinationsScreenState extends State<VaccinationsScreen> {
   String _date(Object? raw) {
     final value = DateTime.tryParse(raw as String? ?? '');
     return value == null
-        ? 'Tarehe haijatajwa'
+        ? L.tr('Tarehe haijatajwa')
         : DateFormat('d MMM y').format(value.toLocal());
   }
 
   @override
   Widget build(BuildContext context) {
+    Localizations.localeOf(context);
     final due = _rows
         .where((v) => v['status'] == 'due' || v['status'] == 'overdue')
         .toList();
     final given = _rows.where((v) => v['status'] == 'administered').toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text(S.vaccinations)),
+      appBar: AppBar(title: Text(S.vaccinations)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -79,9 +81,9 @@ class _VaccinationsScreenState extends State<VaccinationsScreen> {
                     Notice(_error!),
                     const SizedBox(height: 16),
                   ],
-                  const SectionTitle('Zinazosubiri'),
+                  SectionTitle(L.tr('Zinazosubiri')),
                   if (due.isEmpty)
-                    const Empty('Hakuna chanjo inayosubiri.')
+                    Empty(L.tr('Hakuna chanjo inayosubiri.'))
                   else
                     ...due.map(
                       (v) => Padding(
@@ -94,7 +96,8 @@ class _VaccinationsScreenState extends State<VaccinationsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${v['vaccine_code']} · dozi ${v['dose_number']}',
+                                L.tr("{0} · dozi {1}",
+                                    [v['vaccine_code'], v['dose_number']]),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
@@ -102,8 +105,9 @@ class _VaccinationsScreenState extends State<VaccinationsScreen> {
                               ),
                               Text(
                                 v['status'] == 'overdue'
-                                    ? 'Muda umepita — nenda kituo cha afya'
-                                    : 'Inasubiri',
+                                    ? L.tr(
+                                        'Muda umepita — nenda kituo cha afya')
+                                    : L.tr('Inasubiri'),
                                 style: TextStyle(
                                   color: v['status'] == 'overdue'
                                       ? AppColors.clay
@@ -111,7 +115,7 @@ class _VaccinationsScreenState extends State<VaccinationsScreen> {
                                 ),
                               ),
                               Text(
-                                'Inahitajika: ${_date(v['due_at'])}',
+                                L.tr("Inahitajika: {0}", [_date(v['due_at'])]),
                                 style: const TextStyle(
                                   color: AppColors.inkSoft,
                                 ),
@@ -123,7 +127,7 @@ class _VaccinationsScreenState extends State<VaccinationsScreen> {
                     ),
                   if (given.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    const SectionTitle('Ulizopata'),
+                    SectionTitle(L.tr('Ulizopata')),
                     ...given.map((v) {
                       final at = DateTime.tryParse(
                         v['administered_at'] as String? ?? '',
@@ -140,7 +144,8 @@ class _VaccinationsScreenState extends State<VaccinationsScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                '${v['vaccine_code']} · dozi ${v['dose_number']}',
+                                L.tr("{0} · dozi {1}",
+                                    [v['vaccine_code'], v['dose_number']]),
                               ),
                             ),
                             if (at != null)

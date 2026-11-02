@@ -19,7 +19,10 @@ petrol, mint and warm-paper identity. Premium styling must make patient tasks
 easier to find without changing what a workflow means or what the service
 reports.
 
-The interface follows the system appearance with a dedicated dark palette.
+The patient can select Kiswahili, English or French for the authored interface;
+Kiswahili is the default. Appearance offers System, Light and Dark, with System
+as the default and the existing dedicated dark palette retained. Both choices
+persist on the device, work offline and apply without restarting the app.
 Aurora gradients, refined Bento Cards, readable typography, restrained motion,
 responsive navigation and accessibility remain part of the approved direction.
 
@@ -35,8 +38,8 @@ Core experience principles:
   queued changes stay marked as pending until the server confirms them.
 - Keep authentication, API ownership, consent, emergency and clinical safety
   behavior in their existing flows.
-- Prefer short Swahili labels and familiar Material controls with accessible
-  touch areas.
+- Prefer concise labels in the patient's selected interface language and
+  familiar Material controls with accessible touch areas.
 
 ## Current workflows
 
@@ -46,6 +49,12 @@ requests; medicines; diagnostics; check-ins; screening; vaccinations; family
 and dependant services; education; referrals; care continuity; front desk;
 health history; consent and privacy; feedback; insurance and payments; and
 profile management. Consultation conversations open from their related visit.
+
+Language and appearance settings are reachable from Profile and the login
+globe icon before authentication. Interface translation preserves clinical
+records, patient/clinician-authored content and parameter values; server-authored
+medical articles remain in their source language. The profile's preferred
+communication language is separate account metadata, not the device UI setting.
 
 The Patient App currently uses Dio/REST, secure session storage, SQLite,
 connectivity state and an offline outbox. It does not currently depend on

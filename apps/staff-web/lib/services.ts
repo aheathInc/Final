@@ -16,6 +16,8 @@
 interface Route { pattern: string; env: string; port: number }
 
 const ROUTES: Route[] = [
+  { pattern:'/care-threads/*/communication-consent',env:'MESSAGING_SERVICE_URL',port:4006 },
+  { pattern: '/patient-platform', env: 'NETWORK_SERVICE_URL', port: 4017 },
   { pattern: '/users/me/dependents', env: 'PATIENT_SERVICE_URL', port: 4002 },
   { pattern: '/patient-profiles/*/risk-scores', env: 'PREVENTION_SERVICE_URL', port: 4024 },
   { pattern: '/patient-profiles/*/vaccinations', env: 'PREVENTION_SERVICE_URL', port: 4024 },
@@ -50,6 +52,7 @@ const ROUTES: Route[] = [
   { pattern: '/dispensing', env: 'PHARMACY_SERVICE_URL', port: 4011 },
   { pattern: '/payments', env: 'PAYMENT_SERVICE_URL', port: 4012 },
   { pattern: '/investigation-orders', env: 'DIAGNOSTICS_SERVICE_URL', port: 4013 },
+  { pattern: '/laboratory', env: 'DIAGNOSTICS_SERVICE_URL', port: 4013 },
   { pattern: '/incident-reports', env: 'QUALITY_SERVICE_URL', port: 4014 },
   { pattern: '/families', env: 'FAMILIES_SERVICE_URL', port: 4015 },
   { pattern: '/education', env: 'EDUCATION_SERVICE_URL', port: 4016 },

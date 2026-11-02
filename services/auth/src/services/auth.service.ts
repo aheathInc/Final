@@ -2,6 +2,7 @@ import { prisma, type Prisma } from '@a-health/database';
 import { sendSms } from '@a-health/http/sms';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'node:crypto';
+import { startEnrollment } from './enrollment.service.js';
 import { env, otpSmsSettings } from '../config/env.js';
 import { signAccessToken } from '../utils/jwt.js';
 import {
@@ -167,6 +168,7 @@ export async function registerPatient(input: RegisterPatientInput, meta: Request
       data: {
         phoneNumber: input.phone_number,
         role: 'patient',
+        onboardingRequired: true,
         status: 'pending_verification',
         fullName: input.full_name ?? null,
         preferredLanguage: input.preferred_language,
@@ -303,7 +305,7 @@ export async function verifyOtp(
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`otp-user:${challenge.phoneNumber}`},0))`;
     let user = await tx.user.findUnique({where:{phoneNumber:challenge.phoneNumber},include:{patientProfile:true,clinicianProfile:true}});
     if (!user) {
-      const created=await tx.user.create({data:{phoneNumber:challenge.phoneNumber,role:'patient',status:'active',fullName:null,preferredLanguage:'sw'}});
+      const created=await tx.user.create({data:{phoneNumber:challenge.phoneNumber,role:'patient',status:'pending_verification',onboardingRequired:true,fullName:null,preferredLanguage:'sw'}});
       const profile=await tx.patientProfile.create({data:{userId:created.id,fullName:'Patient'}});
       await recordChange(tx,{entity:'patient_profiles',entityId:profile.id,op:'create',version:profile.version,patientProfileId:profile.id});
       user=await tx.user.findUniqueOrThrow({where:{id:created.id},include:{patientProfile:true,clinicianProfile:true}});
@@ -313,6 +315,10 @@ export async function verifyOtp(
       return {error:forbidden('FORBIDDEN','This account is not active')};
     }
     await tx.otpChallenge.update({where:{id:challenge.id},data:{consumedAt:new Date()}});
+    if (user.role === 'patient' && user.onboardingRequired) {
+      await appendAudit({actorUserId:user.id,action:'auth.registration_phone_verified',entityType:'users',entityId:user.id,ipAddress:meta.ip,requestId:meta.requestId},tx);
+      return {session: await startEnrollment(tx, user.id)};
+    }
     if (user.status==='pending_verification' && user.role==='patient') {
       await tx.user.update({where:{id:user.id},data:{status:'active',version:{increment:1}}}); user.status='active';
     }
@@ -412,7 +418,7 @@ type UserWithProfiles = {
   clinicianProfile?: { id: string; verificationStatus: string } | null;
 };
 
-async function issueSession(
+export async function issueSession(
   user: UserWithProfiles,
   deviceId?: string,
   familyId: string = randomUUID(),
@@ -426,6 +432,7 @@ async function issueSession(
       userId: user.id,
       tokenHash: sha256(refreshToken),
       familyId,
+      authMethod: amr,
       deviceId: deviceId ?? null,
       expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 86_400_000),
     },
@@ -491,13 +498,14 @@ export async function refreshSession(presented: string, meta: RequestMeta) {
   if (record.user.status !== 'active') {
     throw forbidden('FORBIDDEN', 'This account is not active');
   }
+  if (record.user.onboardingRequired) throw forbidden('REGISTRATION_REQUIRED', 'Complete registration first.');
 
   await prisma.refreshToken.update({
     where: { id: record.id },
     data: { usedAt: new Date() },
   });
 
-  return issueSession(record.user, record.deviceId ?? undefined, record.familyId);
+  return issueSession(record.user, record.deviceId ?? undefined, record.familyId, record.authMethod === 'otp' ? 'otp' : 'password');
 }
 
 export async function logout(userId: string, deviceId: string | undefined, meta: RequestMeta) {
@@ -682,9 +690,8 @@ export async function setPassword(
 ): Promise<void> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
-  if (user.role === 'patient') {
-    throw forbidden('ROLE_NOT_PERMITTED', 'Patient accounts sign in with a code, not a password');
-  }
+  if (user.status !== 'active' || user.onboardingRequired) throw forbidden('REGISTRATION_REQUIRED', 'Complete registration first.');
+  if (Buffer.byteLength(newPassword, 'utf8') > 72) throw new AppError('PASSWORD_TOO_LONG', 422, 'Password must be at most 72 UTF-8 bytes.');
 
   if (user.passwordHash && amr !== 'otp') {
     if (!currentPassword) {

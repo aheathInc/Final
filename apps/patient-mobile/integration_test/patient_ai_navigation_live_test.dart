@@ -32,7 +32,7 @@ Future<Map<String, dynamic>> _createSyntheticPatient(String label) async {
       'phone_number': '+2557$suffix',
       'full_name': 'AHP Synthetic Patient $label',
       'preferred_language': 'en',
-      'channel': 'app',
+      'channel': 'sms',
     },
     idempotencyKey: PatientAiRepository.newIdempotencyKey('register-$label'),
   ) as Map;

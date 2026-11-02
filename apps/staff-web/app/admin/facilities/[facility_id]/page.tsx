@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { serverGet } from '@/lib/serverToken';
 import type { Facility } from '@/lib/api';
 import { Empty, Notice, PageHeader } from '@/components/ui';
+import { LaboratoryMembers } from '@/components/LaboratoryMembers';
 
 interface Department { id: string; name: string; specialty: string | null }
 interface QueueInfo { integration_level: string; providers: { name: string; waiting: number }[] }
@@ -48,6 +49,8 @@ export default async function FacilityPage({ params }: { params: { facility_id: 
           </ul>
         )}
       </section>
+
+      {session.user?.role === 'platform_admin' && ['hospital', 'clinic', 'laboratory'].includes(facility.type) && <LaboratoryMembers facilityId={id} />}
 
       <section className="mt-10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">Foleni ya kituo</h2>

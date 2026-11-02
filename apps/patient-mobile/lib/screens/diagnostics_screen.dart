@@ -1,3 +1,4 @@
+import '../core/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -39,7 +40,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
           _loading = false;
           _error = e is ApiException
               ? e.message
-              : 'Imeshindikana kupakia majibu.';
+              : L.tr('Imeshindikana kupakia majibu.');
         });
     }
   }
@@ -47,63 +48,67 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   String _date(String? value) {
     final date = DateTime.tryParse(value ?? '');
     return date == null
-        ? 'Tarehe haijulikani'
+        ? L.tr('Tarehe haijulikani')
         : DateFormat('d MMM yyyy, HH:mm').format(date.toLocal());
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Vipimo na majibu')),
-    body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : RefreshIndicator(
-            onRefresh: _load,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (_error != null) Notice(_error!),
-                if (_orders.isEmpty)
-                  const Empty(
-                    'Hakuna kipimo kilichoagizwa kwenye rekodi zako.',
-                  ),
-                ..._orders.map(
-                  (o) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Panel(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              _DiagnosticDetail(orderId: o['id'] as String),
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Vipimo na majibu'))),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (_error != null) Notice(_error!),
+                  if (_orders.isEmpty)
+                    Empty(
+                      L.tr('Hakuna kipimo kilichoagizwa kwenye rekodi zako.'),
+                    ),
+                  ..._orders.map(
+                    (o) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Panel(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                _DiagnosticDetail(orderId: o['id'] as String),
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            o['investigation_code'] as String? ??
-                                o['investigation_type'] as String? ??
-                                'Kipimo',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              o['investigation_code'] as String? ??
+                                  o['investigation_type'] as String? ??
+                                  L.tr('Kipimo'),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${o['status'] ?? 'haijulikani'} • ${_date(o['ordered_at'] as String?)}',
-                            style: const TextStyle(color: AppColors.inkSoft),
-                          ),
-                          if (o['resulted_at'] != null)
-                            Text('Jibu: ${_date(o['resulted_at'] as String?)}'),
-                        ],
+                            Text(
+                              '${o['status'] ?? 'haijulikani'} • ${_date(o['ordered_at'] as String?)}',
+                              style: const TextStyle(color: AppColors.inkSoft),
+                            ),
+                            if (o['resulted_at'] != null)
+                              Text(L.tr("Jibu: {0}",
+                                  [_date(o['resulted_at'] as String?)])),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-  );
+    );
+  }
 }
 
 class _DiagnosticDetail extends StatefulWidget {
@@ -119,64 +124,71 @@ class _DiagnosticDetailState extends State<_DiagnosticDetail> {
   @override
   void initState() {
     super.initState();
-    PatientCareRepository()
-        .investigationOrder(widget.orderId)
-        .then((v) {
-          if (mounted) setState(() => _order = v);
-        })
-        .catchError((Object e) {
-          if (mounted)
-            setState(
-              () => _error = e is ApiException
-                  ? e.message
-                  : 'Imeshindikana kupakia kipimo.',
-            );
-        });
+    PatientCareRepository().investigationOrder(widget.orderId).then((v) {
+      if (mounted) setState(() => _order = v);
+    }).catchError((Object e) {
+      if (mounted)
+        setState(
+          () => _error = e is ApiException
+              ? e.message
+              : L.tr('Imeshindikana kupakia kipimo.'),
+        );
+    });
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Maelezo ya kipimo')),
-    body: _order == null
-        ? Center(
-            child: _error == null
-                ? const CircularProgressIndicator()
-                : Notice(_error!),
-          )
-        : ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                _order!['investigation_code'] as String? ?? 'Kipimo',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+  Widget build(BuildContext context) {
+    Localizations.localeOf(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(L.tr('Maelezo ya kipimo'))),
+      body: _order == null
+          ? Center(
+              child: _error == null
+                  ? const CircularProgressIndicator()
+                  : Notice(_error!),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  _order!['investigation_code'] as String? ?? L.tr('Kipimo'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                'Hali: ${_order!['status'] ?? ''} • ${_order!['investigation_type'] ?? ''}',
-              ),
-              if (_order!['narrative'] != null) ...[
-                const SectionTitle('Maelezo ya matokeo'),
-                Text(_order!['narrative'] as String),
+                Text(
+                  L.tr("Hali: {0} • {1}", [
+                    _order!['status'] ?? '',
+                    _order!['investigation_type'] ?? ''
+                  ]),
+                ),
+                if (_order!['narrative'] != null) ...[
+                  SectionTitle(L.tr('Maelezo ya matokeo')),
+                  Text(_order!['narrative'] as String),
+                ],
+                const SizedBox(height: 16),
+                SectionTitle(L.tr('Vipimo')),
+                ...((_order!['values'] as List? ?? []).whereType<Map>().map(
+                      (v) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          '${v['analyte'] ?? L.tr('Kipimo')}: ${v['value'] ?? '—'} ${v['unit'] ?? ''}',
+                        ),
+                        subtitle: Text(
+                          L.tr("Kiwango cha rejea: {0}–{1} • {2}", [
+                            v['reference_low'] ?? '—',
+                            v['reference_high'] ?? '—',
+                            v['flag'] ?? ''
+                          ]),
+                        ),
+                      ),
+                    )),
+                if ((_order!['values'] as List? ?? []).isEmpty &&
+                    _order!['narrative'] == null)
+                  Empty(L.tr('Matokeo bado hayajawekwa.')),
               ],
-              const SizedBox(height: 16),
-              const SectionTitle('Vipimo'),
-              ...((_order!['values'] as List? ?? []).whereType<Map>().map(
-                (v) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    '${v['analyte'] ?? 'Kipimo'}: ${v['value'] ?? '—'} ${v['unit'] ?? ''}',
-                  ),
-                  subtitle: Text(
-                    'Kiwango cha rejea: ${v['reference_low'] ?? '—'}–${v['reference_high'] ?? '—'} • ${v['flag'] ?? ''}',
-                  ),
-                ),
-              )),
-              if ((_order!['values'] as List? ?? []).isEmpty &&
-                  _order!['narrative'] == null)
-                const Empty('Matokeo bado hayajawekwa.'),
-            ],
-          ),
-  );
+            ),
+    );
+  }
 }

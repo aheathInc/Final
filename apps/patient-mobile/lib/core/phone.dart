@@ -3,7 +3,8 @@
 /// lose them at the first screen, so the conversion happens here.
 String? toE164(String input) {
   final digits = input.replaceAll(RegExp(r'\D'), '');
-  if (RegExp(r'^0[1-9]\d{8}$').hasMatch(digits)) return '+255${digits.substring(1)}';
+  if (RegExp(r'^0[1-9]\d{8}$').hasMatch(digits))
+    return '+255${digits.substring(1)}';
   if (RegExp(r'^255[1-9]\d{8}$').hasMatch(digits)) return '+$digits';
   if (RegExp(r'^[1-9]\d{8}$').hasMatch(digits)) return '+255$digits';
   return null;

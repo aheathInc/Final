@@ -11,7 +11,8 @@ export function serialiseProfile(p: {
   fullName: string; dateOfBirth: Date | null; sex: string | null;
   chronicConditions: unknown; allergies: unknown; emergencyContact: string | null;
   bloodType: string | null;
-  defaultLat: number | null; defaultLng: number | null; regionCode: string | null;
+  residence?: string | null; nextOfKinName?: string | null; nextOfKinPhone?: string | null;
+  defaultLat: number | null; defaultLng: number | null; regionCode: string | null; reportingAreaCode?: string | null;
   version: number; createdAt: Date; updatedAt: Date;
 }) {
   return {
@@ -21,6 +22,9 @@ export function serialiseProfile(p: {
     full_name: p.fullName,
     date_of_birth: p.dateOfBirth?.toISOString().slice(0, 10) ?? null,
     sex: p.sex,
+    residence: p.residence ?? null,
+    next_of_kin_name: p.nextOfKinName ?? null,
+    next_of_kin_phone: p.nextOfKinPhone ?? null,
     chronic_conditions: p.chronicConditions ?? [],
     allergies: p.allergies ?? [],
     emergency_contact: p.emergencyContact,
@@ -29,6 +33,7 @@ export function serialiseProfile(p: {
       ? { lat: p.defaultLat, lng: p.defaultLng }
       : null,
     region_code: p.regionCode,
+    reporting_area_code: p.reportingAreaCode ?? null,
     version: p.version,
     created_at: p.createdAt.toISOString(),
     updated_at: p.updatedAt.toISOString(),
@@ -61,6 +66,9 @@ export async function updateProfile(profileId: string, caller: Caller, input: Up
   if (current.version !== input.base_version) {
     throw conflict('VERSION_CONFLICT', 'This profile was changed elsewhere. Reload and retry.');
   }
+  if (input.reporting_area_code && !await prisma.reportingArea.findUnique({where:{code:input.reporting_area_code},select:{code:true}})) {
+    throw notFound('Reporting area not found. Select a registered administrative area.');
+  }
 
   const updated = await prisma.$transaction(async (tx) => {
     const row = await tx.patientProfile.update({
@@ -77,6 +85,7 @@ export async function updateProfile(profileId: string, caller: Caller, input: Up
           ? { defaultLat: input.default_location.lat, defaultLng: input.default_location.lng }
           : {}),
         ...(input.region_code !== undefined ? { regionCode: input.region_code } : {}),
+        ...(input.reporting_area_code !== undefined ? { reportingAreaCode:input.reporting_area_code } : {}),
         version: { increment: 1 },
       },
     });
